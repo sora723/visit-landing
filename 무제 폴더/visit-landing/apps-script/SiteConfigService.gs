@@ -1,0 +1,479 @@
+/**
+ * SiteConfigService.gs
+ * 콘텐츠관리 — 실시간 UI 설정 (하단 프로모, 예약 폼 옵션)
+ *
+ * Web App:
+ *   GET ?action=site.config&siteCode=L001
+ *
+ * Apps Script 편집기 (최초 1회):
+ *   runEnsureStickyPromoAndVerify()  — 전체 컬럼
+ *   runEnsureSiteThemeColumns()        — 컬러 컬럼만
+ *   ensureReservationFormColumns()
+ *   ensureStickyPromoTextColumn()
+ */
+
+var CONTENT_SHEET_NAME = '콘텐츠관리';
+
+var STICKY_PROMO_HEADER_ALIASES = [
+  'stickyPromoText',
+  '스티키프로모텍스트',
+  '하단프로모문구'
+];
+
+var UNIT_TYPE_OPTIONS_ALIASES = [
+  'unitTypeOptions',
+  '관심평형옵션',
+  '평형옵션'
+];
+
+var VISIT_DATE_DAYS_ALIASES = [
+  'visitDateDays',
+  '방문일자일수',
+  '방문예약일수'
+];
+
+var VISIT_DATE_OPTIONS_ALIASES = [
+  'visitDateOptions',
+  '방문일자옵션',
+  '방문예약일자옵션'
+];
+
+var UNIT_TYPE_ENABLED_ALIASES = [
+  'unitTypeEnabled',
+  '관심평형노출',
+  '평형노출'
+];
+
+var VISIT_DATE_ENABLED_ALIASES = [
+  'visitDateEnabled',
+  '방문일자노출',
+  '방문예약일자노출'
+];
+
+var MAIN_COLOR_ALIASES = [
+  'mainColor',
+  '메인컬러',
+  '메인색상',
+  '메인색'
+];
+
+var SUB_COLOR_ALIASES = [
+  'subColor',
+  '서브컬러',
+  '서브색상',
+  '서브색'
+];
+
+var ACCENT_COLOR_ALIASES = [
+  'accentColor',
+  '강조컬러',
+  '강조색상',
+  '포인트컬러',
+  '포인트색'
+];
+
+var DEFAULT_MAIN_COLOR = '#0f1d3a';
+var DEFAULT_SUB_COLOR = '#d7b56d';
+var DEFAULT_ACCENT_COLOR = '#caa85c';
+
+function parseBoolField_(value, defaultVal) {
+  if (value === undefined || value === null || value === '') return defaultVal;
+  if (typeof value === 'boolean') return value;
+  var v = String(value).trim().toUpperCase();
+  if (v === 'Y' || v === 'TRUE' || v === '1' || v === 'YES') return true;
+  if (v === 'N' || v === 'FALSE' || v === '0' || v === 'NO') return false;
+  return defaultVal;
+}
+
+function parsePipeList_(raw) {
+  if (raw === undefined || raw === null || raw === '') return [];
+  return String(raw)
+    .split(/[|,]/)
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+}
+
+function parsePositiveInt_(raw, defaultValue) {
+  var n = Number(raw);
+  if (!isFinite(n) || n <= 0) return defaultValue;
+  return Math.floor(n);
+}
+
+function formatVisitDateLabel_(dateStr) {
+  if (!dateStr) return '';
+  var parts = String(dateStr).trim().split('-');
+  if (parts.length !== 3) return String(dateStr);
+  var year = Number(parts[0]);
+  var month = Number(parts[1]);
+  var day = Number(parts[2]);
+  if (!year || !month || !day) return String(dateStr);
+  var d = new Date(year, month - 1, day);
+  if (isNaN(d.getTime())) return String(dateStr);
+  var days = ['일', '월', '화', '수', '목', '금', '토'];
+  return month + '월 ' + day + '일 (' + days[d.getDay()] + ')';
+}
+
+function buildVisitDateOptionsFromContent_(row, ext) {
+  var explicit = parsePipeList_(
+    getSiteField_(row, VISIT_DATE_OPTIONS_ALIASES)
+  );
+
+  if (!explicit.length && ext && ext.reservationForm) {
+    explicit = parsePipeList_(ext.reservationForm.visitDateOptions);
+  }
+
+  if (explicit.length) {
+    return explicit.map(function (value) {
+      return {
+        value: value,
+        label: formatVisitDateLabel_(value)
+      };
+    });
+  }
+
+  return null;
+}
+
+function getUnitTypeOptionsFromContentRow_(row, ext) {
+  var fromColumn = parsePipeList_(getSiteField_(row, UNIT_TYPE_OPTIONS_ALIASES));
+  if (fromColumn.length) return fromColumn;
+
+  if (ext && ext.reservationForm && ext.reservationForm.unitTypeOptions) {
+    var fromExt = ext.reservationForm.unitTypeOptions;
+    if (Array.isArray(fromExt)) {
+      return fromExt.map(function (v) { return String(v).trim(); }).filter(Boolean);
+    }
+    return parsePipeList_(fromExt);
+  }
+
+  return [];
+}
+
+function getVisitDateDaysFromContentRow_(row, ext) {
+  var fromColumn = getSiteField_(row, VISIT_DATE_DAYS_ALIASES);
+  if (fromColumn !== undefined && fromColumn !== null && fromColumn !== '') {
+    return parsePositiveInt_(fromColumn, 30);
+  }
+
+  if (ext && ext.reservationForm && ext.reservationForm.visitDateDays) {
+    return parsePositiveInt_(ext.reservationForm.visitDateDays, 30);
+  }
+
+  return 30;
+}
+
+function getUnitTypeEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, UNIT_TYPE_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, true);
+  }
+  if (ext && ext.reservationForm && ext.reservationForm.unitTypeEnabled !== undefined) {
+    return parseBoolField_(ext.reservationForm.unitTypeEnabled, true);
+  }
+  return true;
+}
+
+function getVisitDateEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, VISIT_DATE_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, true);
+  }
+  if (ext && ext.reservationForm && ext.reservationForm.visitDateEnabled !== undefined) {
+    return parseBoolField_(ext.reservationForm.visitDateEnabled, true);
+  }
+  return true;
+}
+
+function insertColumnBeforeHeader_(sheet, beforeHeader, newHeader) {
+  var map = getHeaderIndexMap_(sheet);
+  var col = map[beforeHeader];
+  if (col === undefined) {
+    throw createAppError_(
+      'INTERNAL_ERROR',
+      beforeHeader + ' 컬럼 없음 — 1행 헤더를 확인하세요'
+    );
+  }
+  sheet.insertColumnBefore(col + 1);
+  sheet.getRange(1, col + 1).setValue(newHeader);
+  return col + 1;
+}
+
+/** extendedData 없으면 시트 맨 뒤에 컬럼 추가 */
+function ensureColumnBeforeExtended_(sheet, newHeader, anchorHeaders) {
+  var map = getHeaderIndexMap_(sheet);
+  if (map[newHeader] !== undefined) {
+    return { added: false, column: newHeader };
+  }
+
+  var anchors = anchorHeaders || ['extendedData', '확장데이터'];
+  var anchorCol = undefined;
+  for (var i = 0; i < anchors.length; i++) {
+    if (map[anchors[i]] !== undefined) {
+      anchorCol = map[anchors[i]];
+      break;
+    }
+  }
+
+  if (anchorCol !== undefined) {
+    sheet.insertColumnBefore(anchorCol + 1);
+    sheet.getRange(1, anchorCol + 1).setValue(newHeader);
+  } else {
+    var lastCol = Math.max(sheet.getLastColumn(), 1);
+    sheet.insertColumnAfter(lastCol);
+    sheet.getRange(1, lastCol + 1).setValue(newHeader);
+  }
+
+  writeLog_('COLUMN_ADD', '', '콘텐츠관리.' + newHeader + ' 컬럼 추가');
+  return { added: true, column: newHeader };
+}
+
+function hasAnyHeader_(map, aliases) {
+  for (var i = 0; i < aliases.length; i++) {
+    if (map[aliases[i]] !== undefined) return true;
+  }
+  return false;
+}
+
+/**
+ * 콘텐츠관리에 stickyPromoText 컬럼 없으면 extendedData 앞에 추가
+ */
+function ensureStickyPromoTextColumn() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+
+  for (var i = 0; i < STICKY_PROMO_HEADER_ALIASES.length; i++) {
+    if (map[STICKY_PROMO_HEADER_ALIASES[i]] !== undefined) {
+      return {
+        ok: true,
+        added: false,
+        message: '프로모 컬럼 이미 존재: ' + STICKY_PROMO_HEADER_ALIASES[i]
+      };
+    }
+  }
+
+  insertColumnBeforeHeader_(sheet, 'extendedData', 'stickyPromoText');
+  writeLog_('COLUMN_ADD', '', '콘텐츠관리.stickyPromoText 컬럼 추가');
+
+  return {
+    ok: true,
+    added: true,
+    message: 'stickyPromoText 컬럼이 extendedData 앞에 추가되었습니다'
+  };
+}
+
+/** 예약 폼 컬럼 — 옵션 + 노출 on/off */
+function ensureReservationFormColumns() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+  var hasUnit = false;
+
+  for (var u = 0; u < UNIT_TYPE_OPTIONS_ALIASES.length; u++) {
+    if (map[UNIT_TYPE_OPTIONS_ALIASES[u]] !== undefined) {
+      hasUnit = true;
+      break;
+    }
+  }
+
+  if (!hasUnit) {
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeEnabled');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateOptions');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateDays');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeOptions');
+    added.push(
+      'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
+      'unitTypeEnabled', 'visitDateEnabled'
+    );
+  } else {
+    var hasUnitEnabled = false;
+    var hasDateEnabled = false;
+    for (var i = 0; i < UNIT_TYPE_ENABLED_ALIASES.length; i++) {
+      if (map[UNIT_TYPE_ENABLED_ALIASES[i]] !== undefined) hasUnitEnabled = true;
+    }
+    for (var j = 0; j < VISIT_DATE_ENABLED_ALIASES.length; j++) {
+      if (map[VISIT_DATE_ENABLED_ALIASES[j]] !== undefined) hasDateEnabled = true;
+    }
+    if (!hasUnitEnabled) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeEnabled');
+      added.push('unitTypeEnabled');
+      map = getHeaderIndexMap_(sheet);
+    }
+    if (!hasDateEnabled) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
+      added.push('visitDateEnabled');
+    }
+  }
+
+  var themeResult = ensureSiteThemeColumns();
+  if (themeResult.added) {
+    added = added.concat(themeResult.addedColumns || []);
+  }
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    message: added.length
+      ? '예약 폼·테마 컬럼 추가: ' + added.join(', ')
+      : '예약 폼·테마 컬럼 이미 존재'
+  };
+}
+
+/** 브랜드 컬러 컬럼 — extendedData 앞 (없으면 맨 뒤) */
+function ensureSiteThemeColumns() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+  // extendedData 앞에 넣을 때는 역순으로 삽입해야 main → sub → accent 순서가 됨
+  var themeHeaders = ['accentColor', 'subColor', 'mainColor'];
+  var themeAliases = [ACCENT_COLOR_ALIASES, SUB_COLOR_ALIASES, MAIN_COLOR_ALIASES];
+
+  for (var t = 0; t < themeHeaders.length; t++) {
+    if (hasAnyHeader_(map, themeAliases[t])) continue;
+    var result = ensureColumnBeforeExtended_(sheet, themeHeaders[t]);
+    if (result.added) added.push(themeHeaders[t]);
+    map = getHeaderIndexMap_(sheet);
+  }
+
+  added.reverse();
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    addedColumns: added,
+    message: added.length
+      ? '테마 컬러 컬럼 추가: ' + added.join(', ')
+      : '테마 컬러 컬럼 이미 존재'
+  };
+}
+
+/** Apps Script 편집기에서 직접 실행 — 컬러 컬럼만 추가 */
+function runEnsureSiteThemeColumns() {
+  var result = ensureSiteThemeColumns();
+  Logger.log(result.message);
+  try {
+    SpreadsheetApp.getUi().alert(result.message);
+  } catch (e) {
+    /* UI 없는 실행(clasp run) */
+  }
+  return result;
+}
+
+function normalizeHexColor_(raw) {
+  if (raw === undefined || raw === null || raw === '') return '';
+  var s = String(raw).trim();
+  if (!s) return '';
+  if (s.charAt(0) !== '#') s = '#' + s;
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+    return (
+      '#' +
+      s.charAt(1) + s.charAt(1) +
+      s.charAt(2) + s.charAt(2) +
+      s.charAt(3) + s.charAt(3)
+    ).toLowerCase();
+  }
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  return '';
+}
+
+function getThemeColorFromContentRow_(row, ext, aliases, extKey, defaultVal) {
+  var fromColumn = normalizeHexColor_(getSiteField_(row, aliases));
+  if (fromColumn) return fromColumn;
+
+  if (ext && ext.theme && ext.theme[extKey]) {
+    var fromExt = normalizeHexColor_(ext.theme[extKey]);
+    if (fromExt) return fromExt;
+  }
+
+  return defaultVal;
+}
+
+function findContentBySiteCode_(siteCode) {
+  var code = String(siteCode || '').trim();
+  if (!code) return null;
+  var rows = sheetToObjects_(CONTENT_SHEET_NAME);
+  for (var i = 0; i < rows.length; i++) {
+    if (getSiteField_(rows[i], ['siteCode', '현장코드']) === code) {
+      return rows[i];
+    }
+  }
+  return null;
+}
+
+function getStickyPromoTextFromContentRow_(row) {
+  if (!row) return '';
+
+  var direct = getSiteField_(row, STICKY_PROMO_HEADER_ALIASES);
+  if (direct) return direct;
+
+  var extRaw = getField_(row, 'extendedData');
+  if (!extRaw) return '';
+
+  try {
+    var ext = JSON.parse(extRaw);
+    return String(ext.stickyPromoText || '').trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+function parseExtendedData_(row) {
+  var extRaw = getField_(row, 'extendedData');
+  if (!extRaw) return {};
+  try {
+    return JSON.parse(extRaw) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * GET action=site.config&siteCode=L001
+ */
+function getSiteLiveConfig(siteCode) {
+  var code = String(siteCode || '').trim();
+  if (!code) {
+    throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
+  }
+
+  var contentRow = findContentBySiteCode_(code);
+  if (!contentRow) {
+    throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리에 현장 없음: ' + code);
+  }
+
+  var ext = parseExtendedData_(contentRow);
+  var promo = getStickyPromoTextFromContentRow_(contentRow);
+  var unitTypeOptions = getUnitTypeOptionsFromContentRow_(contentRow, ext);
+  var visitDateDays = getVisitDateDaysFromContentRow_(contentRow, ext);
+  var visitDateOptions = buildVisitDateOptionsFromContent_(contentRow, ext);
+  var unitTypeEnabled = getUnitTypeEnabledFromContentRow_(contentRow, ext);
+  var visitDateEnabled = getVisitDateEnabledFromContentRow_(contentRow, ext);
+  var mainColor = getThemeColorFromContentRow_(
+    contentRow, ext, MAIN_COLOR_ALIASES, 'mainColor', DEFAULT_MAIN_COLOR
+  );
+  var subColor = getThemeColorFromContentRow_(
+    contentRow, ext, SUB_COLOR_ALIASES, 'subColor', DEFAULT_SUB_COLOR
+  );
+  var accentColor = getThemeColorFromContentRow_(
+    contentRow, ext, ACCENT_COLOR_ALIASES, 'accentColor', DEFAULT_ACCENT_COLOR
+  );
+
+  return {
+    siteCode: code,
+    stickyPromoText: promo || null,
+    unitTypeOptions: unitTypeOptions,
+    visitDateDays: visitDateDays,
+    visitDateOptions: visitDateOptions,
+    unitTypeEnabled: unitTypeEnabled,
+    visitDateEnabled: visitDateEnabled,
+    mainColor: mainColor,
+    subColor: subColor,
+    accentColor: accentColor,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function runEnsureStickyPromoColumnFromMenu() {
+  var result = ensureStickyPromoTextColumn();
+  SpreadsheetApp.getUi().alert(result.message);
+}

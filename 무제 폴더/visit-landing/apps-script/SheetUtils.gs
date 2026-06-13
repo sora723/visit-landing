@@ -1,0 +1,284 @@
+/**
+ * SheetUtils.gs
+ * VisitLanding_Master Sheet 접근 (헤더명 1행 기준, 열 번호 직접 접근 금지)
+ */
+
+var SHEET_NAMES = {
+  SITE: '현장관리',
+  CONTENT: '콘텐츠관리',
+  SUBMISSION: '접수관리',
+  LOG: '시스템로그',
+  LOG_LEGACY: '_시스템로그'
+};
+
+function getSpreadsheet_() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function getSheet_(sheetName) {
+  var sheet = getSpreadsheet_().getSheetByName(sheetName);
+  if (!sheet) {
+    throw createAppError_('INTERNAL_ERROR', '시트를 찾을 수 없습니다: ' + sheetName);
+  }
+  return sheet;
+}
+
+function getSheetOptional_(sheetName) {
+  var name = String(sheetName || '').trim();
+  if (!name) return null;
+  return getSpreadsheet_().getSheetByName(name);
+}
+
+function getHeaderIndexMap_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return {};
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var map = {};
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i]).trim();
+    if (h) map[h] = i;
+  }
+  return map;
+}
+
+function sheetToObjects_(sheetName) {
+  var sheet = getSheet_(sheetName);
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  var headers = data[0].map(function (h) { return String(h).trim(); });
+  var rows = [];
+
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    var isEmpty = true;
+    for (var c = 0; c < row.length; c++) {
+      if (row[c] !== '' && row[c] !== null && row[c] !== undefined) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (isEmpty) continue;
+
+    var obj = {};
+    for (var i = 0; i < headers.length; i++) {
+      if (headers[i]) obj[headers[i]] = row[i];
+    }
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function getField_(row, headerName) {
+  if (!row || row[headerName] === undefined || row[headerName] === null) return '';
+  return String(row[headerName]).trim();
+}
+
+/** 영문 / 한글 헤더 별칭 */
+function getSiteField_(row, headerNames) {
+  var names = headerNames || [];
+  for (var i = 0; i < names.length; i++) {
+    var v = getField_(row, names[i]);
+    if (v !== '') return v;
+  }
+  return '';
+}
+
+function getSiteCodeFromRow_(row) {
+  return getSiteField_(row, ['siteCode', '현장코드']);
+}
+
+function getSiteNameFromRow_(row) {
+  return getSiteField_(row, ['siteName', '현장명']);
+}
+
+function getNotifyPhoneFromRow_(row) {
+  return getSiteField_(row, ['notifyPhone', '담당자번호', 'managerPhone']);
+}
+
+function getSubmissionSpreadsheetId_(row) {
+  return getSiteField_(row, ['submissionSpreadsheetId', '접수스프레드시트ID']);
+}
+
+/** Spreadsheet 파일명 (운영자 식별·공유용) — 예: L001_접수_더블역세권 */
+function getSubmissionSpreadsheetName_(row) {
+  return getSiteField_(row, ['submissionSpreadsheetName', '접수스프레드시트명']);
+}
+
+function getSubmissionSheetTabName_(row) {
+  var name = getSiteField_(row, ['submissionSheetName', '접수시트명']);
+  return name || '접수관리';
+}
+
+function openSpreadsheetByIdOptional_(spreadsheetId) {
+  var id = String(spreadsheetId || '').trim();
+  if (!id) return null;
+  try {
+    return SpreadsheetApp.openById(id);
+  } catch (e) {
+    return null;
+  }
+}
+
+function getSheetInSpreadsheetOptional_(spreadsheet, sheetName) {
+  if (!spreadsheet) return null;
+  var name = String(sheetName || '').trim();
+  if (!name) return null;
+  return spreadsheet.getSheetByName(name);
+}
+
+function updateSiteFieldsByCode_(siteCode, updates) {
+  var code = String(siteCode || '').trim();
+  var sheet = getSheet_(SHEET_NAMES.SITE);
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    throw createAppError_('SITE_NOT_FOUND', '현장관리 데이터 없음');
+  }
+
+  var headers = data[0].map(function (h) { return String(h).trim(); });
+  var codeCol = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (headers[h] === 'siteCode' || headers[h] === '현장코드') {
+      codeCol = h;
+      break;
+    }
+  }
+  if (codeCol < 0) {
+    throw createAppError_('INTERNAL_ERROR', 'siteCode 컬럼 없음');
+  }
+
+  for (var r = 1; r < data.length; r++) {
+    if (String(data[r][codeCol]).trim() !== code) continue;
+
+    Object.keys(updates || {}).forEach(function (field) {
+      var col = headers.indexOf(field);
+      if (col >= 0) data[r][col] = updates[field];
+    });
+
+    var updatedCol = headers.indexOf('updatedAt');
+    if (updatedCol >= 0) {
+      data[r][updatedCol] = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    }
+
+    sheet.getRange(1, 1, data.length, headers.length).setValues(data);
+    return true;
+  }
+
+  throw createAppError_('SITE_NOT_FOUND', '현장 없음: ' + code);
+}
+
+function getLogSheetName_() {
+  var ss = getSpreadsheet_();
+  if (ss.getSheetByName(SHEET_NAMES.LOG)) return SHEET_NAMES.LOG;
+  if (ss.getSheetByName(SHEET_NAMES.LOG_LEGACY)) return SHEET_NAMES.LOG_LEGACY;
+  return SHEET_NAMES.LOG;
+}
+
+function isSiteSubmissionEnabled_(siteRow) {
+  return ynToBool_(getField_(siteRow, 'isActive'), true);
+}
+
+function getDuplicateBlockMinutes_(siteRow) {
+  var v = getSiteField_(siteRow, ['duplicateBlockMinutes', '중복접수차단분']);
+  return Number(v) || 120;
+}
+
+function findSiteByCode_(siteCode) {
+  var code = String(siteCode || '').trim();
+  if (!code) return null;
+  var rows = sheetToObjects_(SHEET_NAMES.SITE);
+  for (var i = 0; i < rows.length; i++) {
+    if (getSiteCodeFromRow_(rows[i]) === code) return rows[i];
+  }
+  return null;
+}
+
+function appendRowByHeaders_(sheetName, rowData) {
+  appendRowToSheet_(getSheet_(sheetName), rowData);
+}
+
+function appendRowToSheet_(sheet, rowData) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    throw createAppError_('INTERNAL_ERROR', '시트 헤더가 없습니다: ' + sheet.getName());
+  }
+
+  var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var newRow = [];
+
+  for (var i = 0; i < headerRow.length; i++) {
+    var header = String(headerRow[i]).trim();
+    if (!header) {
+      newRow.push('');
+      continue;
+    }
+    var value = rowData[header];
+    newRow.push(value !== undefined && value !== null ? value : '');
+  }
+
+  sheet.appendRow(newRow);
+}
+
+function writeLog_(action, siteCode, message) {
+  try {
+    appendRowByHeaders_(getLogSheetName_(), {
+      'occurredAt': new Date(),
+      'action': action,
+      'siteCode': siteCode || '',
+      'provider': '',
+      'recipientPhone': '',
+      'errorMessage': '',
+      'payload': '',
+      'message': message || ''
+    });
+  } catch (e) {
+    Logger.log('로그 기록 실패: ' + e.message);
+  }
+}
+
+function writeNotificationFailureLog_(params) {
+  try {
+    var notification = params.payload || {};
+    appendRowByHeaders_(getLogSheetName_(), {
+      'occurredAt': new Date(),
+      'action': 'NOTIFICATION_FAIL',
+      'siteCode': notification.siteCode || '',
+      'provider': params.providerId || '',
+      'recipientPhone': notification.recipientPhone || '',
+      'errorMessage': params.errorMessage || '',
+      'payload': JSON.stringify(sanitizeNotificationPayloadForLog_(notification)),
+      'message': ''
+    });
+  } catch (e) {
+    Logger.log('알림 실패 로그 기록 실패: ' + e.message);
+  }
+}
+
+function sanitizeNotificationPayloadForLog_(payload) {
+  return {
+    type: payload.type || '',
+    siteCode: payload.siteCode || '',
+    siteName: payload.siteName || '',
+    recipientPhone: payload.recipientPhone || '',
+    customerName: payload.customerName || '',
+    customerPhone: payload.customerPhone || '',
+    consultType: payload.consultType || '',
+    reserveDisplay: payload.reserveDisplay || '',
+    isTest: payload.isTest === true
+  };
+}
+
+function ynToBool_(value, defaultVal) {
+  if (value === '' || value === null || value === undefined) return defaultVal === true;
+  return String(value).trim().toUpperCase() === 'Y';
+}
+
+function normalizePhone_(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+function createAppError_(code, message) {
+  var err = new Error(message);
+  err.code = code;
+  return err;
+}

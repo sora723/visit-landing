@@ -1,0 +1,271 @@
+{
+  "siteCode": "L001",
+  "siteName": "원주 한양립스",
+  "phone": "1688-0000",
+  "kakaoUrl": "https://pf.kakao.com/_xdxdxdxd",
+  "managerName": "원주 한양립스 분양사무소",
+  "notificationPhone": "01012345678",
+  "stickyPromoText": "",
+  "theme": {
+    "mainColor": "#0f1d3a",
+    "subColor": "#d7b56d",
+    "accentColor": "#caa85c"
+  },
+  "reservationForm": {
+    "unitTypeOptions": ["84A", "84B", "84C"],
+    "visitDateDays": 30,
+    "unitTypeEnabled": true,
+    "visitDateEnabled": true
+  },
+  "customSections": [],
+  "topBannerText": "",
+  "settings": {
+    "popupEnabled": true,
+    "liveStatusEnabled": true,
+    "virtualReservationsEnabled": true,
+    "duplicateBlockMinutes": 120
+  },
+  "popup": {
+    "title": "선착순 방문예약",
+    "completeMessage": "방문예약이 접수되었습니다.\n\n담당자가 순차적으로 연락드립니다.",
+    "privacyText": "개인정보 수집 및 이용에 동의합니다.\n\n수집항목 : 이름, 연락처\n이용목적 : 방문예약 및 상담안내\n보유기간 : 상담 종료 후 즉시 파기"
+  },
+  "hero": {
+    "hook": "25평 2억대~ 34평 3억초~",
+    "sub": "구도심 · 원도심 인프라를 누리는 원주의 중심",
+    "highlightDuration": 3500,
+    "image": "/images/hero-aerial.png",
+    "imagePc": "/images/hero-aerial.png",
+    "imageMobile": "/images/hero-aerial.png",
+    "visualImage": "/images/hero-aerial.png",
+    "benefits": [
+      {
+        "title": "계약금",
+        "value": "500만원"
+      },
+      {
+        "title": "입주까지",
+        "value": "2,700만원"
+      },
+      {
+        "title": "중도금",
+        "value": "무이자"
+      },
+      {
+        "title": "발코니 확장",
+        "value": "무상"
+      }
+    ],
+    "floatingStats": {
+      "todayReservations": 27,
+      "activeConsultations": 3,
+      "todayLabel": "오늘 방문예약",
+      "activeLabel": "실시간 상담"
+    }
+  },
+  "liveReservation": {
+    "mobileVisibleCount": 5,
+    "mobileRotateSeconds": 5,
+    "pcVisibleCount": 10,
+    "statusLabels": [
+      "접수완료",
+      "예약확정",
+      "상담예정"
+    ]
+  },
+  "liveStatus": {
+    "title": "실시간 방문예약 현황",
+    "subtitle": ""
+  },
+  "reservationGuide": {
+    "title": "방문예약 안내",
+    "steps": [
+      {
+        "step": "01",
+        "title": "방문예약 접수",
+        "description": "온라인으로 간편하게 방문예약을 접수합니다."
+      },
+      {
+        "step": "02",
+        "title": "담당자 확인전화",
+        "description": "담당자가 예약 내용을 확인 후 연락드립니다."
+      },
+      {
+        "step": "03",
+        "title": "홍보관 방문상담",
+        "description": "방문하시면 전문 상담사가 안내해 드립니다."
+      }
+    ]
+  },
+  "overview": {
+    "title": "사업개요",
+    "image": "/images/hero-aerial.png",
+    "imagePc": "/images/hero-aerial.png",
+    "imageMobile": "/images/hero-aerial.png",
+    "specs": [
+      {
+        "label": "위치",
+        "value": "강원특별자치도 원주시 반곡동 일원"
+      },
+      {
+        "label": "규모",
+        "value": "지하 2층 / 지상 최고 29층"
+      },
+      {
+        "label": "세대수",
+        "value": "12개동 / 총 1,236세대"
+      },
+      {
+        "label": "입주예정",
+        "value": "2027년 상반기"
+      },
+      {
+        "label": "시공사",
+        "value": "한양건설"
+      }
+    ]
+  },
+  "premium": {
+    "title": "프리미엄 커뮤니티",
+    "items": [
+      {
+        "title": "역세권",
+        "description": "KTX 원주역 도보권 프리미엄 입지",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "브랜드",
+        "description": "한양건설 프리미엄 브랜드 아파트",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "생활인프라",
+        "description": "AK플라자·롯데마트 생활권",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "학군",
+        "description": "단계초·치악중 인접 안정적 학군",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "개발호재",
+        "description": "원주혁신도시 개발 호재 입지",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "미래가치",
+        "description": "강원도청 이전 등 미래 성장성",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "커뮤니티",
+        "description": "피트니스·라운지·키즈존 등",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "특화설계",
+        "description": "시스템 창호·스마트홈 특화 설계",
+        "image": "/images/hero-aerial.png"
+      }
+    ]
+  },
+  "location": {
+    "title": "입지환경",
+    "mapImage": "/images/hero-aerial.png",
+    "items": [
+      {
+        "category": "교통",
+        "title": "원주고속·시외버스터미널 인접",
+        "description": "광역 교통망과의 접근성 우수"
+      },
+      {
+        "category": "생활",
+        "title": "AK플라자·롯데마트 생활권",
+        "description": "쇼핑·문화·의료 인프라 풍부"
+      },
+      {
+        "category": "교육",
+        "title": "단계초·치악중 인접",
+        "description": "안정적인 학군 환경"
+      },
+      {
+        "category": "자연",
+        "title": "백간공원·봉화산 생활권",
+        "description": "도심 속 쾌적한 자연환경"
+      }
+    ]
+  },
+  "futureValue": {
+    "title": "미래가치",
+    "items": [
+      {
+        "title": "혁신도시 성장",
+        "description": "원주혁신도시 중심 개발로 지속적인 가치 상승",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "교통 인프라",
+        "description": "KTX·광역 교통망 확충으로 접근성 강화",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "title": "행정 이전",
+        "description": "강원특별자치도청 이전 등 행정 중심지 형성",
+        "image": "/images/hero-aerial.png"
+      }
+    ]
+  },
+  "siteLayout": {
+    "title": "단지배치도",
+    "items": [
+      {
+        "title": "단지배치도",
+        "description": "최적 동·호 배치와 쾌적한 단지 설계",
+        "image": "/images/hero-aerial.png"
+      }
+    ]
+  },
+  "community": {
+    "title": "커뮤니티",
+    "items": [
+      {
+        "title": "피트니스",
+        "description": "최신 운동기구를 갖춘 프리미엄 피트니스",
+        "image": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80"
+      },
+      {
+        "title": "키즈존",
+        "description": "아이들을 위한 안전하고 쾌적한 놀이 공간",
+        "image": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80"
+      }
+    ]
+  },
+  "cta": {
+    "title": "홍보관 방문예약",
+    "subtitle": "방문예약 후 전문 상담사의 안내를 받아보세요.",
+    "texts": [
+      "선착순 방문예약 진행중",
+      "홍보관 방문 시 특별혜택 제공",
+      "계약조건 변경 전 상담받기"
+    ],
+    "buttonText": "방문예약하기",
+    "privacyText": "개인정보 수집 및 이용에 동의합니다."
+  },
+  "mobileBar": {
+    "hookText": "선착순 방문예약 진행중"
+  },
+  "footer": {
+    "developer": "OO시행",
+    "constructor": "OO건설",
+    "agency": "다비드애드",
+    "businessNumber": "123-45-67890",
+    "contact": "landing@david-ad.co.kr",
+    "privacyPolicy": "개인정보처리방침에 따른 수집·이용에 동의합니다."
+  },
+  "seo": {
+    "title": "원주 한양립스 | 방문예약",
+    "description": "원주 한양립스 분양 — 선착순 방문예약 접수중",
+    "ogImage": "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80"
+  }
+}

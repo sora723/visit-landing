@@ -1,0 +1,218 @@
+{
+  "baseUrl": "http://127.0.0.1:3006",
+  "capturedAt": "2026-06-12T02:25:25.244Z",
+  "checks": {
+    "1_성함_시간_구조": {
+      "pass": true,
+      "note": "카드형: 좌측 성함+문구 / 우측 시간",
+      "mobileRows": [
+        {
+          "left": "검○○ 고객님 방문예약 접수",
+          "right": "1분 전"
+        },
+        {
+          "left": "김○○ 고객님 방문예약 접수",
+          "right": "3분 전"
+        },
+        {
+          "left": "이○○ 고객님 방문예약 접수",
+          "right": "6분 전"
+        },
+        {
+          "left": "박○○ 고객님 방문예약 접수",
+          "right": "9분 전"
+        },
+        {
+          "left": "최○○ 고객님 방문예약 접수",
+          "right": "12분 전"
+        }
+      ]
+    },
+    "2_번호_컬럼_삭제": {
+      "pass": true,
+      "note": "번호 컬럼/연락처 노출 없음"
+    },
+    "3_NEW_배지_최상단만": {
+      "pass": false,
+      "note": "NEW 배지 0개 (첫행: false)"
+    },
+    "4_접수완료_제거": {
+      "pass": true,
+      "note": "접수완료 텍스트 없음"
+    },
+    "5_최근_20분_만": {
+      "pass": true,
+      "note": "표시 시간: 1, 3, 6, 9, 12 / API 20분이내 4건"
+    },
+    "6_모바일_5건": {
+      "pass": true,
+      "note": "모바일 5건"
+    },
+    "7_PC_10건": {
+      "pass": false,
+      "note": "PC 8건"
+    },
+    "8_신규_접수_맨위": {
+      "pass": false,
+      "note": "접수명 테스트19710 → 마스킹 테○○, 1행: 검○○ 고객님 방문예약 접수"
+    },
+    "9_기존_아래로": {
+      "pass": false,
+      "note": "접수 전 1행: 검○○ 고객님 방문예약 접수 1분 전 / 접수 후 2행: 김○○ 고객님 방문예약 접수 3분 전"
+    }
+  },
+  "mobileData": {
+    "rowCount": 5,
+    "rows": [
+      {
+        "text": "검○○ 고객님 방문예약 접수 1분 전",
+        "namePart": "검○○ 고객님 방문예약 접수",
+        "time": "1분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "김○○ 고객님 방문예약 접수 3분 전",
+        "namePart": "김○○ 고객님 방문예약 접수",
+        "time": "3분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "이○○ 고객님 방문예약 접수 6분 전",
+        "namePart": "이○○ 고객님 방문예약 접수",
+        "time": "6분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "박○○ 고객님 방문예약 접수 9분 전",
+        "namePart": "박○○ 고객님 방문예약 접수",
+        "time": "9분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "최○○ 고객님 방문예약 접수 12분 전",
+        "namePart": "최○○ 고객님 방문예약 접수",
+        "time": "12분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      }
+    ],
+    "has성함Column": false,
+    "has시간Column": false,
+    "has번호Column": false,
+    "sectionHtml": "<div class=\"mx-auto max-w-6xl px-4 sm:px-6\"><h2 class=\"mb-2.5 text-[13px] font-bold text-[#222] sm:text-sm\">실시간 방문예약 현황</h2><div class=\"mb-3 grid grid-cols-2 gap-2\"><a href=\"tel:16880000\" class=\"flex min-h-[48px] items-center justify-center border border-[#ddd] bg-white text-sm font-semibold text-[#222] active:bg-[#fafafa]\">전화상담</a><button type=\"button\" class=\"flex min-h-[48px] items-center justify-center bg-[#caa85c] text-sm font-semibold text-[#222] active:brightness-95\">방문예약</button></div><ul"
+  },
+  "desktopData": {
+    "rowCount": 8,
+    "rows": [
+      {
+        "text": "검○○ 고객님 방문예약 접수 1분 전",
+        "namePart": "검○○ 고객님 방문예약 접수",
+        "time": "1분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "김○○ 고객님 방문예약 접수 3분 전",
+        "namePart": "김○○ 고객님 방문예약 접수",
+        "time": "3분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "이○○ 고객님 방문예약 접수 6분 전",
+        "namePart": "이○○ 고객님 방문예약 접수",
+        "time": "6분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "박○○ 고객님 방문예약 접수 9분 전",
+        "namePart": "박○○ 고객님 방문예약 접수",
+        "time": "9분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "최○○ 고객님 방문예약 접수 12분 전",
+        "namePart": "최○○ 고객님 방문예약 접수",
+        "time": "12분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "정○○ 고객님 방문예약 접수 15분 전",
+        "namePart": "정○○ 고객님 방문예약 접수",
+        "time": "15분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "강○○ 고객님 방문예약 접수 18분 전",
+        "namePart": "강○○ 고객님 방문예약 접수",
+        "time": "18분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      },
+      {
+        "text": "조○○ 고객님 방문예약 접수 20분 전",
+        "namePart": "조○○ 고객님 방문예약 접수",
+        "time": "20분 전",
+        "hasNewBadge": false,
+        "hasPhone": false,
+        "has접수완료": false
+      }
+    ],
+    "has성함Column": false,
+    "has시간Column": false,
+    "has번호Column": false,
+    "sectionHtml": "<div class=\"mx-auto max-w-6xl px-4 sm:px-6\"><h2 class=\"mb-2.5 text-[13px] font-bold text-[#222] sm:text-sm\">실시간 방문예약 현황</h2><div class=\"mb-3 grid grid-cols-2 gap-2\"><a href=\"tel:16880000\" class=\"flex min-h-[48px] items-center justify-center border border-[#ddd] bg-white text-sm font-semibold text-[#222] active:bg-[#fafafa]\">전화상담</a><button type=\"button\" class=\"flex min-h-[48px] items-center justify-center bg-[#caa85c] text-sm font-semibold text-[#222] active:brightness-95\">방문예약</button></div><ul"
+  },
+  "apiSample": [
+    {
+      "name": "검○○",
+      "submittedAt": "2026-06-12T02:23:55.388Z",
+      "minutesAgo": 1,
+      "isVirtual": false
+    },
+    {
+      "name": "홍○○",
+      "submittedAt": "2026-06-11T13:57:44.737Z",
+      "minutesAgo": 747,
+      "isVirtual": false
+    },
+    {
+      "name": "김○○",
+      "submittedAt": "2026-06-11T13:57:33.946Z",
+      "minutesAgo": 747,
+      "isVirtual": false
+    },
+    {
+      "name": "W○○",
+      "submittedAt": "2026-06-11T13:52:01.424Z",
+      "minutesAgo": 752,
+      "isVirtual": false
+    },
+    {
+      "name": "N○○",
+      "submittedAt": "2026-06-11T13:51:51.628Z",
+      "minutesAgo": 753,
+      "isVirtual": false
+    }
+  ]
+}

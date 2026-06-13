@@ -1,0 +1,39 @@
+{
+  "name": "visit-landing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "setup:apps-script": "node scripts/setup-apps-script.mjs",
+    "setup:apps-script:push": "node scripts/setup-apps-script.mjs --push",
+    "verify:apps-script": "node scripts/verify-apps-script.mjs",
+    "verify:ops": "node scripts/verify-ops.mjs",
+    "verify:surnames": "npx --yes tsx scripts/verify-surname-policy.ts",
+    "verify:notification": "node scripts/verify-notification.mjs",
+    "capture:mobile": "node scripts/capture-mobile-screenshots.mjs",
+    "capture:full": "node scripts/capture-full-screenshots.mjs",
+    "manual:apps-script": "node scripts/print-manual-apps-script.mjs"
+  },
+  "dependencies": {
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.18.0",
+    "next": "15.5.19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.19",
+    "playwright": "^1.60.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

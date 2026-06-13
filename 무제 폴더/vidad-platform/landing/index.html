@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>분양 홈페이지</title>
+  <meta name="description" content="">
+  <link rel="canonical" href="">
+  <meta property="og:title" content="">
+  <meta property="og:description" content="">
+  <meta property="og:image" content="">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/template-a.css">
+</head>
+<body>
+  <div id="app-loading" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <p>정보를 불러오는 중...</p>
+  </div>
+
+  <div id="app-error" class="error-screen" hidden>
+    <h1>페이지를 불러올 수 없습니다</h1>
+    <p id="error-message"></p>
+  </div>
+
+  <div id="app" hidden>
+    <header class="site-header" id="site-header">
+      <div class="header-inner">
+        <a href="#" class="logo" id="header-logo">
+          <span class="logo-text" id="logo-text"></span>
+        </a>
+        <nav class="nav-desktop" aria-label="주요 메뉴">
+          <a href="#overview">사업개요</a>
+          <a href="#premium">프리미엄</a>
+          <a href="#location">입지환경</a>
+          <a href="#floorplan">평면안내</a>
+          <a href="#contact" class="nav-cta">관심등록</a>
+        </nav>
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-label="메뉴 열기" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <nav class="nav-mobile" id="nav-mobile" hidden aria-label="모바일 메뉴">
+        <a href="#overview">사업개요</a>
+        <a href="#premium">프리미엄</a>
+        <a href="#location">입지환경</a>
+        <a href="#floorplan">평면안내</a>
+        <a href="#contact">관심등록</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="hero">
+        <div class="hero-media" id="hero-media"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <p class="hero-label">PREMIUM RESIDENCE</p>
+          <h1 class="hero-hook" id="hero-hook"></h1>
+          <p class="hero-sub" id="hero-sub"></p>
+          <a href="#contact" class="btn btn-primary hero-cta">관심고객 등록</a>
+        </div>
+        <div class="hero-scroll-hint" aria-hidden="true">
+          <span>SCROLL</span>
+          <div class="scroll-line"></div>
+        </div>
+      </section>
+
+      <section class="section overview" id="overview">
+        <div class="container">
+          <div class="section-head">
+            <span class="section-label">OVERVIEW</span>
+            <h2 class="section-title">사업개요</h2>
+          </div>
+          <div class="overview-grid">
+            <div class="overview-image-wrap">
+              <img id="overview-image" src="" alt="조감도" loading="lazy">
+            </div>
+            <div class="overview-info">
+              <h3 class="overview-name" id="overview-name"></h3>
+              <dl class="spec-list" id="overview-specs"></dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section premium" id="premium">
+        <div class="container">
+          <div class="section-head section-head--light">
+            <span class="section-label">PREMIUM</span>
+            <h2 class="section-title">프리미엄</h2>
+          </div>
+          <div class="premium-grid" id="premium-grid"></div>
+        </div>
+      </section>
+
+      <section class="section location" id="location">
+        <div class="container">
+          <div class="section-head">
+            <span class="section-label">LOCATION</span>
+            <h2 class="section-title" id="location-title">입지환경</h2>
+          </div>
+          <div class="location-map-wrap" id="location-map-wrap">
+            <img id="location-map" src="" alt="입지 지도" loading="lazy">
+          </div>
+          <div class="location-items" id="location-items"></div>
+        </div>
+      </section>
+
+      <section class="section floorplan" id="floorplan">
+        <div class="container">
+          <div class="section-head">
+            <span class="section-label">FLOOR PLAN</span>
+            <h2 class="section-title">평면안내</h2>
+          </div>
+          <div class="floorplan-tabs" id="floorplan-tabs" role="tablist"></div>
+          <div class="floorplan-panel" id="floorplan-panel"></div>
+        </div>
+      </section>
+
+      <section class="section contact" id="contact">
+        <div class="container">
+          <div class="section-head section-head--light">
+            <span class="section-label">CONTACT</span>
+            <h2 class="section-title">관심고객 등록</h2>
+            <p class="contact-guide" id="contact-guide"></p>
+          </div>
+          <form class="contact-form" id="contact-form" novalidate>
+            <div class="form-grid" id="form-fields"></div>
+            <div class="form-footer">
+              <label class="checkbox-label">
+                <input type="checkbox" name="privacyAgreed" required>
+                <span id="privacy-text">개인정보 수집 및 이용에 동의합니다.</span>
+              </label>
+              <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">
+                <span class="btn-text">등록하기</span>
+                <span class="btn-loading" hidden>처리 중...</span>
+              </button>
+              <p class="form-error" id="form-error" hidden></p>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="site-footer">
+      <div class="container">
+        <div class="footer-main">
+          <div class="footer-brand">
+            <strong id="footer-site-name"></strong>
+            <p id="footer-seo" hidden></p>
+          </div>
+          <dl class="footer-info" id="footer-info"></dl>
+        </div>
+        <div class="footer-legal">
+          <p id="footer-privacy"></p>
+          <p class="footer-copy">&copy; <span id="footer-year"></span> All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <aside class="fixed-cta" id="fixed-cta">
+      <a href="#" class="cta-btn cta-phone" id="cta-phone" hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        <span>전화상담</span>
+      </a>
+      <a href="#" class="cta-btn cta-kakao" id="cta-kakao" hidden target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.78 5.34 4.47 6.78-.15.54-.97 3.47-.99 3.72 0 .09.02.18.1.24.08.06.18.08.27.04.11-.03 3.56-2.34 4.14-2.74.55.08 1.12.12 1.7.12 5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>
+        <span>카카오상담</span>
+      </a>
+      <a href="#contact" class="cta-btn cta-form" id="cta-form">
+        <span>관심등록</span>
+      </a>
+    </aside>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    if (location.search.includes('demo=1') || !window.VIDAD_CONFIG.apiBaseUrl) {
+      window.VIDAD_CONFIG.demoMode = true;
+    }
+  </script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>접수 완료</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/template-a.css">
+</head>
+<body class="complete-page">
+  <main class="complete-main">
+    <div class="complete-card">
+      <div class="complete-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <h1>관심고객 등록이 완료되었습니다</h1>
+      <p class="complete-desc">담당자가 확인 후 빠른 시일 내에 연락드리겠습니다.</p>
+      <p class="complete-site" id="complete-site-name"></p>
+      <a href="#" class="btn btn-primary" id="back-link">홈으로 돌아가기</a>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var siteCode = params.get('site') || VidadApi.resolveSiteCode();
+
+      document.getElementById('back-link').href = 'index.html?site=' + encodeURIComponent(siteCode);
+
+      if (!siteCode) return;
+
+      VidadApi.fetchSite(siteCode).then(function (res) {
+        if (res.success && res.data) {
+          document.getElementById('complete-site-name').textContent = res.data.meta.siteName;
+          document.title = res.data.meta.siteName + ' — 접수 완료';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

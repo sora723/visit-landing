@@ -1,0 +1,16 @@
+{
+  "name": "apps-script",
+  "version": "1.0.0",
+  "description": "VisitLanding_Master 전용 백엔드. **VIDAD 플랫폼과 독립** 운영.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@google/clasp": "^3.3.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "solapi": {
+    "templateIdSubmission": "KA01TP260613134907956SKHD1kZne8B",
+    "variables": {
+      "#{현장명}": "siteName",
+      "#{이름}": "customerName",
+      "#{연락처}": "customerPhone (010-0000-0000)",
+      "#{유형}": "consultType / 평형 (미입력 시 관심등록)",
+      "#{방문일자}": "visitDate (미입력 시 미정, 예: 6월 13일 (금))"
+    }
+  }
+}
