@@ -11,8 +11,26 @@ var SHEET_NAMES = {
   LOG_LEGACY: '_시스템로그'
 };
 
+/** VisitLanding_Master — config/master-sheet.json 과 동일 */
+var MASTER_SPREADSHEET_ID = '1rRLKLBIyZPjw1e4a14MPzaTNBib0vTKEpHEqfQg3pyA';
+
+function getMasterSpreadsheetId_() {
+  var fromProps = PropertiesService.getScriptProperties().getProperty('MASTER_SPREADSHEET_ID');
+  return String(fromProps || MASTER_SPREADSHEET_ID).trim();
+}
+
 function getSpreadsheet_() {
-  return SpreadsheetApp.getActiveSpreadsheet();
+  var active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+
+  var id = getMasterSpreadsheetId_();
+  if (!id) {
+    throw createAppError_(
+      'INTERNAL_ERROR',
+      'Spreadsheet를 열 수 없습니다. 시트를 연 뒤 실행하거나 MASTER_SPREADSHEET_ID를 설정하세요.'
+    );
+  }
+  return SpreadsheetApp.openById(id);
 }
 
 function getSheet_(sheetName) {
@@ -39,6 +57,59 @@ function getHeaderIndexMap_(sheet) {
     if (h) map[h] = i;
   }
   return map;
+}
+
+/**
+ * 시트에 컬럼이 없으면 anchor 뒤에 순서대로 추가
+ * anchorAliases: ['isActive', '활성여부', ...] — 없으면 맨 뒤에 추가
+ */
+function ensureSheetColumnsAfter_(sheetName, anchorAliases, columnHeaders) {
+  var sheet = getSheet_(sheetName);
+  var added = [];
+  var map = getHeaderIndexMap_(sheet);
+  var anchor = null;
+
+  for (var a = 0; a < anchorAliases.length; a++) {
+    if (map[anchorAliases[a]] !== undefined) {
+      anchor = anchorAliases[a];
+      break;
+    }
+  }
+
+  if (!anchor) {
+    var lastCol = Math.max(sheet.getLastColumn(), 1);
+    var lastHeader = String(sheet.getRange(1, lastCol).getValue() || '').trim();
+    if (lastHeader) anchor = lastHeader;
+  }
+
+  for (var i = 0; i < columnHeaders.length; i++) {
+    var header = columnHeaders[i];
+    map = getHeaderIndexMap_(sheet);
+    if (map[header] !== undefined) continue;
+
+    if (anchor && map[anchor] !== undefined) {
+      var afterCol = map[anchor];
+      sheet.insertColumnAfter(afterCol + 1);
+      sheet.getRange(1, afterCol + 2).setValue(header);
+    } else {
+      var endCol = Math.max(sheet.getLastColumn(), 1);
+      sheet.insertColumnAfter(endCol);
+      sheet.getRange(1, endCol + 1).setValue(header);
+    }
+
+    anchor = header;
+    added.push(header);
+    writeLog_('COLUMN_ADD', '', sheetName + '.' + header + ' 컬럼 추가');
+  }
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    addedColumns: added,
+    message: added.length
+      ? sheetName + ' 컬럼 추가: ' + added.join(', ')
+      : sheetName + ' 컬럼 이미 존재 (' + columnHeaders.join(', ') + ')'
+  };
 }
 
 function sheetToObjects_(sheetName) {

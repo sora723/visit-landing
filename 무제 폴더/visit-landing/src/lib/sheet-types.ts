@@ -22,6 +22,22 @@ export interface SiteManagementRow {
   virtualReservationEnabled: boolean | string;
   duplicateBlockMinutes: number | string;
   isActive: boolean | string;
+  /** 전환 추적 — /complete 페이지 (비우면 미실행) */
+  metaPixelId?: string;
+  metaConversionEvent?: string;
+  googleConversionId?: string;
+  googleConversionLabel?: string;
+  naverConversionScript?: string;
+  kakaoPixelId?: string;
+  /** 소유 확인 — layout head meta (비우면 미실행) */
+  metaOwnershipCode?: string;
+  googleOwnershipCode?: string;
+  naverOwnershipCode?: string;
+  kakaoOwnershipCode?: string;
+  /** 스크립트 원본 — /complete */
+  전환코드?: string;
+  /** meta/script 원본 — 전 페이지 head */
+  소유확인코드?: string;
   createdAt?: string;
   updatedAt?: string;
 }

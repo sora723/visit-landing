@@ -144,3 +144,50 @@ function sanitizeSiteNameForSpreadsheet_(siteName) {
   }
   return name;
 }
+
+/** 현장관리 — 전환 추적 + 소유 확인 컬럼 (isActive 뒤) */
+function ensureConversionTrackingColumns() {
+  return ensureSheetColumnsAfter_(
+    SHEET_NAMES.SITE,
+    ['isActive', '활성여부', 'duplicateBlockMinutes', '중복접수차단분', 'createdAt', 'updatedAt'],
+    [
+      'metaPixelId',
+      'metaConversionEvent',
+      'googleConversionId',
+      'googleConversionLabel',
+      'naverConversionScript',
+      'kakaoPixelId',
+      'metaOwnershipCode',
+      'googleOwnershipCode',
+      'naverOwnershipCode',
+      'kakaoOwnershipCode',
+      '전환코드',
+      '소유확인코드'
+    ]
+  );
+}
+
+/** Apps Script 편집기 — 전환 추적 컬럼만 추가 */
+function runEnsureConversionTrackingColumns() {
+  try {
+    var ss = getSpreadsheet_();
+    Logger.log('Spreadsheet: ' + ss.getName() + ' (' + ss.getId() + ')');
+    var result = ensureConversionTrackingColumns();
+    Logger.log(result.message);
+    try {
+      SpreadsheetApp.getUi().alert(result.message);
+    } catch (e) {
+      /* UI 없는 실행 */
+    }
+    return result;
+  } catch (err) {
+    var msg = '전환 추적 컬럼 추가 실패: ' + (err.message || String(err));
+    Logger.log(msg);
+    try {
+      SpreadsheetApp.getUi().alert(msg);
+    } catch (e2) {
+      /* UI 없음 */
+    }
+    throw err;
+  }
+}

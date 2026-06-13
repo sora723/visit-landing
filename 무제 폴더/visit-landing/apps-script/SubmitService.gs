@@ -36,8 +36,31 @@ function handleSubmit(params) {
   var blockMinutes = getDuplicateBlockMinutes_(siteRow);
   var blockMs = blockMinutes * 60 * 1000;
 
-  if (checkDuplicateSubmission_(siteCode, validated.name, validated.phone, blockMs)) {
-    throw createAppError_('DUPLICATE_SUBMISSION', '이미 접수된 정보입니다. ' + blockMinutes + '분 후 다시 시도해주세요.');
+  if (checkFullDuplicateSubmission_(siteCode, validated, blockMs)) {
+    var dupSubmissionId = Utilities.getUuid();
+    var dupSubmittedAt = new Date();
+
+    appendSubmissionRow_(
+      siteRow,
+      validated,
+      dupSubmissionId,
+      dupSubmittedAt,
+      params,
+      { isDuplicate: true }
+    );
+
+    writeLog_(
+      'SUBMIT_DUPLICATE',
+      siteCode,
+      '접수ID=' + dupSubmissionId + ', 알림=SKIP (2시간 내 동일 접수)'
+    );
+
+    return {
+      submissionId: dupSubmissionId,
+      isDuplicate: true,
+      redirectUrl: buildCompleteRedirectUrl_(siteCode, validated),
+      notificationSent: false
+    };
   }
 
   var submissionId = Utilities.getUuid();
@@ -124,8 +147,15 @@ function validateSubmitParams_(params, formType) {
  * 1) VisitLanding_Master → 접수관리
  * 2) 현장관리.submissionSpreadsheetId → 현장별 독립 Spreadsheet
  */
-function appendSubmissionRow_(siteRow, data, submissionId, submittedAt, rawParams) {
-  var rowData = buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawParams);
+function appendSubmissionRow_(siteRow, data, submissionId, submittedAt, rawParams, options) {
+  var rowData = buildSubmissionRowData_(
+    siteRow,
+    data,
+    submissionId,
+    submittedAt,
+    rawParams,
+    options
+  );
 
   appendRowByHeaders_(SHEET_NAMES.SUBMISSION, rowData);
 
@@ -135,8 +165,9 @@ function appendSubmissionRow_(siteRow, data, submissionId, submittedAt, rawParam
 /**
  * 마스터·현장 시트 공통 행 데이터 (영문/한글 헤더 동시 키)
  */
-function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawParams) {
+function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawParams, options) {
   var params = rawParams || {};
+  var opts = options || {};
   var siteCode = getSiteCodeFromRow_(siteRow);
   var siteName = getSiteNameFromRow_(siteRow);
   var managerName = getSiteField_(siteRow, ['managerName', '담당자명']);
@@ -183,7 +214,7 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
     'IP': clientIp,
     '담당자명': managerName,
     '담당자번호': managerPhone,
-    '중복여부': 'N'
+    '중복여부': opts.isDuplicate === true ? 'Y' : 'N'
   };
 }
 
@@ -294,25 +325,18 @@ function buildTrafficSourceLabel_(submission, params) {
 }
 
 /**
- * 2시간 중복 접수 검사
- * 성함 + 연락처 + 상담유형 + 기타문의 모두 동일 시 차단
- * @returns {boolean} true = 중복 (차단)
+ * 중복 접수 검사 — 설정 시간(기본 2시간) 내 모든 접수 필드 일치
+ * @returns {boolean} true = 완전 중복 (알림톡 생략, 시트 저장)
  */
-function checkDuplicateSubmission_(siteCode, name, phone, blockMs) {
+function checkFullDuplicateSubmission_(siteCode, validated, blockMs) {
   var rows = sheetToObjects_(SHEET_NAMES.SUBMISSION);
   var now = new Date();
   var windowMs = blockMs || DUPLICATE_WINDOW_MS;
-
-  var normalizedPhone = normalizePhone_(phone);
-  var normalizedName = String(name || '').trim();
 
   for (var i = rows.length - 1; i >= 0; i--) {
     var row = rows[i];
     var rowSiteCode = getSiteField_(row, ['siteCode', '현장코드']);
     if (rowSiteCode !== siteCode) continue;
-
-    var dupFlag = getField_(row, '중복여부');
-    if (dupFlag === 'Y') continue;
 
     var submittedAt = row['createdAt'] || row['접수일시'];
     if (!submittedAt) continue;
@@ -321,12 +345,37 @@ function checkDuplicateSubmission_(siteCode, name, phone, blockMs) {
     if (isNaN(submittedDate.getTime())) continue;
     if (now.getTime() - submittedDate.getTime() > windowMs) continue;
 
-    var rowName = getSiteField_(row, ['name', '성함']);
-    var rowPhone = normalizePhone_(getSiteField_(row, ['phone', '연락처']));
-
-    if (rowName === normalizedName && rowPhone === normalizedPhone) {
+    if (isSameSubmissionContent_(row, validated)) {
       return true;
     }
   }
   return false;
+}
+
+function normalizeSubmissionField_(value) {
+  return String(value || '').trim();
+}
+
+function normalizeConsultTypeForCompare_(value) {
+  return normalizeSubmissionField_(value) || '방문예약';
+}
+
+function isSameSubmissionContent_(row, validated) {
+  var rowName = getSiteField_(row, ['name', '성함']);
+  var rowPhone = normalizePhone_(getSiteField_(row, ['phone', '연락처']));
+  var rowConsult = getSiteField_(row, ['consultType', '상담유형']);
+  var rowDate = getSiteField_(row, ['reserveDate', '예약날짜', 'visitDate']);
+  var rowTime = getSiteField_(row, ['reserveTime', '예약시간', 'visitTime']);
+  var rowInquiry = getSiteField_(row, ['inquiry', '기타문의', 'source']);
+  var rowAge = getSiteField_(row, ['ageRange', '연령대']);
+
+  return (
+    normalizeSubmissionField_(rowName) === normalizeSubmissionField_(validated.name) &&
+    rowPhone === normalizePhone_(validated.phone) &&
+    normalizeConsultTypeForCompare_(rowConsult) === normalizeConsultTypeForCompare_(validated.consultType) &&
+    normalizeSubmissionField_(rowDate) === normalizeSubmissionField_(validated.reserveDate) &&
+    normalizeSubmissionField_(rowTime) === normalizeSubmissionField_(validated.reserveTime) &&
+    normalizeSubmissionField_(rowInquiry) === normalizeSubmissionField_(validated.inquiry) &&
+    normalizeSubmissionField_(rowAge) === normalizeSubmissionField_(validated.ageRange)
+  );
 }

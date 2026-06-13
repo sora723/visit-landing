@@ -5,11 +5,22 @@ import {
   mergeSiteTheme,
   type SiteTheme,
 } from "@/lib/site-theme";
+import {
+  EMPTY_CONVERSION_TRACKING,
+  parseConversionTracking,
+  type ConversionTrackingConfig,
+} from "@/lib/conversion-tracking";
+import {
+  EMPTY_OWNERSHIP_VERIFICATION,
+  parseOwnershipVerification,
+  type OwnershipVerificationConfig,
+} from "@/lib/ownership-verification";
+import {
+  parseSiteConfigApiResponse,
+  type VisitDateOption,
+} from "@/lib/site-config-api";
 
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL?.replace(/\/$/, "");
-const SHEET_SITE_CODE = process.env.SHEET_SITE_CODE ?? "L001";
-
-export type VisitDateOption = { value: string; label: string };
+export type { VisitDateOption };
 
 export type SiteLiveConfigData = {
   siteCode: string;
@@ -20,13 +31,50 @@ export type SiteLiveConfigData = {
   unitTypeEnabled: boolean;
   visitDateEnabled: boolean;
   theme: SiteTheme;
+  conversionTracking: ConversionTrackingConfig;
+  ownershipVerification: OwnershipVerificationConfig;
   updatedAt?: string;
   source: "sheet" | "unavailable";
 };
 
+const LOG = "[fetchSiteLiveConfigFromSheet]";
+
+function getEnv() {
+  const raw = process.env.APPS_SCRIPT_URL ?? "";
+  return {
+    url: raw.replace(/\/$/, ""),
+    siteCode: process.env.SHEET_SITE_CODE ?? "L001",
+  };
+}
+
+function mapApiDataToLiveConfig(
+  data: NonNullable<ReturnType<typeof parseSiteConfigApiResponse>>
+): SiteLiveConfigData {
+  return {
+    siteCode: data.siteCode,
+    stickyPromoText: data.stickyPromoText,
+    unitTypeOptions: data.unitTypeOptions,
+    visitDateDays: data.visitDateDays,
+    visitDateOptions: data.visitDateOptions,
+    unitTypeEnabled: data.unitTypeEnabled,
+    visitDateEnabled: data.visitDateEnabled,
+    theme: mergeSiteTheme({
+      mainColor: data.mainColor,
+      subColor: data.subColor,
+      accentColor: data.accentColor,
+    }),
+    conversionTracking: parseConversionTracking(data.conversionTracking),
+    ownershipVerification: parseOwnershipVerification(data.ownershipVerification),
+    updatedAt: data.updatedAt,
+    source: "sheet",
+  };
+}
+
 export async function fetchSiteLiveConfigFromSheet(): Promise<SiteLiveConfigData> {
+  const { url: appsScriptUrl, siteCode } = getEnv();
+
   const unavailable: SiteLiveConfigData = {
-    siteCode: SHEET_SITE_CODE,
+    siteCode,
     stickyPromoText: null,
     unitTypeOptions: [],
     visitDateDays: 30,
@@ -34,63 +82,52 @@ export async function fetchSiteLiveConfigFromSheet(): Promise<SiteLiveConfigData
     unitTypeEnabled: true,
     visitDateEnabled: true,
     theme: DEFAULT_SITE_THEME,
+    conversionTracking: EMPTY_CONVERSION_TRACKING,
+    ownershipVerification: EMPTY_OWNERSHIP_VERIFICATION,
     source: "unavailable",
   };
 
-  if (!APPS_SCRIPT_URL) return unavailable;
+  if (!appsScriptUrl) {
+    console.error(`${LOG} APPS_SCRIPT_URL empty — returning unavailable`);
+    return unavailable;
+  }
+
+  const fetchUrl =
+    `${appsScriptUrl}?action=site.config` +
+    `&siteCode=${encodeURIComponent(siteCode)}`;
 
   try {
-    const url =
-      `${APPS_SCRIPT_URL}?action=site.config` +
-      `&siteCode=${encodeURIComponent(SHEET_SITE_CODE)}`;
+    console.error(`${LOG} fetch URL=${fetchUrl}`);
 
-    const res = await fetch(url, {
+    const res = await fetch(fetchUrl, {
       cache: "no-store",
       redirect: "follow",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(8000),
     });
-    const json = await res.json();
 
-    if (json.success && json.data) {
-      const d = json.data;
-      const rawPromo = d.stickyPromoText;
-      const unitTypeOptions = Array.isArray(d.unitTypeOptions)
-        ? d.unitTypeOptions.map((v: unknown) => String(v).trim()).filter(Boolean)
-        : [];
-      const visitDateDays =
-        typeof d.visitDateDays === "number" && d.visitDateDays > 0
-          ? d.visitDateDays
-          : 30;
-      const visitDateOptions = Array.isArray(d.visitDateOptions)
-        ? d.visitDateOptions
-            .map((o: { value?: string; label?: string }) => ({
-              value: String(o?.value ?? "").trim(),
-              label: String(o?.label ?? o?.value ?? "").trim(),
-            }))
-            .filter((o: VisitDateOption) => o.value)
-        : null;
+    const bodyText = await res.text();
+    console.error(
+      `${LOG} response status=${res.status} content-type=${res.headers.get("content-type") ?? "(none)"}`
+    );
+    console.error(`${LOG} response body=${bodyText.slice(0, 800)}`);
 
-      return {
-        siteCode: String(d.siteCode ?? SHEET_SITE_CODE),
-        stickyPromoText:
-          typeof rawPromo === "string" ? rawPromo.trim() || null : null,
-        unitTypeOptions,
-        visitDateDays,
-        visitDateOptions: visitDateOptions?.length ? visitDateOptions : null,
-        unitTypeEnabled: d.unitTypeEnabled !== false,
-        visitDateEnabled: d.visitDateEnabled !== false,
-        theme: mergeSiteTheme({
-          mainColor: d.mainColor,
-          subColor: d.subColor,
-          accentColor: d.accentColor,
-        }),
-        updatedAt: d.updatedAt,
-        source: "sheet",
-      };
+    let json: unknown;
+    try {
+      json = JSON.parse(bodyText);
+    } catch (parseErr) {
+      console.error(`${LOG} JSON parse failed:`, parseErr);
+      return unavailable;
     }
-  } catch {
-    /* Sheet unavailable */
+
+    const parsed = parseSiteConfigApiResponse(json, siteCode);
+    if (parsed) {
+      return mapApiDataToLiveConfig(parsed);
+    }
+
+    console.error(`${LOG} Apps Script success=false or data missing`);
+  } catch (err) {
+    console.error(`${LOG} fetch failed:`, err);
   }
 
   return unavailable;

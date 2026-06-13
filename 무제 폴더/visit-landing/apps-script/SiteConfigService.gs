@@ -76,6 +76,86 @@ var DEFAULT_MAIN_COLOR = '#0f1d3a';
 var DEFAULT_SUB_COLOR = '#d7b56d';
 var DEFAULT_ACCENT_COLOR = '#caa85c';
 
+var META_PIXEL_ID_ALIASES = [
+  'metaPixelId',
+  '메타픽셀ID',
+  '메타픽셀',
+  '메타전환코드'
+];
+
+var META_CONVERSION_EVENT_ALIASES = [
+  'metaConversionEvent',
+  '메타전환이벤트',
+  '메타전환'
+];
+
+var GOOGLE_CONVERSION_ID_ALIASES = [
+  'googleConversionId',
+  '구글전환ID',
+  '구글AdsID',
+  '구글전환코드'
+];
+
+var GOOGLE_CONVERSION_LABEL_ALIASES = [
+  'googleConversionLabel',
+  '구글전환라벨',
+  '구글전환Label'
+];
+
+var NAVER_CONVERSION_SCRIPT_ALIASES = [
+  'naverConversionScript',
+  '네이버전환스크립트',
+  '네이버전환',
+  '네이버전환코드'
+];
+
+var KAKAO_PIXEL_ID_ALIASES = [
+  'kakaoPixelId',
+  '카카오픽셀ID',
+  '카카오픽셀',
+  '카카오전환코드'
+];
+
+var CONVERSION_RAW_ALIASES = [
+  '전환코드',
+  'conversionRawHtml',
+  'conversionCode'
+];
+
+var META_OWNERSHIP_ALIASES = [
+  'metaOwnershipCode',
+  'metaDomainVerification',
+  '메타소유확인코드',
+  '메타소유확인'
+];
+
+var GOOGLE_OWNERSHIP_ALIASES = [
+  'googleOwnershipCode',
+  'googleSiteVerification',
+  '구글소유확인코드',
+  '구글소유확인'
+];
+
+var NAVER_OWNERSHIP_ALIASES = [
+  'naverOwnershipCode',
+  'naverSiteVerification',
+  '네이버소유확인코드',
+  '네이버소유확인'
+];
+
+var KAKAO_OWNERSHIP_ALIASES = [
+  'kakaoOwnershipCode',
+  'kakaoSiteVerification',
+  '카카오소유확인코드',
+  '카카오소유확인'
+];
+
+var OWNERSHIP_RAW_ALIASES = [
+  '소유확인코드',
+  'ownershipRawHtml',
+  'ownershipVerificationCode'
+];
+
 function parseBoolField_(value, defaultVal) {
   if (value === undefined || value === null || value === '') return defaultVal;
   if (typeof value === 'boolean') return value;
@@ -388,6 +468,50 @@ function getThemeColorFromContentRow_(row, ext, aliases, extKey, defaultVal) {
   return defaultVal;
 }
 
+function getConversionTrackingFromSiteRow_(siteRow) {
+  if (!siteRow) {
+    return {
+      metaPixelId: '',
+      metaConversionEvent: '',
+      googleConversionId: '',
+      googleConversionLabel: '',
+      naverConversionScript: '',
+      kakaoPixelId: '',
+      conversionRawHtml: ''
+    };
+  }
+
+  return {
+    metaPixelId: getSiteField_(siteRow, META_PIXEL_ID_ALIASES),
+    metaConversionEvent: getSiteField_(siteRow, META_CONVERSION_EVENT_ALIASES),
+    googleConversionId: getSiteField_(siteRow, GOOGLE_CONVERSION_ID_ALIASES),
+    googleConversionLabel: getSiteField_(siteRow, GOOGLE_CONVERSION_LABEL_ALIASES),
+    naverConversionScript: getSiteField_(siteRow, NAVER_CONVERSION_SCRIPT_ALIASES),
+    kakaoPixelId: getSiteField_(siteRow, KAKAO_PIXEL_ID_ALIASES),
+    conversionRawHtml: getSiteField_(siteRow, CONVERSION_RAW_ALIASES)
+  };
+}
+
+function getOwnershipVerificationFromSiteRow_(siteRow) {
+  if (!siteRow) {
+    return {
+      metaOwnershipCode: '',
+      googleOwnershipCode: '',
+      naverOwnershipCode: '',
+      kakaoOwnershipCode: '',
+      ownershipRawHtml: ''
+    };
+  }
+
+  return {
+    metaOwnershipCode: getSiteField_(siteRow, META_OWNERSHIP_ALIASES),
+    googleOwnershipCode: getSiteField_(siteRow, GOOGLE_OWNERSHIP_ALIASES),
+    naverOwnershipCode: getSiteField_(siteRow, NAVER_OWNERSHIP_ALIASES),
+    kakaoOwnershipCode: getSiteField_(siteRow, KAKAO_OWNERSHIP_ALIASES),
+    ownershipRawHtml: getSiteField_(siteRow, OWNERSHIP_RAW_ALIASES)
+  };
+}
+
 function findContentBySiteCode_(siteCode) {
   var code = String(siteCode || '').trim();
   if (!code) return null;
@@ -457,6 +581,9 @@ function getSiteLiveConfig(siteCode) {
   var accentColor = getThemeColorFromContentRow_(
     contentRow, ext, ACCENT_COLOR_ALIASES, 'accentColor', DEFAULT_ACCENT_COLOR
   );
+  var siteRow = findSiteByCode_(code);
+  var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);
+  var ownershipVerification = getOwnershipVerificationFromSiteRow_(siteRow);
 
   return {
     siteCode: code,
@@ -469,6 +596,8 @@ function getSiteLiveConfig(siteCode) {
     mainColor: mainColor,
     subColor: subColor,
     accentColor: accentColor,
+    conversionTracking: conversionTracking,
+    ownershipVerification: ownershipVerification,
     updatedAt: new Date().toISOString()
   };
 }

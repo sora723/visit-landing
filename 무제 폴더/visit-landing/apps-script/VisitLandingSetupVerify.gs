@@ -13,7 +13,13 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'siteCode', 'siteName', 'submissionSpreadsheetId', 'submissionSpreadsheetName', 'submissionSheetName',
     'phone', 'managerName', 'managerPhone', 'notifyPhone',
     'popupEnabled', 'liveStatusEnabled', 'virtualReservationEnabled',
-    'duplicateBlockMinutes', 'isActive'
+    'duplicateBlockMinutes', 'isActive',
+    'metaPixelId', 'metaConversionEvent',
+    'googleConversionId', 'googleConversionLabel',
+    'naverConversionScript', 'kakaoPixelId',
+    'metaOwnershipCode', 'googleOwnershipCode',
+    'naverOwnershipCode', 'kakaoOwnershipCode',
+    '전환코드', '소유확인코드'
   ],
   '콘텐츠관리': [
     'siteCode', 'heroTitle', 'heroSubTitle',
@@ -87,15 +93,23 @@ function runVisitLandingSetupVerify() {
 
 /** 현장관리·콘텐츠관리 누락 컬럼 추가 + 구조 검증 */
 function runEnsureStickyPromoAndVerify() {
-  var siteCol = ensureSubmissionSpreadsheetNameColumn();
-  Logger.log(siteCol.message);
-  var promoCol = ensureStickyPromoTextColumn();
-  Logger.log(promoCol.message);
-  var formCol = ensureReservationFormColumns();
-  Logger.log(formCol.message);
-  var themeCol = ensureSiteThemeColumns();
-  Logger.log(themeCol.message);
+  runEnsureStep_('submissionSpreadsheetName', ensureSubmissionSpreadsheetNameColumn);
+  runEnsureStep_('stickyPromoText', ensureStickyPromoTextColumn);
+  runEnsureStep_('reservationForm', ensureReservationFormColumns);
+  runEnsureStep_('siteTheme', ensureSiteThemeColumns);
+  runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);
   return runVisitLandingSetupVerify();
+}
+
+function runEnsureStep_(label, fn) {
+  try {
+    var result = fn();
+    Logger.log('[' + label + '] ' + (result && result.message ? result.message : 'OK'));
+    return result;
+  } catch (err) {
+    Logger.log('[' + label + '] FAIL: ' + (err.message || String(err)));
+    return { ok: false, message: err.message || String(err) };
+  }
 }
 
 /** Solapi 접수 알림톡 템플릿 ID 갱신 (Script Properties) */

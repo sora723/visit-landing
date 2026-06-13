@@ -3,8 +3,27 @@ import { getDemoRecentSubmissions } from "@/lib/demo-store";
 import { filterRealReservationsOnly, formatReservationName } from "@/lib/live-reservation-feed";
 import type { ReservationItem } from "@/lib/types";
 
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL?.replace(/\/$/, "");
-const SHEET_SITE_CODE = process.env.SHEET_SITE_CODE ?? "L001";
+const LOG = "[api/reservations]";
+
+function getEnv() {
+  const raw = process.env.APPS_SCRIPT_URL ?? "";
+  const url = raw.replace(/\/$/, "");
+  const siteCode = process.env.SHEET_SITE_CODE ?? "L001";
+  return { url, siteCode };
+}
+
+function logEnv() {
+  const { url, siteCode } = getEnv();
+  console.error(`${LOG} APPS_SCRIPT_URL read=${url ? "yes" : "no"} length=${url.length}`);
+  if (url) {
+    console.error(`${LOG} APPS_SCRIPT_URL=${url}`);
+  } else {
+    console.error(
+      `${LOG} APPS_SCRIPT_URL missing — demo 모드로 fallback`
+    );
+  }
+  console.error(`${LOG} SHEET_SITE_CODE=${siteCode}`);
+}
 
 /** 가상 접수는 프론트 buildLiveFeed에서만 생성 — API는 실제 접수만 반환 */
 function sanitizeRealItems(items: ReservationItem[]) {
@@ -22,8 +41,11 @@ function sanitizeRealItems(items: ReservationItem[]) {
 
 export async function GET(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "12");
+  logEnv();
+  const { url: appsScriptUrl, siteCode } = getEnv();
 
-  if (!APPS_SCRIPT_URL) {
+  if (!appsScriptUrl) {
+    console.error(`${LOG} demo fallback (APPS_SCRIPT_URL empty)`);
     const real = filterRealReservationsOnly(
       getDemoRecentSubmissions(limit)
     );
@@ -34,29 +56,63 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  try {
-    const url =
-      `${APPS_SCRIPT_URL}?action=reservations.recent` +
-      `&siteCode=${encodeURIComponent(SHEET_SITE_CODE)}` +
-      `&limit=${encodeURIComponent(String(limit))}`;
+  const fetchUrl =
+    `${appsScriptUrl}?action=reservations.recent` +
+    `&siteCode=${encodeURIComponent(siteCode)}` +
+    `&limit=${encodeURIComponent(String(limit))}`;
 
-    const res = await fetch(url, {
+  try {
+    console.error(`${LOG} fetch URL=${fetchUrl}`);
+
+    const res = await fetch(fetchUrl, {
       cache: "no-store",
       redirect: "follow",
       headers: { Accept: "application/json" },
     });
-    const json = await res.json();
+
+    const bodyText = await res.text();
+    console.error(
+      `${LOG} response status=${res.status} content-type=${res.headers.get("content-type") ?? "(none)"}`
+    );
+    console.error(`${LOG} response body=${bodyText.slice(0, 800)}`);
+
+    let json: {
+      success?: boolean;
+      data?: { items?: ReservationItem[] };
+      error?: { code?: string; message?: string };
+    };
+    try {
+      json = JSON.parse(bodyText) as typeof json;
+    } catch (parseErr) {
+      console.error(`${LOG} 502 JSON parse failed:`, parseErr);
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: {
+            code: "INVALID_RESPONSE",
+            message: "예약 현황 응답을 해석할 수 없습니다",
+          },
+        },
+        { status: 502 }
+      );
+    }
 
     if (json.success && json.data?.items) {
       const sanitized = sanitizeRealItems(json.data.items as ReservationItem[]);
+      console.error(`${LOG} 200 OK items=${sanitized.items.length}`);
       return NextResponse.json({
         ...json,
         data: { ...json.data, ...sanitized },
       });
     }
 
+    console.error(
+      `${LOG} Apps Script non-success: success=${json.success} error=${JSON.stringify(json.error)}`
+    );
     return NextResponse.json(json, { status: json.success ? 200 : 400 });
-  } catch {
+  } catch (err) {
+    console.error(`${LOG} 502 fetch threw:`, err);
     return NextResponse.json(
       {
         success: false,

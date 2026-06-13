@@ -13,6 +13,7 @@
     "verify:ops": "node scripts/verify-ops.mjs",
     "verify:surnames": "npx --yes tsx scripts/verify-surname-policy.ts",
     "verify:notification": "node scripts/verify-notification.mjs",
+    "verify:tracking": "node scripts/verify-site-tracking.mjs",
     "capture:mobile": "node scripts/capture-mobile-screenshots.mjs",
     "capture:full": "node scripts/capture-full-screenshots.mjs",
     "manual:apps-script": "node scripts/print-manual-apps-script.mjs"
