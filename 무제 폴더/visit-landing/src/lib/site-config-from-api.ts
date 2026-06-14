@@ -23,8 +23,8 @@ function parseCtaTexts(raw: string | undefined): string[] {
 }
 
 function filterBenefits(
-  items: { title: string; value: string; iconKey?: string }[]
-): { title: string; value: string; iconKey?: string }[] {
+  items: { title: string; value: string; iconKey: string }[]
+): { title: string; value: string; iconKey: string }[] {
   return items.filter((item) => item.title.trim() || item.value.trim());
 }
 
@@ -32,12 +32,11 @@ function benefitFromApi(
   title?: string,
   value?: string,
   cardIcon?: string
-): { title: string; value: string; iconKey?: string } {
-  const iconKey = normalizeHeroCardIconKey(cardIcon);
+): { title: string; value: string; iconKey: string } {
   return {
     title: title ?? "",
     value: value ?? "",
-    ...(iconKey ? { iconKey } : {}),
+    iconKey: normalizeHeroCardIconKey(cardIcon) ?? "gift",
   };
 }
 
