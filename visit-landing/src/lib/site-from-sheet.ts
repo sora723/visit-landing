@@ -3,6 +3,7 @@
  * 현재 UI는 site.json 사용. 향후 getSiteConfig() 대신 이 함수로 교체 가능.
  */
 
+import { normalizeFooter } from "./footer-config";
 import type { SiteConfig } from "./types";
 import type { CtaPromoImageSection } from "./types";
 import type {
@@ -266,26 +267,6 @@ function formatVisitDateLabel(dateStr: string): string {
   });
 }
 
-function resolveFooterFromContent(
-  content: ContentManagementRow,
-  ext: ContentExtendedData
-): SiteConfig["footer"] {
-  const fromExt = ext.footer ?? {};
-  const extFooter = fromExt as NonNullable<ContentExtendedData["footer"]>;
-  const flat = (value?: string | number | null) => String(value ?? "").trim();
-  return {
-    developer: flat(content.footerDeveloper) || flat(extFooter.developer) || "",
-    constructor:
-      flat(content.footerConstructor) || flat(extFooter.constructor) || "",
-    agency: flat(content.footerAgency) || flat(extFooter.agency) || "",
-    businessNumber:
-      flat(content.footerBusinessNumber) || flat(extFooter.businessNumber) || "",
-    contact: flat(content.footerContact) || flat(extFooter.contact) || "",
-    privacyPolicy:
-      flat(content.footerPrivacyPolicy) || flat(extFooter.privacyPolicy) || "",
-  };
-}
-
 export function buildSiteConfigFromSheet(
   site: SiteManagementRow,
   content: ContentManagementRow
@@ -317,6 +298,10 @@ export function buildSiteConfigFromSheet(
   });
 
   const ctaTexts = parseCtaTexts(content.ctaText);
+  const footer = normalizeFooter(
+    content.footerData ? parseJson(content.footerData, null) : null,
+    ext.footer
+  );
   const floatingLabels = ext.hero?.floatingStats ?? {
     todayLabel: "오늘 방문예약",
     activeLabel: "실시간 상담",
@@ -407,7 +392,7 @@ export function buildSiteConfigFromSheet(
     },
     ctaPromoImage: resolveCtaPromoImageFromContent(content, ext),
     mobileBar: { hookText: content.mobileHookText },
-    footer: resolveFooterFromContent(content, ext),
+    footer,
     seo: ext.seo ?? {
       title: site.siteName,
       description: "",

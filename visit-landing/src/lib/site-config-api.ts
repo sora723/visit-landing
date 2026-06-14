@@ -1,6 +1,7 @@
 /** Apps Script site.config API 응답 타입·파싱 */
 
 import { normalizeImageUrl } from "./image-url";
+import { parseFooterData } from "./footer-config";
 import type { SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 
@@ -11,6 +12,7 @@ export type SiteConfigApiSettings = SiteConfig["settings"];
 export type SiteConfigApiOverview = SiteConfig["overview"];
 export type SiteConfigApiPremium = SiteConfig["premium"];
 export type SiteConfigApiLocation = SiteConfig["location"];
+export type SiteConfigApiFooter = SiteConfig["footer"];
 export type SiteConfigApiFutureValue = SiteConfig["futureValue"];
 export type SiteConfigApiUnitTypes = SiteConfig["unitTypes"];
 export type SiteConfigApiCommunity = SiteConfig["community"];
@@ -65,6 +67,7 @@ export type SiteConfigApiData = {
   futureValue?: SiteConfigApiFutureValue;
   unitTypes?: SiteConfigApiUnitTypes;
   community?: SiteConfigApiCommunity;
+  footer?: SiteConfigApiFooter;
   extendedData?: ContentExtendedData;
   conversionTracking?: Record<string, unknown>;
   ownershipVerification?: Record<string, unknown>;
@@ -178,6 +181,11 @@ function parseImageItems(
 function optionalNormalizedImage(value: unknown): string | undefined {
   const url = optionalString(value);
   return url ? normalizeImageUrl(url) : undefined;
+}
+
+function parseFooter(value: unknown): SiteConfigApiFooter | undefined {
+  if (!isRecord(value)) return undefined;
+  return parseFooterData(value);
 }
 
 function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
@@ -305,6 +313,7 @@ export function parseSiteConfigApiResponse(
     futureValue: parseImageItems(data.futureValue, "미래가치"),
     unitTypes: parseUnitTypes(data.unitTypes),
     community: parseImageItems(data.community, "커뮤니티"),
+    footer: parseFooter(data.footer),
     extendedData: parseExtendedData(data.extendedData),
     conversionTracking: isRecord(data.conversionTracking)
       ? data.conversionTracking

@@ -101,7 +101,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('ctaPromoImage', ensureCtaPromoImageColumns);
   runEnsureStep_('unitTypesData', ensureUnitTypesDataColumn);
   runEnsureStep_('popupImages', ensurePopupImageColumns);
-  runEnsureStep_('footer', ensureFooterColumns);
+  runEnsureStep_('footer', ensureFooterDataColumn);
   runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);
   return runVisitLandingSetupVerify();
 }

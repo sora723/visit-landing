@@ -259,12 +259,15 @@
     "hookText": "선착순 방문예약 진행중"
   },
   "footer": {
-    "developer": "OO시행",
-    "constructor": "OO건설",
-    "agency": "다비드애드",
-    "businessNumber": "123-45-67890",
-    "contact": "landing@david-ad.co.kr",
-    "privacyPolicy": "개인정보처리방침에 따른 수집·이용에 동의합니다."
+    "items": [
+      { "title": "시행사", "content": "OO시행" },
+      { "title": "시공사", "content": "OO건설" },
+      { "title": "대표번호", "content": "1688-0000" },
+      { "title": "광고대행", "content": "다비드애드" },
+      { "title": "사업자등록번호", "content": "123-45-67890" },
+      { "title": "문의", "content": "landing@david-ad.co.kr" }
+    ],
+    "bottomText": "개인정보처리방침에 따른 수집·이용에 동의합니다."
   },
   "seo": {
     "title": "원주 한양립스 | 방문예약",

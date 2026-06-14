@@ -133,41 +133,10 @@ var POPUP_IMAGE2_ALIASES = [
   '팝업이미지02'
 ];
 
-var FOOTER_DEVELOPER_ALIASES = [
-  'footerDeveloper',
-  '푸터시행사',
-  '시행사'
-];
-
-var FOOTER_CONSTRUCTOR_ALIASES = [
-  'footerConstructor',
-  '푸터시공사',
-  '시공사'
-];
-
-var FOOTER_AGENCY_ALIASES = [
-  'footerAgency',
-  '푸터광고대행',
-  '광고대행'
-];
-
-var FOOTER_BUSINESS_NUMBER_ALIASES = [
-  'footerBusinessNumber',
-  '푸터사업자번호',
-  '사업자등록번호'
-];
-
-var FOOTER_CONTACT_ALIASES = [
-  'footerContact',
-  '푸터문의',
-  '푸터연락처',
-  '문의이메일'
-];
-
-var FOOTER_PRIVACY_POLICY_ALIASES = [
-  'footerPrivacyPolicy',
-  '푸터개인정보',
-  '개인정보처리방침'
+var FOOTER_DATA_ALIASES = [
+  'footerData',
+  '푸터데이터',
+  'footerJSON'
 ];
 
 var DEFAULT_MAIN_COLOR = '#0f1d3a';
@@ -639,50 +608,32 @@ function ensurePopupImageColumns() {
   };
 }
 
-/** 푸터 flat 컬럼 — extendedData 앞 (footer JSON 보조·대체) */
-function ensureFooterColumns() {
+/** 푸터 JSON 컬럼 — extendedData 앞 */
+function ensureFooterDataColumn() {
   var sheet = getSheet_(CONTENT_SHEET_NAME);
   var map = getHeaderIndexMap_(sheet);
-  var added = [];
-  var headers = [
-    'footerPrivacyPolicy',
-    'footerContact',
-    'footerBusinessNumber',
-    'footerAgency',
-    'footerConstructor',
-    'footerDeveloper'
-  ];
-  var aliases = [
-    FOOTER_PRIVACY_POLICY_ALIASES,
-    FOOTER_CONTACT_ALIASES,
-    FOOTER_BUSINESS_NUMBER_ALIASES,
-    FOOTER_AGENCY_ALIASES,
-    FOOTER_CONSTRUCTOR_ALIASES,
-    FOOTER_DEVELOPER_ALIASES
-  ];
 
-  for (var f = 0; f < headers.length; f++) {
-    if (hasAnyHeader_(map, aliases[f])) continue;
-    var result = ensureColumnBeforeExtended_(sheet, headers[f]);
-    if (result.added) added.push(headers[f]);
-    map = getHeaderIndexMap_(sheet);
+  if (hasAnyHeader_(map, FOOTER_DATA_ALIASES)) {
+    return {
+      ok: true,
+      added: false,
+      message: 'footerData 컬럼 이미 존재'
+    };
   }
 
-  added.reverse();
+  ensureColumnBeforeExtended_(sheet, 'footerData');
 
   return {
     ok: true,
-    added: added.length > 0,
-    addedColumns: added,
-    message: added.length
-      ? '푸터 컬럼 추가: ' + added.join(', ')
-      : '푸터 컬럼 이미 존재'
+    added: true,
+    addedColumns: ['footerData'],
+    message: 'footerData 컬럼 추가'
   };
 }
 
-/** Apps Script 편집기 / 시트 메뉴 — 푸터 flat 컬럼만 추가 */
+/** Apps Script 편집기 / 시트 메뉴 — footerData 컬럼만 추가 */
 function runEnsureFooterColumns() {
-  var result = ensureFooterColumns();
+  var result = ensureFooterDataColumn();
   Logger.log('[footer] ' + result.message);
   try {
     SpreadsheetApp.getUi().alert(result.message);
@@ -692,27 +643,88 @@ function runEnsureFooterColumns() {
   return result;
 }
 
-function mergeFooterFromFlatColumns_(contentRow, ext) {
-  var merged = ext || {};
-  var footer = merged.footer && typeof merged.footer === 'object'
-    ? JSON.parse(JSON.stringify(merged.footer))
-    : {};
-  var pairs = [
-    ['developer', FOOTER_DEVELOPER_ALIASES],
-    ['constructor', FOOTER_CONSTRUCTOR_ALIASES],
-    ['agency', FOOTER_AGENCY_ALIASES],
-    ['businessNumber', FOOTER_BUSINESS_NUMBER_ALIASES],
-    ['contact', FOOTER_CONTACT_ALIASES],
-    ['privacyPolicy', FOOTER_PRIVACY_POLICY_ALIASES]
-  ];
+function normalizeFooterItem_(item) {
+  if (!item || typeof item !== 'object') return null;
+  var title = String(item.title || item.label || '').trim();
+  var content = String(item.content || item.value || '').trim();
+  if (!title && !content) return null;
+  return { title: title, content: content };
+}
 
-  for (var i = 0; i < pairs.length; i++) {
-    var flatVal = getContentTextField_(contentRow, pairs[i][1]);
-    if (flatVal) footer[pairs[i][0]] = flatVal;
+function parseFooterFromContentRow_(contentRow, ext) {
+  var raw = getSiteField_(contentRow, FOOTER_DATA_ALIASES);
+  var parsed = parseJsonField_(raw, null);
+
+  if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
+    var items = [];
+    for (var i = 0; i < parsed.items.length; i++) {
+      var item = normalizeFooterItem_(parsed.items[i]);
+      if (item) items.push(item);
+    }
+    return {
+      items: items,
+      bottomText: String(
+        parsed.bottomText || parsed.privacyPolicy || parsed.note || ''
+      ).trim()
+    };
   }
 
-  if (Object.keys(footer).length) merged.footer = footer;
-  return merged;
+  if (parsed && typeof parsed === 'object') {
+    var legacyItems = [];
+    var pairs = [
+      ['시행사', 'developer'],
+      ['시공사', 'constructor'],
+      ['광고대행', 'agency'],
+      ['사업자등록번호', 'businessNumber'],
+      ['문의', 'contact']
+    ];
+    for (var p = 0; p < pairs.length; p++) {
+      var val = String(parsed[pairs[p][1]] || '').trim();
+      if (val) legacyItems.push({ title: pairs[p][0], content: val });
+    }
+    if (legacyItems.length) {
+      return {
+        items: legacyItems,
+        bottomText: String(parsed.privacyPolicy || parsed.bottomText || '').trim()
+      };
+    }
+  }
+
+  var legacy = ext && ext.footer ? ext.footer : null;
+  if (legacy && Array.isArray(legacy.items) && legacy.items.length) {
+    var extItems = [];
+    for (var j = 0; j < legacy.items.length; j++) {
+      var extItem = normalizeFooterItem_(legacy.items[j]);
+      if (extItem) extItems.push(extItem);
+    }
+    return {
+      items: extItems,
+      bottomText: String(legacy.bottomText || legacy.privacyPolicy || '').trim()
+    };
+  }
+
+  if (legacy && typeof legacy === 'object') {
+    var migrated = [];
+    var legacyPairs = [
+      ['시행사', 'developer'],
+      ['시공사', 'constructor'],
+      ['광고대행', 'agency'],
+      ['사업자등록번호', 'businessNumber'],
+      ['문의', 'contact']
+    ];
+    for (var k = 0; k < legacyPairs.length; k++) {
+      var legacyVal = String(legacy[legacyPairs[k][1]] || '').trim();
+      if (legacyVal) migrated.push({ title: legacyPairs[k][0], content: legacyVal });
+    }
+    if (migrated.length) {
+      return {
+        items: migrated,
+        bottomText: String(legacy.privacyPolicy || legacy.bottomText || '').trim()
+      };
+    }
+  }
+
+  return { items: [], bottomText: '' };
 }
 
 function parseCtaPromoBg_(raw) {
@@ -1010,6 +1022,7 @@ function buildPageContentFromContentRow_(contentRow, ext) {
       title: '커뮤니티',
       items: []
     }),
+    footer: parseFooterFromContentRow_(contentRow, ext),
     extendedData: ext || {}
   };
 }
@@ -1029,7 +1042,6 @@ function getSiteLiveConfig(siteCode) {
   }
 
   var ext = parseExtendedData_(contentRow);
-  ext = mergeFooterFromFlatColumns_(contentRow, ext);
   var promo = getStickyPromoTextFromContentRow_(contentRow);
   var unitTypeOptions = getUnitTypeOptionsFromContentRow_(contentRow, ext);
   var visitDateDays = getVisitDateDaysFromContentRow_(contentRow, ext);
@@ -1100,6 +1112,7 @@ function getSiteLiveConfig(siteCode) {
     futureValue: pageContent.futureValue,
     unitTypes: pageContent.unitTypes,
     community: pageContent.community,
+    footer: pageContent.footer,
     extendedData: pageContent.extendedData,
     conversionTracking: conversionTracking,
     ownershipVerification: ownershipVerification,

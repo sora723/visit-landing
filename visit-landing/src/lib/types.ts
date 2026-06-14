@@ -124,12 +124,9 @@ export interface SiteConfig {
   ctaPromoImage?: CtaPromoImageSection;
   mobileBar: { hookText: string };
   footer: {
-    developer: string;
-    constructor: string;
-    agency: string;
-    businessNumber: string;
-    contact: string;
-    privacyPolicy: string;
+    items: { title: string; content: string }[];
+    /** 하단 안내 문구 (개인정보 등) */
+    bottomText?: string;
   };
   seo: { title: string; description: string; ogImage: string };
   /** 현장별 추가 이미지 섹션 — 비어 있으면 미노출 */

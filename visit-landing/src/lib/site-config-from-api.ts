@@ -3,6 +3,7 @@
 import type { SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 import type { SiteConfigApiData } from "./site-config-api";
+import { normalizeFooter } from "./footer-config";
 import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { mergeSiteTheme } from "./site-theme";
 import type { CtaPromoImageSection } from "./types";
@@ -157,7 +158,7 @@ export function buildSiteConfigFromApi(
     mobileBar: {
       hookText: api.mobileHookText?.trim() || fallback.mobileBar.hookText,
     },
-    footer: ext.footer ?? fallback.footer,
+    footer: normalizeFooter(api.footer, ext.footer, fallback.footer),
     seo: ext.seo ?? {
       title: api.siteName?.trim() || fallback.seo.title,
       description: fallback.seo.description,

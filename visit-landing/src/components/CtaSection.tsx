@@ -96,37 +96,33 @@ export function CtaSection({
 
 export function SiteFooter() {
   const { config } = useConfig();
-  const f = config.footer;
-
-  const info = [
-    { label: "시행사", value: f.developer },
-    { label: "시공사", value: f.constructor },
-    { label: "대표번호", value: config.phone },
-    { label: "광고대행", value: f.agency },
-    { label: "사업자등록번호", value: f.businessNumber },
-    { label: "문의", value: f.contact },
-  ].filter((i) => i.value);
+  const { footer } = config;
+  const items = footer.items.filter((item) => item.title || item.content);
 
   return (
     <footer className="site-footer border-t border-white/8 bg-[var(--color-navy)] pt-8 text-white/55 sm:pt-10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 grid gap-5 lg:grid-cols-3">
-          <strong className="text-base text-white sm:text-lg">
+        <div className="mb-6 space-y-5">
+          <strong className="block text-base text-white sm:text-lg">
             {config.siteName}
           </strong>
-          <dl className="grid gap-2 sm:grid-cols-2 lg:col-span-2">
-            {info.map((i) => (
-              <div
-                key={i.label}
-                className="grid grid-cols-[88px_1fr] gap-2 text-xs"
-              >
-                <dt className="text-white/38">{i.label}</dt>
-                <dd className="text-white/72">{i.value}</dd>
-              </div>
-            ))}
-          </dl>
+          {items.length > 0 && (
+            <dl className="grid grid-cols-1 gap-x-10 gap-y-3 md:grid-cols-2">
+              {items.map((item, index) => (
+                <div
+                  key={`${item.title}-${item.content}-${index}`}
+                  className="grid grid-cols-[88px_1fr] gap-2 text-xs"
+                >
+                  <dt className="text-white/38">{item.title}</dt>
+                  <dd className="text-white/72">{item.content}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
-        <p className="text-xs leading-relaxed">{f.privacyPolicy}</p>
+        {footer.bottomText && (
+          <p className="text-xs leading-relaxed">{footer.bottomText}</p>
+        )}
         <p className="mt-2 pb-6 text-xs text-white/28">
           © {new Date().getFullYear()} All rights reserved.
         </p>
