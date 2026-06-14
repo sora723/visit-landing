@@ -35,4 +35,10 @@ export function scrollToReservation() {
   });
 }
 
-export const POPUP_SESSION_KEY = "visit_landing_popup_shown";
+/** 팝업 1회 노출 — 키 변경 시 기존 세션 초기화 (v2: 이벤트+방문예약 분리) */
+export const POPUP_SESSION_KEY_PREFIX = "visit_landing_popup_v2";
+
+export function getPopupSessionKey(siteCode?: string): string {
+  const code = siteCode?.trim() || "default";
+  return `${POPUP_SESSION_KEY_PREFIX}_${code}`;
+}

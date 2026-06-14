@@ -6,7 +6,7 @@ import { useConfig } from "./ConfigProvider";
 import { ReservationForm } from "./ReservationForm";
 import { useIsMobile } from "@/hooks/useResponsiveImage";
 import { normalizeImageUrl } from "@/lib/image-url";
-import { POPUP_SESSION_KEY } from "@/lib/utils";
+import { getPopupSessionKey } from "@/lib/utils";
 
 function ImageZoomModal({
   src,
@@ -127,8 +127,9 @@ function ReservationPopupPanel({
 }
 
 export function ReservationPopup() {
-  const { config } = useConfig();
+  const { config, siteCode } = useConfig();
   const isMobile = useIsMobile();
+  const popupSessionKey = getPopupSessionKey(siteCode || config.siteCode);
   const image1 = config.popup.image1?.trim() || "";
   const image2 = config.popup.image2?.trim() || "";
   const pcImages = !isMobile ? [image1, image2].filter(Boolean) : [];
@@ -143,8 +144,8 @@ export function ReservationPopup() {
 
   const finishPopup = useCallback(() => {
     setVisible(false);
-    sessionStorage.setItem(POPUP_SESSION_KEY, "1");
-  }, []);
+    sessionStorage.setItem(popupSessionKey, "1");
+  }, [popupSessionKey]);
 
   const handleReservationComplete = useCallback(() => {
     setComplete(true);
@@ -153,10 +154,10 @@ export function ReservationPopup() {
 
   useEffect(() => {
     if (!config.settings.popupEnabled) return;
-    if (sessionStorage.getItem(POPUP_SESSION_KEY)) return;
+    if (sessionStorage.getItem(popupSessionKey)) return;
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
-  }, [config.settings.popupEnabled]);
+  }, [config.settings.popupEnabled, popupSessionKey]);
 
   useEffect(() => {
     if (!visible) return;
