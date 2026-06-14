@@ -35,10 +35,27 @@ export function scrollToReservation() {
   });
 }
 
-/** 팝업 1회 노출 — 키 변경 시 기존 세션 초기화 (v2: 이벤트+방문예약 분리) */
+/** 팝업 닫기 후 재노출 대기 — ms (10분) */
+export const POPUP_COOLDOWN_MS = 10 * 60 * 1000;
+
 export const POPUP_SESSION_KEY_PREFIX = "visit_landing_popup_v2";
 
 export function getPopupSessionKey(siteCode?: string): string {
   const code = siteCode?.trim() || "default";
   return `${POPUP_SESSION_KEY_PREFIX}_${code}`;
+}
+
+export function markPopupDismissed(siteCode?: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(getPopupSessionKey(siteCode), String(Date.now()));
+}
+
+/** 닫은 지 10분 지났거나 기록 없으면 true */
+export function shouldShowPopup(siteCode?: string): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = sessionStorage.getItem(getPopupSessionKey(siteCode));
+  if (!raw) return true;
+  const dismissedAt = Number(raw);
+  if (!Number.isFinite(dismissedAt)) return true;
+  return Date.now() - dismissedAt >= POPUP_COOLDOWN_MS;
 }

@@ -6,7 +6,10 @@ import { useConfig } from "./ConfigProvider";
 import { ReservationForm } from "./ReservationForm";
 import { useIsMobile } from "@/hooks/useResponsiveImage";
 import { normalizeImageUrl } from "@/lib/image-url";
-import { getPopupSessionKey } from "@/lib/utils";
+import {
+  markPopupDismissed,
+  shouldShowPopup,
+} from "@/lib/utils";
 
 function ImageZoomModal({
   src,
@@ -64,7 +67,7 @@ function EventImagePanel({
       <img
         src={normalized}
         alt=""
-        className="h-full w-full cursor-zoom-in object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
       />
       <span className="pointer-events-none absolute bottom-3 right-3 rounded bg-[var(--color-navy)]/75 px-2.5 py-1 text-[10px] tracking-wide text-white/90 backdrop-blur-sm">
         클릭하여 확대
@@ -129,11 +132,15 @@ function ReservationPopupPanel({
 export function ReservationPopup() {
   const { config, siteCode } = useConfig();
   const isMobile = useIsMobile();
-  const popupSessionKey = getPopupSessionKey(siteCode || config.siteCode);
+  const resolvedSiteCode = siteCode || config.siteCode;
   const image1 = config.popup.image1?.trim() || "";
   const image2 = config.popup.image2?.trim() || "";
   const pcImages = !isMobile ? [image1, image2].filter(Boolean) : [];
   const showMobileImage = isMobile && !!image1;
+  const pcImageWidthClass =
+    pcImages.length >= 2
+      ? "w-[min(36vw,440px)]"
+      : "w-[min(44vw,560px)]";
 
   const [visible, setVisible] = useState(false);
   const [mobilePhase, setMobilePhase] = useState<"image" | "reservation">(
@@ -144,8 +151,8 @@ export function ReservationPopup() {
 
   const finishPopup = useCallback(() => {
     setVisible(false);
-    sessionStorage.setItem(popupSessionKey, "1");
-  }, [popupSessionKey]);
+    markPopupDismissed(resolvedSiteCode);
+  }, [resolvedSiteCode]);
 
   const handleReservationComplete = useCallback(() => {
     setComplete(true);
@@ -154,10 +161,10 @@ export function ReservationPopup() {
 
   useEffect(() => {
     if (!config.settings.popupEnabled) return;
-    if (sessionStorage.getItem(popupSessionKey)) return;
+    if (!shouldShowPopup(resolvedSiteCode)) return;
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
-  }, [config.settings.popupEnabled, popupSessionKey]);
+  }, [config.settings.popupEnabled, resolvedSiteCode]);
 
   useEffect(() => {
     if (!visible) return;
@@ -181,7 +188,7 @@ export function ReservationPopup() {
             onClick={() => setMobilePhase("reservation")}
           >
             <motion.div
-              className="relative w-full max-w-sm overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl"
+              className="relative w-full max-w-[min(92vw,480px)] overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl"
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
@@ -220,7 +227,7 @@ export function ReservationPopup() {
             onClick={finishPopup}
           >
             <motion.div
-              className={`flex w-full max-w-[min(100%,1200px)] items-stretch gap-3 sm:gap-4 ${
+              className={`flex w-full max-w-[min(100%,1520px)] items-stretch gap-3 sm:gap-5 ${
                 isMobile ? "max-w-md flex-col" : "flex-row justify-center"
               }`}
               initial={{ opacity: 0, y: 40 }}
@@ -234,7 +241,7 @@ export function ReservationPopup() {
                   key={`${src}-${index}`}
                   src={src}
                   onZoom={() => setZoomSrc(normalizeImageUrl(src))}
-                  className={`hidden w-[min(28vw,300px)] shrink-0 md:block ${panelHeightClass}`}
+                  className={`hidden shrink-0 md:block ${pcImageWidthClass} ${panelHeightClass}`}
                 />
               ))}
 
