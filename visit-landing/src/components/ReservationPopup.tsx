@@ -137,10 +137,8 @@ export function ReservationPopup() {
   const image2 = config.popup.image2?.trim() || "";
   const pcImages = !isMobile ? [image1, image2].filter(Boolean) : [];
   const showMobileImage = isMobile && !!image1;
-  const pcImageWidthClass =
-    pcImages.length >= 2
-      ? "w-[min(36vw,440px)]"
-      : "w-[min(44vw,560px)]";
+  /** 방문예약 팝업과 동일 너비 */
+  const popupPanelClass = "w-full max-w-md shrink-0";
 
   const [visible, setVisible] = useState(false);
   const [mobilePhase, setMobilePhase] = useState<"image" | "reservation">(
@@ -188,7 +186,7 @@ export function ReservationPopup() {
             onClick={() => setMobilePhase("reservation")}
           >
             <motion.div
-              className="relative w-full max-w-[min(92vw,480px)] overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl"
+              className={`relative overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${popupPanelClass}`}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
@@ -227,7 +225,7 @@ export function ReservationPopup() {
             onClick={finishPopup}
           >
             <motion.div
-              className={`flex w-full max-w-[min(100%,1520px)] items-stretch gap-3 sm:gap-5 ${
+              className={`flex w-full items-stretch gap-3 sm:gap-4 ${
                 isMobile ? "max-w-md flex-col" : "flex-row justify-center"
               }`}
               initial={{ opacity: 0, y: 40 }}
@@ -241,7 +239,7 @@ export function ReservationPopup() {
                   key={`${src}-${index}`}
                   src={src}
                   onZoom={() => setZoomSrc(normalizeImageUrl(src))}
-                  className={`hidden shrink-0 md:block ${pcImageWidthClass} ${panelHeightClass}`}
+                  className={`hidden md:block ${popupPanelClass} ${panelHeightClass}`}
                 />
               ))}
 
@@ -249,7 +247,7 @@ export function ReservationPopup() {
                 complete={complete}
                 onComplete={handleReservationComplete}
                 onClose={finishPopup}
-                className={`w-full max-w-md shrink-0 ${!isMobile && pcImages.length ? panelHeightClass : ""}`}
+                className={`${popupPanelClass} ${!isMobile && pcImages.length ? panelHeightClass : ""}`}
               />
             </motion.div>
           </motion.div>
