@@ -551,6 +551,113 @@ function parseExtendedData_(row) {
   }
 }
 
+function parseJsonField_(raw, fallback) {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return raw;
+  try {
+    var parsed = JSON.parse(String(raw));
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function getContentTextField_(row, keys) {
+  var val = getSiteField_(row, keys);
+  return val !== undefined && val !== null ? String(val).trim() : '';
+}
+
+function buildSiteMetaFromSiteRow_(siteRow) {
+  if (!siteRow) {
+    return {
+      siteName: '',
+      phone: '',
+      managerName: '',
+      notificationPhone: '',
+      settings: {
+        popupEnabled: true,
+        liveStatusEnabled: true,
+        virtualReservationsEnabled: true,
+        duplicateBlockMinutes: 120
+      }
+    };
+  }
+
+  return {
+    siteName: getSiteField_(siteRow, ['siteName', '현장명', '사이트명']),
+    phone: getSiteField_(siteRow, ['phone', '전화번호', '대표전화']),
+    managerName: getSiteField_(siteRow, ['managerName', '담당자명', '관리자명']),
+    notificationPhone: getSiteField_(siteRow, ['notifyPhone', 'notificationPhone', '알림수신번호']),
+    settings: {
+      popupEnabled: parseBoolField_(getSiteField_(siteRow, ['popupEnabled', '팝업노출']), true),
+      liveStatusEnabled: parseBoolField_(getSiteField_(siteRow, ['liveStatusEnabled', '실시간현황노출']), true),
+      virtualReservationsEnabled: parseBoolField_(
+        getSiteField_(siteRow, ['virtualReservationEnabled', '가상접수노출']),
+        true
+      ),
+      duplicateBlockMinutes: parsePositiveInt_(
+        getSiteField_(siteRow, ['duplicateBlockMinutes', '중복접수차단분']),
+        120
+      )
+    }
+  };
+}
+
+function buildPageContentFromContentRow_(contentRow, ext) {
+  var heroImage = getContentTextField_(contentRow, ['heroImage', '히어로이미지']);
+  var heroVisualImage = getContentTextField_(contentRow, ['heroVisualImage', '히어로비주얼']) || heroImage;
+
+  return {
+    heroTitle: getContentTextField_(contentRow, ['heroTitle', '히어로제목', '메인카피']),
+    heroSubTitle: getContentTextField_(contentRow, ['heroSubTitle', '히어로부제', '서브카피']),
+    benefit1Title: getContentTextField_(contentRow, ['benefit1Title', '혜택1제목']),
+    benefit1Value: getContentTextField_(contentRow, ['benefit1Value', 'benefit1Val', '혜택1값']),
+    benefit2Title: getContentTextField_(contentRow, ['benefit2Title', '혜택2제목']),
+    benefit2Value: getContentTextField_(contentRow, ['benefit2Value', 'benefit2Val', '혜택2값']),
+    benefit3Title: getContentTextField_(contentRow, ['benefit3Title', '혜택3제목']),
+    benefit3Value: getContentTextField_(contentRow, ['benefit3Value', 'benefit3Val', '혜택3값']),
+    ctaText: getContentTextField_(contentRow, ['ctaText', 'CTA문구']),
+    mobileHookText: getContentTextField_(contentRow, ['mobileHookText', '모바일훅문구']),
+    heroImage: heroImage,
+    heroVisualImage: heroVisualImage,
+    floatingTodayReservations: parsePositiveInt_(
+      getContentTextField_(contentRow, ['floatingTodayReservations', '오늘방문예약수']),
+      27
+    ),
+    floatingActiveConsultations: parsePositiveInt_(
+      getContentTextField_(contentRow, ['floatingActiveConsultations', '실시간상담수']),
+      3
+    ),
+    overview: parseJsonField_(getField_(contentRow, 'overviewData'), {
+      title: '사업개요',
+      image: '',
+      specs: []
+    }),
+    premium: parseJsonField_(getField_(contentRow, 'premiumData'), {
+      title: '프리미엄',
+      items: []
+    }),
+    location: parseJsonField_(getField_(contentRow, 'locationData'), {
+      title: '입지환경',
+      mapImage: '',
+      items: []
+    }),
+    futureValue: parseJsonField_(getField_(contentRow, 'futureData'), {
+      title: '미래가치',
+      items: []
+    }),
+    siteLayout: parseJsonField_(getField_(contentRow, 'layoutData'), {
+      title: '단지배치도',
+      items: []
+    }),
+    community: parseJsonField_(getField_(contentRow, 'communityData'), {
+      title: '커뮤니티',
+      items: []
+    }),
+    extendedData: ext || {}
+  };
+}
+
 /**
  * GET action=site.config&siteCode=L001
  */
@@ -584,9 +691,16 @@ function getSiteLiveConfig(siteCode) {
   var siteRow = findSiteByCode_(code);
   var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);
   var ownershipVerification = getOwnershipVerificationFromSiteRow_(siteRow);
+  var siteMeta = buildSiteMetaFromSiteRow_(siteRow);
+  var pageContent = buildPageContentFromContentRow_(contentRow, ext);
 
   return {
     siteCode: code,
+    siteName: siteMeta.siteName,
+    phone: siteMeta.phone,
+    managerName: siteMeta.managerName,
+    notificationPhone: siteMeta.notificationPhone,
+    settings: siteMeta.settings,
     stickyPromoText: promo || null,
     unitTypeOptions: unitTypeOptions,
     visitDateDays: visitDateDays,
@@ -596,6 +710,27 @@ function getSiteLiveConfig(siteCode) {
     mainColor: mainColor,
     subColor: subColor,
     accentColor: accentColor,
+    heroTitle: pageContent.heroTitle,
+    heroSubTitle: pageContent.heroSubTitle,
+    benefit1Title: pageContent.benefit1Title,
+    benefit1Value: pageContent.benefit1Value,
+    benefit2Title: pageContent.benefit2Title,
+    benefit2Value: pageContent.benefit2Value,
+    benefit3Title: pageContent.benefit3Title,
+    benefit3Value: pageContent.benefit3Value,
+    ctaText: pageContent.ctaText,
+    mobileHookText: pageContent.mobileHookText,
+    heroImage: pageContent.heroImage,
+    heroVisualImage: pageContent.heroVisualImage,
+    floatingTodayReservations: pageContent.floatingTodayReservations,
+    floatingActiveConsultations: pageContent.floatingActiveConsultations,
+    overview: pageContent.overview,
+    premium: pageContent.premium,
+    location: pageContent.location,
+    futureValue: pageContent.futureValue,
+    siteLayout: pageContent.siteLayout,
+    community: pageContent.community,
+    extendedData: pageContent.extendedData,
     conversionTracking: conversionTracking,
     ownershipVerification: ownershipVerification,
     updatedAt: new Date().toISOString()

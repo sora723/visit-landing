@@ -9,9 +9,10 @@ import { scrollToReservation } from "@/lib/utils";
 export function HeroSection() {
   const { config } = useConfig();
   const { hero, siteName } = config;
-  const benefits = hero.benefits.slice(0, 4);
+  const benefits = hero.benefits.filter((item) => item.title || item.value);
   const isMobile = useIsMobile();
   const heroImage = resolveHeroImage(hero, isMobile);
+  const headline = hero.hook?.trim() || siteName;
 
   return (
     <section
@@ -50,7 +51,7 @@ export function HeroSection() {
         </div>
 
         <h1 className="font-paperlogy text-[clamp(28px,5vw,48px)] tracking-wide text-white/95">
-          {siteName}
+          {headline}
         </h1>
 
         {hero.sub && (
@@ -69,9 +70,11 @@ export function HeroSection() {
           {config.cta.buttonText || "방문예약 신청하기"}
         </motion.button>
 
-        <p className="mt-4 text-xs tracking-wide text-white/50">
-          무료 방문 상담 · 당일 예약 가능
-        </p>
+        {config.mobileBar.hookText && (
+          <p className="mt-4 text-xs tracking-wide text-white/50">
+            {config.mobileBar.hookText}
+          </p>
+        )}
       </div>
 
       <div className="absolute bottom-1.5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5">

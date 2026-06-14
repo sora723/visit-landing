@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { getSiteConfig } from "@/lib/config";
+import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 import { ConversionTracking } from "@/components/ConversionTracking";
 
 export const dynamic = "force-dynamic";
 
 export default async function CompletePage() {
-  const config = getSiteConfig();
+  const fallback = getSiteConfigFromFile();
   const live = await fetchSiteLiveConfigFromSheet();
+  const siteName =
+    live.source === "sheet" && live.siteConfig
+      ? live.siteConfig.siteName
+      : fallback.siteName;
 
   return (
     <>
@@ -23,7 +27,7 @@ export default async function CompletePage() {
           <p className="mb-2 text-sm text-[#6b7280]">
             담당자가 순차적으로 연락드립니다.
           </p>
-          <p className="mb-8 font-semibold text-[#0f1a2e]">{config.siteName}</p>
+          <p className="mb-8 font-semibold text-[#0f1a2e]">{siteName}</p>
           <Link
             href="/"
             className="inline-block w-full bg-[#c9a962] py-4 text-sm font-semibold text-[#0f1a2e] transition hover:bg-[#dfc88a]"

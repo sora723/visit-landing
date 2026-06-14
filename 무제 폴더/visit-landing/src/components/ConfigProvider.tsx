@@ -16,12 +16,14 @@ import {
   submitReservation,
 } from "@/lib/api";
 import { pickCtaText } from "@/lib/utils";
-import { DEFAULT_UNIT_TYPE_OPTIONS } from "@/lib/reservation-form-options";
 import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
 
+export type ContentSource = "sheet" | "unavailable";
+
 interface ConfigContextValue {
   config: SiteConfig;
+  contentSource: ContentSource;
   ctaText: string;
   submitting: boolean;
   submit: (
@@ -32,49 +34,27 @@ interface ConfigContextValue {
 
 const ConfigContext = createContext<ConfigContextValue | null>(null);
 
-function mergeLiveConfig(base: SiteConfig, live: Partial<SiteConfig>): SiteConfig {
-  const unitTypeOptions =
-    live.reservationForm?.unitTypeOptions?.length
-      ? live.reservationForm.unitTypeOptions
-      : base.reservationForm?.unitTypeOptions?.length
-        ? base.reservationForm.unitTypeOptions
-        : DEFAULT_UNIT_TYPE_OPTIONS;
-
-  return {
-    ...base,
-    stickyPromoText: live.stickyPromoText ?? base.stickyPromoText,
-    theme: mergeSiteTheme(live.theme ?? base.theme),
-    reservationForm: {
-      unitTypeOptions,
-      visitDateDays:
-        live.reservationForm?.visitDateDays ??
-        base.reservationForm?.visitDateDays ??
-        30,
-      visitDateOptions:
-        live.reservationForm?.visitDateOptions ??
-        base.reservationForm?.visitDateOptions,
-      unitTypeEnabled:
-        live.reservationForm?.unitTypeEnabled ??
-        base.reservationForm?.unitTypeEnabled ??
-        true,
-      visitDateEnabled:
-        live.reservationForm?.visitDateEnabled ??
-        base.reservationForm?.visitDateEnabled ??
-        true,
-    },
-  };
+function parseLiveSiteConfig(data: Record<string, unknown>): SiteConfig | null {
+  if (data.source !== "sheet") return null;
+  const rest = { ...data };
+  delete rest.source;
+  delete rest.updatedAt;
+  return rest as unknown as SiteConfig;
 }
 
 export function ConfigProvider({
-  config: baseConfig,
+  config: initialConfig,
+  contentSource: initialSource,
   children,
 }: {
   config: SiteConfig;
+  contentSource: ContentSource;
   children: React.ReactNode;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
-  const [livePatch, setLivePatch] = useState<Partial<SiteConfig>>({});
+  const [config, setConfig] = useState(initialConfig);
+  const [contentSource, setContentSource] = useState(initialSource);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,40 +62,16 @@ export function ConfigProvider({
       .then((res) => res.json())
       .then((json) => {
         if (cancelled || !json.success || !json.data) return;
-        const d = json.data;
-        setLivePatch({
-          stickyPromoText: d.stickyPromoText ?? undefined,
-          theme: mergeSiteTheme({
-            mainColor: d.mainColor,
-            subColor: d.subColor,
-            accentColor: d.accentColor,
-          }),
-          reservationForm: {
-            unitTypeOptions: Array.isArray(d.unitTypeOptions)
-              ? d.unitTypeOptions
-              : undefined,
-            visitDateDays:
-              typeof d.visitDateDays === "number" ? d.visitDateDays : undefined,
-            visitDateOptions: Array.isArray(d.visitDateOptions)
-              ? d.visitDateOptions
-              : undefined,
-            unitTypeEnabled:
-              typeof d.unitTypeEnabled === "boolean" ? d.unitTypeEnabled : undefined,
-            visitDateEnabled:
-              typeof d.visitDateEnabled === "boolean" ? d.visitDateEnabled : undefined,
-          },
-        });
+        const liveConfig = parseLiveSiteConfig(json.data as Record<string, unknown>);
+        if (!liveConfig) return;
+        setConfig(liveConfig);
+        setContentSource("sheet");
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
-
-  const config = useMemo(
-    () => mergeLiveConfig(baseConfig, livePatch),
-    [baseConfig, livePatch]
-  );
 
   const ctaText = useMemo(
     () => pickCtaText(config.cta.texts),
@@ -158,8 +114,10 @@ export function ConfigProvider({
   );
 
   return (
-    <ConfigContext.Provider value={{ config, ctaText, submitting, submit }}>
-      <SiteThemeProvider theme={config.theme ?? mergeSiteTheme()} />
+    <ConfigContext.Provider
+      value={{ config, contentSource, ctaText, submitting, submit }}
+    >
+      <SiteThemeProvider theme={mergeSiteTheme(config.theme)} />
       {children}
     </ConfigContext.Provider>
   );

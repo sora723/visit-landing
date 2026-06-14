@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { IconBuilding, IconStar, IconTrain, IconTree } from "./icons";
 import { useState } from "react";
 import { useConfig } from "./ConfigProvider";
 import { ResponsiveImg } from "./ResponsiveImg";
@@ -37,55 +36,10 @@ function FigmaSectionTitle({
   );
 }
 
-const FEATURES = [
-  { icon: IconTrain, en: "DOUBLE STATION", title: "더블 역세권", desc: "KTX 원주역 도보 5분, 남원주역 인접. 서울까지 단 54분, 수도권 직접 연결의 교통 핵심 거점.", highlight: "KTX 54분" },
-  { icon: IconBuilding, en: "INNOVATION CITY", title: "혁신도시 중심", desc: "원주기업도시 중심상권과 인접. 대형 쇼핑몰·백화점·의료시설이 집중된 생활 인프라의 중심.", highlight: "원주 중심상권" },
-  { icon: IconTree, en: "NATURE & PARK", title: "자연친화 환경", desc: "치악산 국립공원과 섬강이 어우러진 수려한 자연환경. 사계절 녹음이 가득한 쾌적한 주거공간.", highlight: "치악산 조망" },
-  { icon: IconStar, en: "PREMIUM SCALE", title: "대단지 프리미엄", desc: "지상 29층 12개동 총 1,236세대의 대단지. 단지 내 특화 커뮤니티와 조경으로 품격을 높이다.", highlight: "1,236세대" },
-];
-
-export function FeaturesSection() {
-  return (
-    <section id="특장점" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-bg)] px-6 py-20">
-      <div className="mx-auto max-w-[1100px]">
-        <FigmaSectionTitle en="SITE ADVANTAGES" title="현장 특장점" />
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {FEATURES.map((feat, i) => {
-            const Icon = feat.icon;
-            return (
-              <motion.article
-                key={feat.title}
-                className="flex flex-col gap-5 rounded-2xl bg-white p-9 shadow-[0_4px_24px_rgba(15,29,58,0.06)] sm:p-10"
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-gold)]/12">
-                    <Icon className="h-6 w-6 text-[var(--color-gold)]" aria-hidden />
-                  </div>
-                  <span className="rounded-sm bg-[var(--color-navy)] px-2.5 py-1 text-[10px] font-bold tracking-[0.15em] text-[var(--color-gold)]">
-                    {feat.highlight}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[10px] tracking-[0.2em] text-[var(--color-gold)]/80">{feat.en}</span>
-                  <h3 className="mt-1 text-xl font-bold text-[var(--color-navy)]">{feat.title}</h3>
-                  <p className="mt-3 text-[13px] leading-[1.75] text-[#7a7060]">{feat.desc}</p>
-                </div>
-              </motion.article>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function OverviewSection() {
   const { config } = useConfig();
   const { overview, siteName } = config;
+  if (!overview.image && !overview.specs.length) return null;
 
   return (
     <section id="사업개요" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-bg)] px-6 py-20">
@@ -138,11 +92,7 @@ export function PremiumSection() {
   return (
     <section id="프리미엄" className="scroll-mt-[var(--site-top-offset)] bg-[#f0ece4] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
-        <FigmaSectionTitle
-          en="PREMIUM AMENITY"
-          title={premium.title}
-          subtitle="6가지 프리미엄 커뮤니티 — 단지 안에서 모든 것이 완결됩니다"
-        />
+        <FigmaSectionTitle en="PREMIUM AMENITY" title={premium.title} />
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {premium.items.map((item, i) => (
             <motion.article
@@ -188,7 +138,9 @@ export function LocationSection() {
     location.mapImage?.trim() ||
     location.mapImagePc?.trim() ||
     location.mapImageMobile?.trim() ||
-    "/images/hero-aerial.png";
+    "";
+
+  if (!mapSrc && !location.items.length) return null;
 
   const groups = location.items.reduce<
     { cat: string; items: string[] }[]
@@ -207,17 +159,18 @@ export function LocationSection() {
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} dark />
         <div className="relative mb-10 h-[clamp(380px,50vw,540px)] overflow-hidden rounded-2xl bg-[#1a2e5a]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mapSrc} alt="입지 지도" className="h-full w-full object-cover object-center" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
-          <div className="absolute bottom-6 left-6">
-            <p className="mb-1.5 text-[10px] tracking-[0.25em] text-[var(--color-gold)]">
-              WONJU INNOVATION CITY
-            </p>
-            <p className="text-[22px] font-extrabold text-white">
-              원주혁신도시 프리미엄 입지
-            </p>
-          </div>
+          {mapSrc && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={mapSrc} alt="입지 지도" className="h-full w-full object-cover object-center" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
+            </>
+          )}
+          {location.title && (
+            <div className="absolute bottom-6 left-6">
+              <p className="text-[22px] font-extrabold text-white">{location.title}</p>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {groups.map((point) => (

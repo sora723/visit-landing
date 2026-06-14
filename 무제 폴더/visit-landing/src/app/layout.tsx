@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { getSiteConfig } from "@/lib/config";
+import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 import { mergeSiteTheme, themeStyleObject } from "@/lib/site-theme";
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 
 export const dynamic = "force-dynamic";
 
-const config = getSiteConfig();
-const initialTheme = mergeSiteTheme(config.theme);
+const fileConfig = getSiteConfigFromFile();
 
 export async function generateMetadata(): Promise<Metadata> {
   const live = await fetchSiteLiveConfigFromSheet();
   const ov = live.ownershipVerification;
+  const seo =
+    live.source === "sheet" && live.siteConfig ? live.siteConfig.seo : fileConfig.seo;
   const other: Record<string, string> = {};
 
   if (ov.metaOwnershipCode) {
@@ -26,12 +27,12 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: config.seo.title,
-    description: config.seo.description,
+    title: seo.title,
+    description: seo.description,
     openGraph: {
-      title: config.seo.title,
-      description: config.seo.description,
-      images: config.seo.ogImage ? [config.seo.ogImage] : [],
+      title: seo.title,
+      description: seo.description,
+      images: seo.ogImage ? [seo.ogImage] : [],
     },
     verification: {
       ...(ov.googleOwnershipCode ? { google: ov.googleOwnershipCode } : {}),
@@ -52,9 +53,14 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const live = await fetchSiteLiveConfigFromSheet();
   const ownershipRaw = live.ownershipVerification.ownershipRawHtml;
+  const theme = mergeSiteTheme(
+    live.source === "sheet" && live.siteConfig
+      ? live.siteConfig.theme
+      : fileConfig.theme
+  );
 
   return (
-    <html lang="ko" style={themeStyleObject(initialTheme)}>
+    <html lang="ko" style={themeStyleObject(theme)}>
       <body className="font-sans antialiased">
         {ownershipRaw ? <OwnershipRawScripts html={ownershipRaw} /> : null}
         {children}

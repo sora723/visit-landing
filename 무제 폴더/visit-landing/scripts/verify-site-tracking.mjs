@@ -171,21 +171,16 @@ async function main() {
   else bad("API ownershipVerification 객체 없음 — Apps Script 배포 확인");
 
   console.log("\n[5] 콘텐츠관리 live 필드");
-  const liveFields = {
-    stickyPromoText: d.stickyPromoText,
-    unitTypeOptions: Array.isArray(d.unitTypeOptions) ? d.unitTypeOptions.length : 0,
-    visitDateDays: d.visitDateDays,
-    unitTypeEnabled: d.unitTypeEnabled,
-    visitDateEnabled: d.visitDateEnabled,
-    mainColor: d.mainColor,
-    subColor: d.subColor,
-    accentColor: d.accentColor,
-  };
-  ok(`stickyPromoText: ${liveFields.stickyPromoText ? "있음" : "없음"}`);
-  ok(`unitTypeOptions: ${liveFields.unitTypeOptions}개`);
-  ok(`visitDateDays: ${liveFields.visitDateDays}`);
-  ok(`unitTypeEnabled: ${liveFields.unitTypeEnabled}, visitDateEnabled: ${liveFields.visitDateEnabled}`);
-  ok(`theme: ${liveFields.mainColor} / ${liveFields.subColor} / ${liveFields.accentColor}`);
+  ok(`heroTitle: ${d.heroTitle ? "있음" : "없음"}`);
+  ok(`heroSubTitle: ${d.heroSubTitle ? "있음" : "없음"}`);
+  ok(`heroImage: ${d.heroImage ? "있음" : "없음"}`);
+  ok(`benefits: ${[d.benefit1Title, d.benefit2Title, d.benefit3Title].filter(Boolean).length}개`);
+  ok(`overview specs: ${Array.isArray(d.overview?.specs) ? d.overview.specs.length : 0}개`);
+  ok(`premium items: ${Array.isArray(d.premium?.items) ? d.premium.items.length : 0}개`);
+  ok(`location items: ${Array.isArray(d.location?.items) ? d.location.items.length : 0}개`);
+  ok(`stickyPromoText: ${d.stickyPromoText ? "있음" : "없음"}`);
+  ok(`unitTypeOptions: ${Array.isArray(d.unitTypeOptions) ? d.unitTypeOptions.length : 0}개`);
+  ok(`theme: ${d.mainColor} / ${d.subColor} / ${d.accentColor}`);
 
   // 6) duplicate submit test
   console.log("\n[6] 중복 접수 (2시간 내 동일 → 저장 O, 알림 X)");
@@ -244,8 +239,8 @@ async function main() {
       signal: AbortSignal.timeout(5000),
     });
     const json = await res.json();
-    if (json.success && json.data?.conversionTracking !== undefined) {
-      ok(`/api/site-content OK — conversionTracking 포함`);
+    if (json.success && json.data?.source === "sheet" && json.data?.hero) {
+      ok(`/api/site-content OK — hero + overview 포함`);
     } else if (json.success && json.data) {
       note(`/api/site-content 200 — keys: ${Object.keys(json.data).join(", ")}`);
     } else if (res.status === 503) {

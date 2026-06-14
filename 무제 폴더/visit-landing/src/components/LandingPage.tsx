@@ -6,7 +6,6 @@ import { SiteChrome } from "./SiteHeader";
 import { HeroSection } from "./HeroSection";
 import { LiveReservationSection } from "./LiveReservationSection";
 import {
-  FeaturesSection,
   OverviewSection,
   PremiumSection,
   LocationSection,
@@ -29,7 +28,6 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
         <HeroSection />
         <LiveReservationSection />
         <CtaSection sectionId="방문예약" />
-        <FeaturesSection />
         <PremiumSection />
         <OverviewSection />
         <LocationSection />
