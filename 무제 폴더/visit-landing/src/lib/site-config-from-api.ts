@@ -60,8 +60,8 @@ export function buildSiteConfigFromApi(
     managerName: api.managerName?.trim() || fallback.managerName,
     notificationPhone: api.notificationPhone?.trim() || fallback.notificationPhone,
     stickyPromoText: api.stickyPromoText ?? undefined,
-    headerBrand: api.headerBrand?.trim() || fallback.headerBrand,
-    headerSubBrand: api.headerSubBrand?.trim() || fallback.headerSubBrand,
+    headerBrand: api.headerBrand?.trim() || undefined,
+    headerSubBrand: api.headerSubBrand?.trim() || undefined,
     settings: api.settings ?? fallback.settings,
     popup: ext.popup ?? fallback.popup,
     hero: {

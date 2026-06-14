@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
           source: "sheet" as const,
           updatedAt: live.updatedAt,
           _apiVersion: 2 as const,
+          _requestedSiteCode: siteCode,
         },
         error: null,
       },
