@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDemoDuplicate, recordDemoSubmission } from "@/lib/demo-store";
-import { resolveSiteCode } from "@/lib/resolve-site-code";
+import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
 
@@ -62,9 +62,9 @@ function handleDemoSubmit(
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const siteCode = resolveSiteCode(
-    request.nextUrl.searchParams.get("siteCode") ??
-      (typeof body.siteCode === "string" ? body.siteCode : null)
+  const siteCode = resolveRequestSiteCode(
+    request,
+    typeof body.siteCode === "string" ? body.siteCode : null
   );
 
   if (body.isVirtual === true || body.source === "live_feed_virtual") {

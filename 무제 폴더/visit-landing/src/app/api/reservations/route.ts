@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDemoRecentSubmissions } from "@/lib/demo-store";
 import { filterRealReservationsOnly, formatReservationName } from "@/lib/live-reservation-feed";
-import { resolveSiteCode } from "@/lib/resolve-site-code";
+import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 import type { ReservationItem } from "@/lib/types";
 
 const LOG = "[api/reservations]";
@@ -37,7 +37,7 @@ function sanitizeRealItems(items: ReservationItem[]) {
 
 export async function GET(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "12");
-  const siteCode = resolveSiteCode(request.nextUrl.searchParams.get("siteCode"));
+  const siteCode = resolveRequestSiteCode(request);
   logEnv(siteCode);
   const appsScriptUrl = getAppsScriptUrl();
 

@@ -1,3 +1,5 @@
+import type { NextRequest } from "next/server";
+
 /** URL ?siteCode= → SHEET_SITE_CODE env → L001 */
 
 export const DEFAULT_SITE_CODE = "L001";
@@ -8,6 +10,18 @@ export function resolveSiteCode(fromRequest?: string | null): string {
   if (trimmed) return trimmed;
   const fromEnv = String(process.env.SHEET_SITE_CODE ?? "").trim();
   return fromEnv || DEFAULT_SITE_CODE;
+}
+
+/** API Route — query → body → middleware header → env (Netlify searchParams 누락 대비) */
+export function resolveRequestSiteCode(
+  request: NextRequest,
+  bodySiteCode?: string | null
+): string {
+  const fromQuery =
+    request.nextUrl.searchParams.get("siteCode") ??
+    new URL(request.url).searchParams.get("siteCode");
+  const fromHeader = request.headers.get("x-site-code");
+  return resolveSiteCode(fromQuery ?? bodySiteCode ?? fromHeader);
 }
 
 export function siteCodeQueryParam(siteCode: string): string {

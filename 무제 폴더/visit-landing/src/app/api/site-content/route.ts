@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logAppsScriptEnv } from "@/lib/apps-script-env";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
-import { resolveSiteCode } from "@/lib/resolve-site-code";
+import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ const FAILURE_HINTS: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest) {
-  const siteCode = resolveSiteCode(request.nextUrl.searchParams.get("siteCode"));
+  const siteCode = resolveRequestSiteCode(request);
   const envDebug = logAppsScriptEnv(LOG, siteCode);
 
   try {
