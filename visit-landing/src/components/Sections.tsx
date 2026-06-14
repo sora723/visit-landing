@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { ResponsiveImg } from "./ResponsiveImg";
 
 function FigmaSectionTitle({
@@ -134,11 +135,13 @@ export function PremiumSection() {
 export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
-  const hasMapImage = !!(
-    location.mapImage?.trim() ||
-    location.mapImagePc?.trim() ||
-    location.mapImageMobile?.trim()
-  );
+  const [lightbox, setLightbox] = useState(false);
+  const mapSrc = useResponsiveImage({
+    image: location.mapImage,
+    imagePc: location.mapImagePc,
+    imageMobile: location.mapImageMobile,
+  });
+  const hasMapImage = !!mapSrc.trim();
 
   if (!hasMapImage && !location.items.length) return null;
 
@@ -160,7 +163,12 @@ export function LocationSection() {
         <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} dark />
         <div className="relative mb-10 h-[clamp(380px,50vw,540px)] overflow-hidden rounded-2xl bg-[#1a2e5a]">
           {hasMapImage && (
-            <>
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              className="group relative block h-full w-full"
+              aria-label="입지 지도 확대"
+            >
               <ResponsiveImg
                 source={{
                   image: location.mapImage,
@@ -168,17 +176,26 @@ export function LocationSection() {
                   imageMobile: location.mapImageMobile,
                 }}
                 alt="입지 지도"
-                className="h-full w-full object-cover object-center"
+                className="h-full w-full cursor-zoom-in object-cover object-center transition-transform duration-300 group-hover:scale-[1.01]"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
-            </>
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
+              <span className="pointer-events-none absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
+                클릭하여 확대
+              </span>
+            </button>
           )}
           {location.title && (
-            <div className="absolute bottom-6 left-6">
+            <div className="pointer-events-none absolute bottom-6 left-6 z-10">
               <p className="text-[22px] font-extrabold text-white">{location.title}</p>
             </div>
           )}
         </div>
+        <ImageLightbox
+          src={mapSrc}
+          alt={location.title || "입지 지도"}
+          open={lightbox}
+          onClose={() => setLightbox(false)}
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {groups.map((point) => (
             <div
