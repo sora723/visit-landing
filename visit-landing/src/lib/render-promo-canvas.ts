@@ -92,7 +92,7 @@ function createShimmerGradient(
   ctx.font = `900 ${fontSize}px ${PROMO_FONT_FAMILY}`;
   const textWidth = ctx.measureText(text).width;
   const bandWidth = textWidth * 2.2;
-  const slide = (120 - phase * 240) / 100;
+  const slide = (phase * 240 - 120) / 100;
   const startX = centerX - bandWidth * 0.5 + slide * textWidth;
   const endX = startX + bandWidth;
 

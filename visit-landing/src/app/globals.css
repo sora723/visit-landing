@@ -190,10 +190,10 @@ textarea {
 
 @keyframes promo-shimmer-text {
   0% {
-    background-position: 120% center;
+    background-position: -120% center;
   }
   100% {
-    background-position: -120% center;
+    background-position: 120% center;
   }
 }
 
