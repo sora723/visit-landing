@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { formatHeaderTagline } from "@/lib/utils";
 import { ReservationForm } from "./ReservationForm";
 import { IconCalendar, IconMessageCircle, IconPhone, IconX } from "./icons";
 
@@ -14,6 +15,8 @@ function BottomSheet({
   onClose: () => void;
   title: string;
 }) {
+  const { config } = useConfig();
+  const headerTagline = formatHeaderTagline(config.headerBrand, config.headerSubBrand);
   const [submitted, setSubmitted] = useState(false);
 
   if (!open) return null;
@@ -32,9 +35,11 @@ function BottomSheet({
 
         <div className="flex items-center justify-between border-b border-[var(--color-navy)]/7 px-6 pb-5 pt-3">
           <div>
-            <p className="mb-1 text-[11px] tracking-[0.25em] text-[var(--color-gold)]">
-              HANYANG LIPS · WONJU
-            </p>
+            {headerTagline ? (
+              <p className="mb-1 text-[11px] tracking-[0.25em] text-[var(--color-gold)]">
+                {headerTagline}
+              </p>
+            ) : null}
             <p className="text-lg font-semibold text-[var(--color-navy)]">{title}</p>
           </div>
           <button type="button" onClick={onClose} className="p-1 text-[#7a7060]" aria-label="닫기">

@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDemoRecentSubmissions } from "@/lib/demo-store";
 import { filterRealReservationsOnly, formatReservationName } from "@/lib/live-reservation-feed";
+import { resolveSiteCode } from "@/lib/resolve-site-code";
 import type { ReservationItem } from "@/lib/types";
 
 const LOG = "[api/reservations]";
 
-function getEnv() {
-  const raw = process.env.APPS_SCRIPT_URL ?? "";
-  const url = raw.replace(/\/$/, "");
-  const siteCode = process.env.SHEET_SITE_CODE ?? "L001";
-  return { url, siteCode };
+function getAppsScriptUrl() {
+  return (process.env.APPS_SCRIPT_URL ?? "").replace(/\/$/, "");
 }
 
-function logEnv() {
-  const { url, siteCode } = getEnv();
+function logEnv(siteCode: string) {
+  const url = getAppsScriptUrl();
   console.error(`${LOG} APPS_SCRIPT_URL read=${url ? "yes" : "no"} length=${url.length}`);
   if (url) {
     console.error(`${LOG} APPS_SCRIPT_URL=${url}`);
   } else {
-    console.error(
-      `${LOG} APPS_SCRIPT_URL missing — demo 모드로 fallback`
-    );
+    console.error(`${LOG} APPS_SCRIPT_URL missing — demo 모드로 fallback`);
   }
-  console.error(`${LOG} SHEET_SITE_CODE=${siteCode}`);
+  console.error(`${LOG} siteCode=${siteCode}`);
 }
 
 /** 가상 접수는 프론트 buildLiveFeed에서만 생성 — API는 실제 접수만 반환 */
@@ -41,8 +37,9 @@ function sanitizeRealItems(items: ReservationItem[]) {
 
 export async function GET(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "12");
-  logEnv();
-  const { url: appsScriptUrl, siteCode } = getEnv();
+  const siteCode = resolveSiteCode(request.nextUrl.searchParams.get("siteCode"));
+  logEnv(siteCode);
+  const appsScriptUrl = getAppsScriptUrl();
 
   if (!appsScriptUrl) {
     console.error(`${LOG} demo fallback (APPS_SCRIPT_URL empty)`);

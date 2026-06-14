@@ -3,6 +3,7 @@
 import { IconPhone } from "./icons";
 import { useEffect, useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { formatHeaderTagline } from "@/lib/utils";
 
 const NAV: { label: string; href: string; highlight?: boolean }[] = [
   { label: "사업개요", href: "#사업개요" },
@@ -20,6 +21,7 @@ function scrollToAnchor(href: string) {
 export function SiteHeader() {
   const { config } = useConfig();
   const tel = config.phone.replace(/\D/g, "");
+  const headerTagline = formatHeaderTagline(config.headerBrand, config.headerSubBrand);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -43,9 +45,11 @@ export function SiteHeader() {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="flex flex-col leading-tight text-left"
         >
-          <span className="text-[9px] tracking-[0.28em] text-[var(--color-gold)]">
-            HANYANG LIPS · WONJU
-          </span>
+          {headerTagline ? (
+            <span className="text-[9px] tracking-[0.28em] text-[var(--color-gold)]">
+              {headerTagline}
+            </span>
+          ) : null}
           <span
             className={`text-xl font-black tracking-wide transition-colors duration-300 ${
               scrolled ? "text-[var(--color-navy)]" : "text-white"

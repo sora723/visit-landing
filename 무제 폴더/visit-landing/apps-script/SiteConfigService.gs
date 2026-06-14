@@ -610,6 +610,8 @@ function buildPageContentFromContentRow_(contentRow, ext) {
   return {
     heroTitle: getContentTextField_(contentRow, ['heroTitle', '히어로제목', '메인카피']),
     heroSubTitle: getContentTextField_(contentRow, ['heroSubTitle', '히어로부제', '서브카피']),
+    headerBrand: getContentTextField_(contentRow, ['headerBrand', '헤더브랜드', '브랜드']),
+    headerSubBrand: getContentTextField_(contentRow, ['headerSubBrand', '헤더서브브랜드', '서브브랜드']),
     benefit1Title: getContentTextField_(contentRow, ['benefit1Title', '혜택1제목']),
     benefit1Value: getContentTextField_(contentRow, ['benefit1Value', 'benefit1Val', '혜택1값']),
     benefit2Title: getContentTextField_(contentRow, ['benefit2Title', '혜택2제목']),
@@ -712,6 +714,8 @@ function getSiteLiveConfig(siteCode) {
     accentColor: accentColor,
     heroTitle: pageContent.heroTitle,
     heroSubTitle: pageContent.heroSubTitle,
+    headerBrand: pageContent.headerBrand,
+    headerSubBrand: pageContent.headerSubBrand,
     benefit1Title: pageContent.benefit1Title,
     benefit1Value: pageContent.benefit1Value,
     benefit2Title: pageContent.benefit2Title,

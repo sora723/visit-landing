@@ -3,15 +3,18 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useConfig } from "./ConfigProvider";
+import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
 
 export function HeroFloatingBar() {
-  const { config } = useConfig();
+  const { config, siteCode } = useConfig();
   const stats = config.hero.floatingStats;
   const [todayCount, setTodayCount] = useState(stats.todayReservations);
   const [activeCount, setActiveCount] = useState(stats.activeConsultations);
 
   useEffect(() => {
-    fetch("/api/reservations?limit=50", { cache: "no-store" })
+    fetch(appendSiteCodeQuery("/api/reservations?limit=50", siteCode), {
+      cache: "no-store",
+    })
       .then((r) => r.json())
       .then((json) => {
         if (!json.success) return;
@@ -30,7 +33,7 @@ export function HeroFloatingBar() {
         }
       })
       .catch(() => {});
-  }, [stats.todayReservations, stats.activeConsultations]);
+  }, [stats.todayReservations, stats.activeConsultations, siteCode]);
 
   return (
     <motion.div

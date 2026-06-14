@@ -107,7 +107,7 @@ function createInitialFeed(
 }
 
 export function LiveReservationSection() {
-  const { config } = useConfig();
+  const { config, siteCode } = useConfig();
   const inquiryPool = useMemo(
     () => buildVirtualInquiryPool(config),
     [config]
@@ -249,7 +249,8 @@ export function LiveReservationSection() {
     if (!config.settings.liveStatusEnabled) return;
     fetchRecentReservations(
       config.settings.virtualReservationsEnabled,
-      LIVE_FEED_PC_MAX
+      LIVE_FEED_PC_MAX,
+      siteCode
     )
       .then((raw) => {
         lastRawRef.current = anchorReservationTimes(raw);
@@ -264,6 +265,7 @@ export function LiveReservationSection() {
     config.settings.liveStatusEnabled,
     config.settings.virtualReservationsEnabled,
     applyFeed,
+    siteCode,
   ]);
 
   const injectVirtualReservation = useCallback(() => {

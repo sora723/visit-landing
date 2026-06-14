@@ -1,5 +1,7 @@
 /** Apps Script 연결 env — Netlify/로컬 공통 */
 
+import { resolveSiteCode } from "@/lib/resolve-site-code";
+
 export type AppsScriptEnv = {
   url: string;
   siteCode: string;
@@ -22,19 +24,21 @@ export function extractDeploymentId(url: string): string | null {
   return m?.[1] ?? null;
 }
 
-/** Netlify 빌드·런타임 공통 env 읽기 (요청마다 호출) */
-export function getAppsScriptEnv(): AppsScriptEnv {
+/** Netlify 빌드·런타임 — siteCodeOverride: URL ?siteCode= (우선) */
+export function getAppsScriptEnv(siteCodeOverride?: string | null): AppsScriptEnv {
   const raw = process.env.APPS_SCRIPT_URL ?? "";
   const url = raw.replace(/\/$/, "");
   return {
     url,
-    siteCode: process.env.SHEET_SITE_CODE ?? "L001",
+    siteCode: resolveSiteCode(siteCodeOverride),
     deploymentId: url ? extractDeploymentId(url) : null,
   };
 }
 
-export function getAppsScriptEnvDebug(): AppsScriptEnvDebug {
-  const { url, siteCode, deploymentId } = getAppsScriptEnv();
+export function getAppsScriptEnvDebug(
+  siteCodeOverride?: string | null
+): AppsScriptEnvDebug {
+  const { url, siteCode, deploymentId } = getAppsScriptEnv(siteCodeOverride);
   return {
     appsScriptUrlConfigured: url.length > 0,
     appsScriptUrlLength: url.length,
@@ -55,9 +59,12 @@ export function maskAppsScriptUrl(url: string): string {
   return `https://script.google.com/macros/s/${head}…${tail}/exec`;
 }
 
-export function logAppsScriptEnv(tag: string): AppsScriptEnvDebug {
-  const env = getAppsScriptEnv();
-  const debug = getAppsScriptEnvDebug();
+export function logAppsScriptEnv(
+  tag: string,
+  siteCodeOverride?: string | null
+): AppsScriptEnvDebug {
+  const env = getAppsScriptEnv(siteCodeOverride);
+  const debug = getAppsScriptEnvDebug(siteCodeOverride);
   console.error(`[${tag}] APPS_SCRIPT_URL configured=${debug.appsScriptUrlConfigured} length=${debug.appsScriptUrlLength}`);
   if (env.url) {
     console.error(`[${tag}] APPS_SCRIPT_URL=${maskAppsScriptUrl(env.url)} deploymentId=${debug.deploymentId}`);
@@ -67,7 +74,7 @@ export function logAppsScriptEnv(tag: string): AppsScriptEnvDebug {
     );
   }
   console.error(
-    `[${tag}] SHEET_SITE_CODE=${debug.siteCode} NODE_ENV=${debug.nodeEnv} NETLIFY=${debug.netlify}`
+    `[${tag}] siteCode=${debug.siteCode} NODE_ENV=${debug.nodeEnv} NETLIFY=${debug.netlify}`
   );
   return debug;
 }

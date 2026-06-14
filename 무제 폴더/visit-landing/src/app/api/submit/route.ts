@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDemoDuplicate, recordDemoSubmission } from "@/lib/demo-store";
+import { resolveSiteCode } from "@/lib/resolve-site-code";
 
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL?.replace(/\/$/, "");
-const SHEET_SITE_CODE = process.env.SHEET_SITE_CODE ?? "L001";
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
+
+function getAppsScriptUrl() {
+  return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
+}
 
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -59,6 +62,10 @@ function handleDemoSubmit(
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
+  const siteCode = resolveSiteCode(
+    request.nextUrl.searchParams.get("siteCode") ??
+      (typeof body.siteCode === "string" ? body.siteCode : null)
+  );
 
   if (body.isVirtual === true || body.source === "live_feed_virtual") {
     return NextResponse.json(
@@ -74,7 +81,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!APPS_SCRIPT_URL) {
+  const appsScriptUrl = getAppsScriptUrl();
+  if (!appsScriptUrl) {
     await new Promise((r) => setTimeout(r, 200));
     return handleDemoSubmit(request, body);
   }
@@ -82,7 +90,7 @@ export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
   const payload = {
     action: "submit",
-    siteCode: SHEET_SITE_CODE,
+    siteCode,
     name: body.name,
     phone: body.phone,
     privacyAgreed: true,
@@ -100,7 +108,7 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
+    const res = await fetch(appsScriptUrl, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
@@ -108,7 +116,7 @@ export async function POST(request: NextRequest) {
     });
     const json = await res.json();
     return NextResponse.json(
-      { ...json, _debug: { clientIp, mode: "live" } },
+      { ...json, _debug: { clientIp, mode: "live", siteCode } },
       { status: json.success ? 200 : 400 }
     );
   } catch {
@@ -117,7 +125,7 @@ export async function POST(request: NextRequest) {
         success: false,
         data: null,
         error: { code: "NETWORK_ERROR", message: "API 서버에 연결할 수 없습니다" },
-        _debug: { clientIp, mode: "live" },
+        _debug: { clientIp, mode: "live", siteCode },
       },
       { status: 502 }
     );

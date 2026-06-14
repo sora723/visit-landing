@@ -74,9 +74,12 @@ function looksLikeHtml(body: string): boolean {
   return t.startsWith("<!doctype") || t.startsWith("<html");
 }
 
-export async function fetchSiteLiveConfigFromSheet(): Promise<SiteLiveConfigData> {
-  const envDebug = logAppsScriptEnv(LOG);
-  const { url: appsScriptUrl, siteCode, deploymentId } = getAppsScriptEnv();
+export async function fetchSiteLiveConfigFromSheet(
+  siteCodeOverride?: string | null
+): Promise<SiteLiveConfigData> {
+  const envDebug = logAppsScriptEnv(LOG, siteCodeOverride);
+  const { url: appsScriptUrl, siteCode, deploymentId } =
+    getAppsScriptEnv(siteCodeOverride);
 
   const baseDebug: Omit<SiteLiveConfigDebug, "reason"> = {
     appsScriptUrlConfigured: envDebug.appsScriptUrlConfigured,
@@ -175,8 +178,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** @deprecated fetchSiteLiveConfigFromSheet 사용 */
-export async function fetchStickyPromoFromSheet() {
-  const data = await fetchSiteLiveConfigFromSheet();
+export async function fetchStickyPromoFromSheet(siteCodeOverride?: string | null) {
+  const data = await fetchSiteLiveConfigFromSheet(siteCodeOverride);
   return {
     siteCode: data.siteConfig?.siteCode ?? FILE_FALLBACK.siteCode,
     stickyPromoText: data.siteConfig?.stickyPromoText ?? null,

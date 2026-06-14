@@ -3,6 +3,14 @@ export function formatMinutesAgo(minutes: number) {
   return `${minutes}분 전`;
 }
 
+/** headerBrand · headerSubBrand (둘 중 하나만 있어도 표시) */
+export function formatHeaderTagline(
+  headerBrand?: string,
+  headerSubBrand?: string
+): string {
+  return [headerBrand?.trim(), headerSubBrand?.trim()].filter(Boolean).join(" · ");
+}
+
 /** 페이지 로드 시 CTA A/B 문구 1개 선택 */
 export function pickCtaText(texts: string[]): string {
   if (!texts.length) return "";

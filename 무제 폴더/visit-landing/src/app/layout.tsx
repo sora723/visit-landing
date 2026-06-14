@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { getServerSiteCode } from "@/lib/server-site-code";
 import { mergeSiteTheme, themeStyleObject } from "@/lib/site-theme";
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 
@@ -10,7 +11,8 @@ export const dynamic = "force-dynamic";
 const fileConfig = getSiteConfigFromFile();
 
 export async function generateMetadata(): Promise<Metadata> {
-  const live = await fetchSiteLiveConfigFromSheet();
+  const siteCode = await getServerSiteCode();
+  const live = await fetchSiteLiveConfigFromSheet(siteCode);
   const ov = live.ownershipVerification;
   const seo =
     live.source === "sheet" && live.siteConfig ? live.siteConfig.seo : fileConfig.seo;
@@ -51,7 +53,8 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const live = await fetchSiteLiveConfigFromSheet();
+  const siteCode = await getServerSiteCode();
+  const live = await fetchSiteLiveConfigFromSheet(siteCode);
   const ownershipRaw = live.ownershipVerification.ownershipRawHtml;
   const theme = mergeSiteTheme(
     live.source === "sheet" && live.siteConfig

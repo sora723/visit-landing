@@ -3,6 +3,7 @@ import {
   filterRealReservationsOnly,
   savePendingSubmission,
 } from "./live-reservation-feed";
+import { appendSiteCodeQuery } from "./resolve-site-code";
 
 export function isDemoMode() {
   return process.env.NEXT_PUBLIC_DEMO_MODE === "true";
@@ -11,12 +12,12 @@ export function isDemoMode() {
 /** 실제 접수만 조회 — 가상 보충은 LiveReservations/buildLiveFeed(클라이언트) 전용 */
 export async function fetchRecentReservations(
   _virtualEnabled: boolean,
-  limit = 12
+  limit: number,
+  siteCode: string
 ): Promise<ReservationItem[]> {
   try {
-    const res = await fetch(`/api/reservations?limit=${limit}`, {
-      cache: "no-store",
-    });
+    const url = appendSiteCodeQuery(`/api/reservations?limit=${limit}`, siteCode);
+    const res = await fetch(url, { cache: "no-store" });
     const json = await res.json();
 
     if (json.success && json.data?.items) {
@@ -29,15 +30,18 @@ export async function fetchRecentReservations(
   }
 }
 
-export async function submitReservation(payload: SubmitPayload): Promise<{
+export async function submitReservation(
+  payload: SubmitPayload,
+  siteCode: string
+): Promise<{
   submissionId: string;
   notificationSent?: boolean;
   demo?: boolean;
 }> {
-  const res = await fetch("/api/submit", {
+  const res = await fetch(appendSiteCodeQuery("/api/submit", siteCode), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, siteCode }),
   });
 
   const json = await res.json();

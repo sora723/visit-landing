@@ -1,20 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
 
 const POLL_MS = 15_000;
 
 /** 하단 프로모 — Google Sheet stickyPromoText 전용 (site.json 미사용) */
 export function PromoStickyBar({
+  siteCode,
   initialText,
 }: {
+  siteCode: string;
   initialText: string | null;
 }) {
   const [text, setText] = useState(initialText);
 
   const fetchLivePromo = useCallback(async () => {
     try {
-      const res = await fetch("/api/site-content", { cache: "no-store" });
+      const res = await fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (json.success && json.data?.source === "sheet") {
         const t = json.data.stickyPromoText;
@@ -23,7 +28,7 @@ export function PromoStickyBar({
     } catch {
       /* 현재 표시 유지 */
     }
-  }, []);
+  }, [siteCode]);
 
   useEffect(() => {
     fetchLivePromo();

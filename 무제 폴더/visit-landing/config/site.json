@@ -6,6 +6,8 @@
   "managerName": "원주 한양립스 분양사무소",
   "notificationPhone": "01012345678",
   "stickyPromoText": "",
+  "headerBrand": "HANYANG LIPS",
+  "headerSubBrand": "WONJU",
   "theme": {
     "mainColor": "#0f1d3a",
     "subColor": "#d7b56d",

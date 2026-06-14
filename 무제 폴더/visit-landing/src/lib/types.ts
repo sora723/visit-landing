@@ -9,6 +9,10 @@ export interface SiteConfig {
   topBannerText?: string;
   /** 하단 고정바 프로모 — site.json / 콘텐츠관리.stickyPromoText (비우면 미표시) */
   stickyPromoText?: string;
+  /** 헤더 상단 브랜드 — 콘텐츠관리.headerBrand */
+  headerBrand?: string;
+  /** 헤더 서브 브랜드 — 콘텐츠관리.headerSubBrand */
+  headerSubBrand?: string;
   settings: {
     popupEnabled: boolean;
     liveStatusEnabled: boolean;

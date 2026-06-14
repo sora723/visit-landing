@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { getServerSiteCode } from "@/lib/server-site-code";
 import { ConversionTracking } from "@/components/ConversionTracking";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompletePage() {
+type CompletePageProps = {
+  searchParams: Promise<{ siteCode?: string }>;
+};
+
+export default async function CompletePage({ searchParams }: CompletePageProps) {
+  const params = await searchParams;
+  const siteCode = await getServerSiteCode(params.siteCode);
   const fallback = getSiteConfigFromFile();
-  const live = await fetchSiteLiveConfigFromSheet();
+  const live = await fetchSiteLiveConfigFromSheet(siteCode);
   const siteName =
     live.source === "sheet" && live.siteConfig
       ? live.siteConfig.siteName
@@ -29,7 +37,7 @@ export default async function CompletePage() {
           </p>
           <p className="mb-8 font-semibold text-[#0f1a2e]">{siteName}</p>
           <Link
-            href="/"
+            href={appendSiteCodeQuery("/", siteCode)}
             className="inline-block w-full bg-[#c9a962] py-4 text-sm font-semibold text-[#0f1a2e] transition hover:bg-[#dfc88a]"
           >
             홈으로 돌아가기

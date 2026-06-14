@@ -15,6 +15,7 @@ import {
   notifyReservationSubmitted,
   submitReservation,
 } from "@/lib/api";
+import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
 import { pickCtaText } from "@/lib/utils";
 import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
@@ -23,6 +24,7 @@ export type ContentSource = "sheet" | "unavailable";
 
 interface ConfigContextValue {
   config: SiteConfig;
+  siteCode: string;
   contentSource: ContentSource;
   ctaText: string;
   submitting: boolean;
@@ -39,16 +41,19 @@ function parseLiveSiteConfig(data: Record<string, unknown>): SiteConfig | null {
   const rest = { ...data };
   delete rest.source;
   delete rest.updatedAt;
+  delete rest._apiVersion;
   return rest as unknown as SiteConfig;
 }
 
 export function ConfigProvider({
   config: initialConfig,
   contentSource: initialSource,
+  siteCode,
   children,
 }: {
   config: SiteConfig;
   contentSource: ContentSource;
+  siteCode: string;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -58,7 +63,9 @@ export function ConfigProvider({
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/site-content", { cache: "no-store" })
+    fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
+      cache: "no-store",
+    })
       .then((res) => res.json())
       .then((json) => {
         if (cancelled || !json.success || !json.data) return;
@@ -71,7 +78,7 @@ export function ConfigProvider({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [siteCode]);
 
   const ctaText = useMemo(
     () => pickCtaText(config.cta.texts),
@@ -82,15 +89,18 @@ export function ConfigProvider({
     async (input: ReservationSubmitInput, options?: { redirect?: boolean }) => {
       setSubmitting(true);
       try {
-        await submitReservation({
-          name: input.name.trim(),
-          phone: input.phone.replace(/\D/g, ""),
-          privacyAgreed: true,
-          unitType: input.unitType,
-          visitDate: input.visitDate,
-          source: input.source,
-          ...getTrackingContext(),
-        });
+        await submitReservation(
+          {
+            name: input.name.trim(),
+            phone: input.phone.replace(/\D/g, ""),
+            privacyAgreed: true,
+            unitType: input.unitType,
+            visitDate: input.visitDate,
+            source: input.source,
+            ...getTrackingContext(),
+          },
+          siteCode
+        );
 
         notifyReservationSubmitted(input.name.trim(), {
           unitType: input.unitType,
@@ -98,7 +108,7 @@ export function ConfigProvider({
         });
 
         if (options?.redirect !== false) {
-          router.push("/complete");
+          router.push(appendSiteCodeQuery("/complete", siteCode));
         }
         return { success: true };
       } catch (err) {
@@ -110,12 +120,12 @@ export function ConfigProvider({
         setSubmitting(false);
       }
     },
-    [router]
+    [router, siteCode]
   );
 
   return (
     <ConfigContext.Provider
-      value={{ config, contentSource, ctaText, submitting, submit }}
+      value={{ config, siteCode, contentSource, ctaText, submitting, submit }}
     >
       <SiteThemeProvider theme={mergeSiteTheme(config.theme)} />
       {children}

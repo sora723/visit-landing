@@ -33,6 +33,8 @@ export type SiteConfigApiData = {
   accentColor?: string;
   heroTitle?: string;
   heroSubTitle?: string;
+  headerBrand?: string;
+  headerSubBrand?: string;
   benefit1Title?: string;
   benefit1Value?: string;
   benefit2Title?: string;
@@ -223,6 +225,8 @@ export function parseSiteConfigApiResponse(
     accentColor: optionalString(data.accentColor),
     heroTitle: optionalString(data.heroTitle),
     heroSubTitle: optionalString(data.heroSubTitle),
+    headerBrand: optionalString(data.headerBrand),
+    headerSubBrand: optionalString(data.headerSubBrand),
     benefit1Title: optionalString(data.benefit1Title),
     benefit1Value: optionalString(data.benefit1Value),
     benefit2Title: optionalString(data.benefit2Title),

@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logAppsScriptEnv } from "@/lib/apps-script-env";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { resolveSiteCode } from "@/lib/resolve-site-code";
 
 export const dynamic = "force-dynamic";
 
@@ -18,19 +19,20 @@ const FAILURE_HINTS: Record<string, string> = {
   PARSE_RESPONSE_ERROR: "Apps Script 응답 파싱 실패 — 배포 버전 확인.",
 };
 
-export async function GET() {
-  const envDebug = logAppsScriptEnv(LOG);
+export async function GET(request: NextRequest) {
+  const siteCode = resolveSiteCode(request.nextUrl.searchParams.get("siteCode"));
+  const envDebug = logAppsScriptEnv(LOG, siteCode);
 
   try {
-    const live = await fetchSiteLiveConfigFromSheet();
+    const live = await fetchSiteLiveConfigFromSheet(siteCode);
 
     if (live.source !== "sheet" || !live.siteConfig) {
       const reason = live.debug?.reason ?? "PARSE_RESPONSE_ERROR";
-      console.error(`${LOG} 503 SHEET_UNAVAILABLE reason=${reason}`);
+      console.error(`${LOG} 503 SHEET_UNAVAILABLE reason=${reason} siteCode=${siteCode}`);
       return NextResponse.json(
         {
           success: false,
-          data: { source: live.source },
+          data: { source: live.source, siteCode },
           error: {
             code: "SHEET_UNAVAILABLE",
             message: "Google Sheet 설정을 불러올 수 없습니다",
@@ -57,7 +59,6 @@ export async function GET() {
           ...live.siteConfig,
           source: "sheet" as const,
           updatedAt: live.updatedAt,
-          /** 배포 버전 확인 — 2=전체 SiteConfig(hero/overview 포함), 1=구버전(limited fields) */
           _apiVersion: 2 as const,
         },
         error: null,
@@ -74,7 +75,7 @@ export async function GET() {
           code: "INTERNAL_ERROR",
           message: "Google Sheet 설정을 불러올 수 없습니다",
         },
-        debug: { env: envDebug },
+        debug: { env: envDebug, siteCode },
       },
       {
         status: 503,
