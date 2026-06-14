@@ -236,9 +236,21 @@ export function buildSiteConfigFromSheet(
       visualImageMobile: content.heroVisualImageMobile,
       highlightDuration: ext.hero?.highlightDuration ?? 3500,
       benefits: [
-        { title: content.benefit1Title, value: content.benefit1Value },
-        { title: content.benefit2Title, value: content.benefit2Value },
-        { title: content.benefit3Title, value: content.benefit3Value },
+        {
+          title: content.benefit1Title,
+          value: content.benefit1Value,
+          iconKey: content.cardIcon1,
+        },
+        {
+          title: content.benefit2Title,
+          value: content.benefit2Value,
+          iconKey: content.cardIcon2,
+        },
+        {
+          title: content.benefit3Title,
+          value: content.benefit3Value,
+          iconKey: content.cardIcon3,
+        },
       ],
       floatingStats: {
         todayReservations: parseNumber(content.floatingTodayReservations, 27),

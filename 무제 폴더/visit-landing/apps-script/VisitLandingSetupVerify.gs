@@ -24,7 +24,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
   '콘텐츠관리': [
     'siteCode', 'heroTitle', 'heroSubTitle',
     'benefit1Title', 'benefit1Value', 'benefit2Title', 'benefit2Value',
-    'benefit3Title', 'benefit3Value', 'ctaText', 'mobileHookText',
+    'benefit3Title', 'benefit3Value', 'cardIcon1', 'cardIcon2', 'cardIcon3', 'ctaText', 'mobileHookText',
     'heroImage', 'heroVisualImage', 'overviewData', 'premiumData',
     'locationData', 'futureData', 'layoutData', 'communityData',
     'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText',

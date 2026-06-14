@@ -34,7 +34,7 @@ export interface SiteConfig {
     visualImagePc?: string;
     visualImageMobile?: string;
     highlightDuration?: number;
-    benefits: { title: string; value: string }[];
+    benefits: { title: string; value: string; iconKey?: string }[];
     floatingStats: {
       todayReservations: number;
       activeConsultations: number;

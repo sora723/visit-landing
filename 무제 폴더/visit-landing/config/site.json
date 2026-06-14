@@ -41,22 +41,10 @@
     "imageMobile": "/images/hero-aerial.png",
     "visualImage": "/images/hero-aerial.png",
     "benefits": [
-      {
-        "title": "계약금",
-        "value": "500만원"
-      },
-      {
-        "title": "입주까지",
-        "value": "2,700만원"
-      },
-      {
-        "title": "중도금",
-        "value": "무이자"
-      },
-      {
-        "title": "발코니 확장",
-        "value": "무상"
-      }
+      { "title": "계약금", "value": "500만원", "iconKey": "money" },
+      { "title": "입주까지", "value": "2,700만원", "iconKey": "calendar" },
+      { "title": "중도금", "value": "무이자", "iconKey": "percent" },
+      { "title": "발코니 확장", "value": "무상", "iconKey": "gift" }
     ],
     "floatingStats": {
       "todayReservations": 27,

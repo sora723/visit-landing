@@ -41,6 +41,9 @@ export type SiteConfigApiData = {
   benefit2Value?: string;
   benefit3Title?: string;
   benefit3Value?: string;
+  cardIcon1?: string;
+  cardIcon2?: string;
+  cardIcon3?: string;
   ctaText?: string;
   mobileHookText?: string;
   heroImage?: string;
@@ -233,6 +236,9 @@ export function parseSiteConfigApiResponse(
     benefit2Value: optionalString(data.benefit2Value),
     benefit3Title: optionalString(data.benefit3Title),
     benefit3Value: optionalString(data.benefit3Value),
+    cardIcon1: optionalString(data.cardIcon1),
+    cardIcon2: optionalString(data.cardIcon2),
+    cardIcon3: optionalString(data.cardIcon3),
     ctaText: optionalString(data.ctaText),
     mobileHookText: optionalString(data.mobileHookText),
     heroImage: optionalString(data.heroImage),

@@ -53,6 +53,9 @@ export interface ContentManagementRow {
   benefit2Value: string;
   benefit3Title: string;
   benefit3Value: string;
+  cardIcon1?: string;
+  cardIcon2?: string;
+  cardIcon3?: string;
   /** JSON string: string[] — CTA A/B 문구 */
   ctaText: string;
   mobileHookText: string;

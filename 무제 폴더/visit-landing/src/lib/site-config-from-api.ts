@@ -3,6 +3,7 @@
 import type { SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 import type { SiteConfigApiData } from "./site-config-api";
+import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { mergeSiteTheme } from "./site-theme";
 
 function parseCtaTexts(raw: string | undefined): string[] {
@@ -22,9 +23,22 @@ function parseCtaTexts(raw: string | undefined): string[] {
 }
 
 function filterBenefits(
-  items: { title: string; value: string }[]
-): { title: string; value: string }[] {
+  items: { title: string; value: string; iconKey?: string }[]
+): { title: string; value: string; iconKey?: string }[] {
   return items.filter((item) => item.title.trim() || item.value.trim());
+}
+
+function benefitFromApi(
+  title?: string,
+  value?: string,
+  cardIcon?: string
+): { title: string; value: string; iconKey?: string } {
+  const iconKey = normalizeHeroCardIconKey(cardIcon);
+  return {
+    title: title ?? "",
+    value: value ?? "",
+    ...(iconKey ? { iconKey } : {}),
+  };
 }
 
 function asExtendedData(raw: unknown): ContentExtendedData {
@@ -44,9 +58,9 @@ export function buildSiteConfigFromApi(
   };
 
   const benefits = filterBenefits([
-    { title: api.benefit1Title ?? "", value: api.benefit1Value ?? "" },
-    { title: api.benefit2Title ?? "", value: api.benefit2Value ?? "" },
-    { title: api.benefit3Title ?? "", value: api.benefit3Value ?? "" },
+    benefitFromApi(api.benefit1Title, api.benefit1Value, api.cardIcon1),
+    benefitFromApi(api.benefit2Title, api.benefit2Value, api.cardIcon2),
+    benefitFromApi(api.benefit3Title, api.benefit3Value, api.cardIcon3),
   ]);
 
   const ctaTexts = parseCtaTexts(api.ctaText);
