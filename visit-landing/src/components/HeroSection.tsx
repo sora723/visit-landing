@@ -227,7 +227,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto hidden w-full max-w-[1100px] flex-col items-center px-6 pb-20 pt-[calc(var(--header-h)+1.75rem)] text-center md:flex">
+      <div className="relative z-10 mx-auto hidden min-h-[100svh] w-full max-w-[1100px] flex-col items-center justify-center px-6 pb-24 pt-[var(--header-h)] text-center md:flex">
         <h1 className="font-paperlogy text-[clamp(36px,6.5vw,72px)] font-bold leading-tight tracking-wide text-white">
           {headline}
         </h1>
