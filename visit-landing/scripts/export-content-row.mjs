@@ -61,6 +61,12 @@ const row = {
   communityData: JSON.stringify(site.community),
   floatingTodayReservations: site.hero.floatingStats.todayReservations,
   floatingActiveConsultations: site.hero.floatingStats.activeConsultations,
+  footerDeveloper: site.footer.developer,
+  footerConstructor: site.footer.constructor,
+  footerAgency: site.footer.agency,
+  footerBusinessNumber: site.footer.businessNumber,
+  footerContact: site.footer.contact,
+  footerPrivacyPolicy: site.footer.privacyPolicy,
   extendedData: JSON.stringify(ext),
 };
 

@@ -266,6 +266,26 @@ function formatVisitDateLabel(dateStr: string): string {
   });
 }
 
+function resolveFooterFromContent(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): SiteConfig["footer"] {
+  const fromExt = ext.footer ?? {};
+  const extFooter = fromExt as NonNullable<ContentExtendedData["footer"]>;
+  const flat = (value?: string | number | null) => String(value ?? "").trim();
+  return {
+    developer: flat(content.footerDeveloper) || flat(extFooter.developer) || "",
+    constructor:
+      flat(content.footerConstructor) || flat(extFooter.constructor) || "",
+    agency: flat(content.footerAgency) || flat(extFooter.agency) || "",
+    businessNumber:
+      flat(content.footerBusinessNumber) || flat(extFooter.businessNumber) || "",
+    contact: flat(content.footerContact) || flat(extFooter.contact) || "",
+    privacyPolicy:
+      flat(content.footerPrivacyPolicy) || flat(extFooter.privacyPolicy) || "",
+  };
+}
+
 export function buildSiteConfigFromSheet(
   site: SiteManagementRow,
   content: ContentManagementRow
@@ -387,14 +407,7 @@ export function buildSiteConfigFromSheet(
     },
     ctaPromoImage: resolveCtaPromoImageFromContent(content, ext),
     mobileBar: { hookText: content.mobileHookText },
-    footer: ext.footer ?? {
-      developer: "",
-      constructor: "",
-      agency: "",
-      businessNumber: "",
-      contact: "",
-      privacyPolicy: "",
-    },
+    footer: resolveFooterFromContent(content, ext),
     seo: ext.seo ?? {
       title: site.siteName,
       description: "",

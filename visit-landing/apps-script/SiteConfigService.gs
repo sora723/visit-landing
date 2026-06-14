@@ -133,6 +133,43 @@ var POPUP_IMAGE2_ALIASES = [
   '팝업이미지02'
 ];
 
+var FOOTER_DEVELOPER_ALIASES = [
+  'footerDeveloper',
+  '푸터시행사',
+  '시행사'
+];
+
+var FOOTER_CONSTRUCTOR_ALIASES = [
+  'footerConstructor',
+  '푸터시공사',
+  '시공사'
+];
+
+var FOOTER_AGENCY_ALIASES = [
+  'footerAgency',
+  '푸터광고대행',
+  '광고대행'
+];
+
+var FOOTER_BUSINESS_NUMBER_ALIASES = [
+  'footerBusinessNumber',
+  '푸터사업자번호',
+  '사업자등록번호'
+];
+
+var FOOTER_CONTACT_ALIASES = [
+  'footerContact',
+  '푸터문의',
+  '푸터연락처',
+  '문의이메일'
+];
+
+var FOOTER_PRIVACY_POLICY_ALIASES = [
+  'footerPrivacyPolicy',
+  '푸터개인정보',
+  '개인정보처리방침'
+];
+
 var DEFAULT_MAIN_COLOR = '#0f1d3a';
 var DEFAULT_SUB_COLOR = '#d7b56d';
 var DEFAULT_ACCENT_COLOR = '#caa85c';
@@ -602,6 +639,82 @@ function ensurePopupImageColumns() {
   };
 }
 
+/** 푸터 flat 컬럼 — extendedData 앞 (footer JSON 보조·대체) */
+function ensureFooterColumns() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+  var headers = [
+    'footerPrivacyPolicy',
+    'footerContact',
+    'footerBusinessNumber',
+    'footerAgency',
+    'footerConstructor',
+    'footerDeveloper'
+  ];
+  var aliases = [
+    FOOTER_PRIVACY_POLICY_ALIASES,
+    FOOTER_CONTACT_ALIASES,
+    FOOTER_BUSINESS_NUMBER_ALIASES,
+    FOOTER_AGENCY_ALIASES,
+    FOOTER_CONSTRUCTOR_ALIASES,
+    FOOTER_DEVELOPER_ALIASES
+  ];
+
+  for (var f = 0; f < headers.length; f++) {
+    if (hasAnyHeader_(map, aliases[f])) continue;
+    var result = ensureColumnBeforeExtended_(sheet, headers[f]);
+    if (result.added) added.push(headers[f]);
+    map = getHeaderIndexMap_(sheet);
+  }
+
+  added.reverse();
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    addedColumns: added,
+    message: added.length
+      ? '푸터 컬럼 추가: ' + added.join(', ')
+      : '푸터 컬럼 이미 존재'
+  };
+}
+
+/** Apps Script 편집기 / 시트 메뉴 — 푸터 flat 컬럼만 추가 */
+function runEnsureFooterColumns() {
+  var result = ensureFooterColumns();
+  Logger.log('[footer] ' + result.message);
+  try {
+    SpreadsheetApp.getUi().alert(result.message);
+  } catch (e) {
+    // 편집기 단독 실행
+  }
+  return result;
+}
+
+function mergeFooterFromFlatColumns_(contentRow, ext) {
+  var merged = ext || {};
+  var footer = merged.footer && typeof merged.footer === 'object'
+    ? JSON.parse(JSON.stringify(merged.footer))
+    : {};
+  var pairs = [
+    ['developer', FOOTER_DEVELOPER_ALIASES],
+    ['constructor', FOOTER_CONSTRUCTOR_ALIASES],
+    ['agency', FOOTER_AGENCY_ALIASES],
+    ['businessNumber', FOOTER_BUSINESS_NUMBER_ALIASES],
+    ['contact', FOOTER_CONTACT_ALIASES],
+    ['privacyPolicy', FOOTER_PRIVACY_POLICY_ALIASES]
+  ];
+
+  for (var i = 0; i < pairs.length; i++) {
+    var flatVal = getContentTextField_(contentRow, pairs[i][1]);
+    if (flatVal) footer[pairs[i][0]] = flatVal;
+  }
+
+  if (Object.keys(footer).length) merged.footer = footer;
+  return merged;
+}
+
 function parseCtaPromoBg_(raw) {
   var v = String(raw || '').trim().toLowerCase();
   if (
@@ -916,6 +1029,7 @@ function getSiteLiveConfig(siteCode) {
   }
 
   var ext = parseExtendedData_(contentRow);
+  ext = mergeFooterFromFlatColumns_(contentRow, ext);
   var promo = getStickyPromoTextFromContentRow_(contentRow);
   var unitTypeOptions = getUnitTypeOptionsFromContentRow_(contentRow, ext);
   var visitDateDays = getVisitDateDaysFromContentRow_(contentRow, ext);

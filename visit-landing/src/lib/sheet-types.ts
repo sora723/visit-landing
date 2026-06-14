@@ -101,6 +101,13 @@ export interface ContentManagementRow {
   ctaPromoImageMobile?: string;
   /** white | beige | 흰색 | 베이지 */
   ctaPromoBg?: string;
+  /** SiteFooter — flat 컬럼 (extendedData.footer 보조) */
+  footerDeveloper?: string;
+  footerConstructor?: string;
+  footerAgency?: string;
+  footerBusinessNumber?: string;
+  footerContact?: string;
+  footerPrivacyPolicy?: string;
   /**
    * JSON — site.json 나머지 필드 (popup, footer, seo, liveStatus, reservationGuide, liveReservation, cta 버튼 등)
    * Sheet flat 컬럼에 없는 UI 설정은 여기에 통합
