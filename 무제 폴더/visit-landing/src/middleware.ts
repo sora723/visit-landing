@@ -7,7 +7,12 @@ export function middleware(request: NextRequest) {
   const fromCookie = request.cookies.get("siteCode")?.value;
   const siteCode = resolveSiteCode(fromQuery ?? fromCookie);
 
-  const response = NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-site-code", siteCode);
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
   response.headers.set("x-site-code", siteCode);
 
   if (fromQuery?.trim()) {

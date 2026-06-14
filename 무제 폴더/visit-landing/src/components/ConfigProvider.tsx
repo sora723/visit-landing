@@ -61,6 +61,13 @@ export function ConfigProvider({
   const [config, setConfig] = useState(initialConfig);
   const [contentSource, setContentSource] = useState(initialSource);
 
+  // SSR props (?siteCode= 변경·navigation) → 클라이언트 state 동기화
+  useEffect(() => {
+    setConfig(initialConfig);
+    setContentSource(initialSource);
+  }, [initialConfig, initialSource, siteCode]);
+
+  // Sheet 실시간 갱신 — 요청 siteCode와 응답 siteCode 일치할 때만 반영 (L001 덮어쓰기 방지)
   useEffect(() => {
     let cancelled = false;
     fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
@@ -70,7 +77,7 @@ export function ConfigProvider({
       .then((json) => {
         if (cancelled || !json.success || !json.data) return;
         const liveConfig = parseLiveSiteConfig(json.data as Record<string, unknown>);
-        if (!liveConfig) return;
+        if (!liveConfig || liveConfig.siteCode !== siteCode) return;
         setConfig(liveConfig);
         setContentSource("sheet");
       })

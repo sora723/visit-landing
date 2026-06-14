@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { resolveSiteCode } from "@/lib/resolve-site-code";
 
-/** Server Component / Route — searchParams → middleware header → env fallback */
+/** Server Component — searchParams → middleware x-site-code → env fallback */
 export async function getServerSiteCode(
   searchParamsSiteCode?: string | null
 ): Promise<string> {

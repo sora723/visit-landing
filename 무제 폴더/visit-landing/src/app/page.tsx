@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
-import { resolveSiteCode } from "@/lib/resolve-site-code";
+import { getServerSiteCode } from "@/lib/server-site-code";
 import { ConfigProvider } from "@/components/ConfigProvider";
 import { LandingPage } from "@/components/LandingPage";
 import { PromoStickyBarServer } from "@/components/PromoStickyBarServer";
@@ -14,7 +14,7 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const siteCode = resolveSiteCode(params.siteCode);
+  const siteCode = await getServerSiteCode(params.siteCode);
   const fallback = getSiteConfigFromFile();
   const live = await fetchSiteLiveConfigFromSheet(siteCode);
   const config =
@@ -22,6 +22,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <ConfigProvider
+      key={siteCode}
       config={config}
       contentSource={live.source}
       siteCode={siteCode}
