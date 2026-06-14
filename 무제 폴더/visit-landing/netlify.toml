@@ -1,11 +1,10 @@
 [build]
-  command = "node scripts/log-build-env.mjs && npm run build"
-  publish = ".next"
+  command = "npm run build"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
   NODE_VERSION = "20"
-  # APPS_SCRIPT_URL, SHEET_SITE_CODE → Netlify UI → Environment variables 에 설정 (Scopes: All)
+  # APPS_SCRIPT_URL, SHEET_SITE_CODE → Netlify UI → Environment variables (Scopes: All)
   # .env.local 은 gitignore — Netlify에 자동 반영되지 않음
