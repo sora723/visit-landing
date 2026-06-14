@@ -114,6 +114,8 @@ export interface SiteConfig {
     buttonText: string;
     privacyText: string;
   };
+  /** 홍보관 방문예약 섹션 바로 아래 — 가운데 대형 이미지 (비우면 미노출) */
+  ctaPromoImage?: CtaPromoImageSection;
   mobileBar: { hookText: string };
   footer: {
     developer: string;
@@ -142,6 +144,14 @@ export interface SiteConfig {
     /** false면 방문예약 일자 필드 숨김 */
     visitDateEnabled?: boolean;
   };
+}
+
+/** CtaSection 아래 단일 홍보 이미지 — Sheet ctaPromoImage / ctaPromoBg */
+export interface CtaPromoImageSection {
+  image: string;
+  imagePc?: string;
+  imageMobile?: string;
+  backgroundColor: "white" | "beige";
 }
 
 /** 현장별 커스텀 이미지 블록 (site.json / 시트 extendedData) */

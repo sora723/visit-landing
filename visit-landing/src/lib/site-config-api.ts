@@ -48,6 +48,10 @@ export type SiteConfigApiData = {
   mobileHookText?: string;
   heroImage?: string;
   heroVisualImage?: string;
+  ctaPromoImage?: string;
+  ctaPromoImagePc?: string;
+  ctaPromoImageMobile?: string;
+  ctaPromoBg?: string;
   floatingTodayReservations?: number;
   floatingActiveConsultations?: number;
   overview?: SiteConfigApiOverview;
@@ -243,6 +247,10 @@ export function parseSiteConfigApiResponse(
     mobileHookText: optionalString(data.mobileHookText),
     heroImage: optionalString(data.heroImage),
     heroVisualImage: optionalString(data.heroVisualImage),
+    ctaPromoImage: optionalString(data.ctaPromoImage),
+    ctaPromoImagePc: optionalString(data.ctaPromoImagePc),
+    ctaPromoImageMobile: optionalString(data.ctaPromoImageMobile),
+    ctaPromoBg: optionalString(data.ctaPromoBg),
     floatingTodayReservations: parseOptionalPositiveNumber(
       data.floatingTodayReservations
     ),

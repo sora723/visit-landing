@@ -14,6 +14,7 @@ import {
   CommunitySection,
 } from "./Sections";
 import { CtaSection, SiteFooter } from "./CtaSection";
+import { CtaPromoImageSection } from "./CtaPromoImageSection";
 import { FooterReservationSection } from "./FooterReservationSection";
 import { CustomSections } from "./CustomSections";
 import { BottomBar } from "./BottomBar";
@@ -28,6 +29,7 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
         <HeroSection />
         <LiveReservationSection />
         <CtaSection sectionId="방문예약" />
+        <CtaPromoImageSection />
         <PremiumSection />
         <OverviewSection />
         <LocationSection />

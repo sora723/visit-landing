@@ -58,13 +58,50 @@ function resolveBenefitIcon(iconKey?: string): LucideIcon {
   return (key && iconMap[key]) || Gift;
 }
 
-export function HeroSection() {
-  const { config } = useConfig();
-  const { hero, siteName } = config;
-  const benefits = hero.benefits.filter((item) => item.title || item.value);
-  const isMobile = useIsMobile();
-  const heroImage = resolveHeroImage(hero, isMobile);
-  const headline = hero.hook?.trim() || siteName;
+type BenefitItem = {
+  title: string;
+  value: string;
+  iconKey?: string;
+};
+
+function HeroBenefitCards({
+  benefits,
+  variant,
+}: {
+  benefits: BenefitItem[];
+  variant: "mobile" | "desktop";
+}) {
+  if (!benefits.length) return null;
+
+  if (variant === "mobile") {
+    return (
+      <div className="hero-benefit-grid flex w-full gap-1.5">
+        {benefits.map((item, i) => {
+          const Icon = resolveBenefitIcon(item.iconKey);
+          return (
+            <div
+              key={`${item.title}-${item.value}-${i}`}
+              className={`hero-benefit-card hero-benefit-card-${i % 3} flex min-w-0 flex-1 flex-col items-center rounded-sm border border-[var(--color-gold)]/35 border-t-2 border-t-[var(--color-gold)] bg-white/[0.08] px-1.5 py-2 backdrop-blur-sm`}
+            >
+              <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10">
+                <Icon className="h-3.5 w-3.5 text-[var(--color-gold)]" aria-hidden />
+              </div>
+              <div
+                className={`hero-benefit-label hero-benefit-label-${i % 3} mb-0.5 w-full truncate text-center text-[9px] font-medium tracking-[0.12em] text-[var(--color-gold)]`}
+              >
+                {item.title}
+              </div>
+              <div
+                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy w-full truncate text-center text-[12px] leading-tight text-white`}
+              >
+                {item.value}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   const cardGridCols =
     benefits.length >= 4
@@ -76,21 +113,121 @@ export function HeroSection() {
           : "grid-cols-1";
 
   return (
+    <div className="hero-benefit-grid mt-10 flex w-full justify-center">
+      <div
+        className={`grid w-full max-w-[780px] justify-items-center gap-4 ${cardGridCols}`}
+      >
+        {benefits.map((item, i) => {
+          const Icon = resolveBenefitIcon(item.iconKey);
+          return (
+            <div
+              key={`${item.title}-${item.value}-${i}`}
+              className={`hero-benefit-card hero-benefit-card-${i % 3} flex w-full max-w-[240px] flex-col items-center rounded-sm border border-[var(--color-gold)]/35 border-t-2 border-t-[var(--color-gold)] bg-white/[0.06] px-4 py-6 backdrop-blur-sm`}
+            >
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10">
+                <Icon className="h-5 w-5 text-[var(--color-gold)]" aria-hidden />
+              </div>
+              <div
+                className={`hero-benefit-label hero-benefit-label-${i % 3} mb-2.5 text-[13px] font-medium tracking-[0.18em] text-[var(--color-gold)]`}
+              >
+                {item.title}
+              </div>
+              <div
+                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy text-[clamp(20px,3vw,28px)] leading-tight text-white`}
+              >
+                {item.value}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HeroCtaButton({ className }: { className?: string }) {
+  const { config } = useConfig();
+
+  return (
+    <motion.button
+      type="button"
+      onClick={scrollToReservation}
+      className={`cta-primary shadow-[0_8px_32px_rgba(202,168,92,0.4)] ${className ?? ""}`}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      {config.cta.buttonText || "방문예약 신청하기"}
+    </motion.button>
+  );
+}
+
+function HeroScrollHint({ compact }: { compact?: boolean }) {
+  return (
+    <div
+      className={`flex flex-col items-center ${compact ? "gap-0.5" : "gap-1.5"}`}
+    >
+      <span
+        className={`tracking-[0.2em] text-white/50 ${compact ? "text-[9px]" : "text-[10px]"}`}
+      >
+        SCROLL
+      </span>
+      <div
+        className={`w-px bg-gradient-to-b from-[var(--color-gold)]/80 to-transparent ${compact ? "h-8" : "h-14"}`}
+      />
+    </div>
+  );
+}
+
+export function HeroSection() {
+  const { config } = useConfig();
+  const { hero, siteName, mobileBar } = config;
+  const benefits = hero.benefits.filter((item) => item.title || item.value);
+  const isMobile = useIsMobile();
+  const heroImage = resolveHeroImage(hero, isMobile);
+  const headline = hero.hook?.trim() || siteName;
+
+  return (
     <section
       id="hero"
-      className="relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[var(--color-navy)]"
+      className="relative min-h-[100svh] overflow-hidden bg-[var(--color-navy)]"
     >
-      {heroImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={heroImage}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-navy)]/72 via-[var(--color-navy)]/55 to-[var(--color-navy)]/85" />
+      <div className="absolute inset-x-0 top-0 h-[70svh] md:inset-0 md:h-full">
+        {heroImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={heroImage}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-navy)]/65 via-[var(--color-navy)]/40 to-[var(--color-navy)]/75 md:from-[var(--color-navy)]/72 md:via-[var(--color-navy)]/55 md:to-[var(--color-navy)]/85" />
+      </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1100px] flex-col items-center px-6 pb-20 pt-[calc(var(--header-h)+1.75rem)] text-center">
+      <div className="relative z-10 flex min-h-[100svh] flex-col md:hidden">
+        <div className="flex h-[70svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] text-center">
+          <h1 className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide text-white">
+            {headline}
+          </h1>
+          {hero.sub && (
+            <p className="mt-3 max-w-sm text-[14px] font-light tracking-wider text-white/75">
+              {hero.sub}
+            </p>
+          )}
+        </div>
+
+        <div className="flex h-[30svh] flex-col items-center justify-end gap-2 bg-gradient-to-b from-[var(--color-navy)]/55 to-[var(--color-navy)]/92 px-4 pb-3 pt-2">
+          <HeroBenefitCards benefits={benefits} variant="mobile" />
+          <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
+          {mobileBar.hookText && (
+            <p className="text-[11px] tracking-wide text-white/50">
+              {mobileBar.hookText}
+            </p>
+          )}
+          <HeroScrollHint compact />
+        </div>
+      </div>
+
+      <div className="relative z-10 mx-auto hidden w-full max-w-[1100px] flex-col items-center px-6 pb-20 pt-[calc(var(--header-h)+1.75rem)] text-center md:flex">
         <h1 className="font-paperlogy text-[clamp(36px,6.5vw,72px)] font-bold leading-tight tracking-wide text-white">
           {headline}
         </h1>
@@ -101,58 +238,19 @@ export function HeroSection() {
           </p>
         )}
 
-        {benefits.length > 0 && (
-          <div className="hero-benefit-grid mt-10 flex w-full justify-center">
-            <div
-              className={`grid w-full max-w-[780px] justify-items-center gap-4 ${cardGridCols}`}
-            >
-              {benefits.map((item, i) => {
-                const Icon = resolveBenefitIcon(item.iconKey);
-                return (
-                  <div
-                    key={`${item.title}-${item.value}-${i}`}
-                    className={`hero-benefit-card hero-benefit-card-${i % 3} flex w-full max-w-[240px] flex-col items-center rounded-sm border border-[var(--color-gold)]/35 border-t-2 border-t-[var(--color-gold)] bg-white/[0.06] px-4 py-6 backdrop-blur-sm`}
-                  >
-                    <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10">
-                      <Icon className="h-5 w-5 text-[var(--color-gold)]" aria-hidden />
-                    </div>
-                    <div
-                      className={`hero-benefit-label hero-benefit-label-${i % 3} mb-2.5 text-[13px] font-medium tracking-[0.18em] text-[var(--color-gold)]`}
-                    >
-                      {item.title}
-                    </div>
-                    <div
-                      className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy text-[clamp(20px,3vw,28px)] leading-tight text-white`}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <HeroBenefitCards benefits={benefits} variant="desktop" />
 
-        <motion.button
-          type="button"
-          onClick={scrollToReservation}
-          className="cta-primary mt-10 px-14 py-[18px] text-[15px] font-medium tracking-[0.15em] shadow-[0_8px_32px_rgba(202,168,92,0.4)]"
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {config.cta.buttonText || "방문예약 신청하기"}
-        </motion.button>
+        <HeroCtaButton className="mt-10 px-14 py-[18px] text-[15px] font-medium tracking-[0.15em]" />
 
-        {config.mobileBar.hookText && (
+        {mobileBar.hookText && (
           <p className="mt-4 text-xs tracking-wide text-white/50">
-            {config.mobileBar.hookText}
+            {mobileBar.hookText}
           </p>
         )}
       </div>
 
-      <div className="absolute bottom-1.5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5">
-        <span className="text-[10px] tracking-[0.2em] text-white/50">SCROLL</span>
-        <div className="h-14 w-px bg-gradient-to-b from-[var(--color-gold)]/80 to-transparent" />
+      <div className="absolute bottom-1.5 left-1/2 z-10 hidden -translate-x-1/2 md:flex">
+        <HeroScrollHint />
       </div>
     </section>
   );

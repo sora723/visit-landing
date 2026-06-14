@@ -4,6 +4,7 @@
  */
 
 import type { SiteConfig } from "./types";
+import type { CtaPromoImageSection } from "./types";
 import type {
   ContentExtendedData,
   ContentManagementRow,
@@ -39,6 +40,39 @@ function parseCtaTexts(raw: string | undefined): string[] {
     .split("|")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function parseCtaPromoBg(raw?: string): CtaPromoImageSection["backgroundColor"] {
+  const v = raw?.trim().toLowerCase() ?? "";
+  if (
+    v === "beige" ||
+    v === "베이지" ||
+    v === "bg" ||
+    v === "#f8f6f2" ||
+    v === "var(--color-bg)"
+  ) {
+    return "beige";
+  }
+  return "white";
+}
+
+function resolveCtaPromoImageFromContent(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): CtaPromoImageSection | undefined {
+  const extPromo = ext.ctaPromoImage;
+  const image = content.ctaPromoImage?.trim() || extPromo?.image?.trim() || "";
+  if (!image) return undefined;
+
+  return {
+    image,
+    imagePc: content.ctaPromoImagePc?.trim() || extPromo?.imagePc?.trim(),
+    imageMobile:
+      content.ctaPromoImageMobile?.trim() || extPromo?.imageMobile?.trim(),
+    backgroundColor: parseCtaPromoBg(
+      content.ctaPromoBg || extPromo?.backgroundColor
+    ),
+  };
 }
 
 function resolveStickyPromoText(
@@ -286,6 +320,7 @@ export function buildSiteConfigFromSheet(
       buttonText: ext.cta?.buttonText ?? "방문예약하기",
       privacyText: ext.cta?.privacyText ?? "개인정보 수집 및 이용에 동의합니다.",
     },
+    ctaPromoImage: resolveCtaPromoImageFromContent(content, ext),
     mobileBar: { hookText: content.mobileHookText },
     footer: ext.footer ?? {
       developer: "",

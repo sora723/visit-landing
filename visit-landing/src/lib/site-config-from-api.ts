@@ -5,6 +5,7 @@ import type { ContentExtendedData } from "./sheet-types";
 import type { SiteConfigApiData } from "./site-config-api";
 import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { mergeSiteTheme } from "./site-theme";
+import type { CtaPromoImageSection } from "./types";
 
 function parseCtaTexts(raw: string | undefined): string[] {
   if (!raw?.trim()) return [];
@@ -43,6 +44,41 @@ function benefitFromApi(
 function asExtendedData(raw: unknown): ContentExtendedData {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   return raw as ContentExtendedData;
+}
+
+function parseCtaPromoBg(raw?: string): CtaPromoImageSection["backgroundColor"] {
+  const v = raw?.trim().toLowerCase() ?? "";
+  if (
+    v === "beige" ||
+    v === "베이지" ||
+    v === "bg" ||
+    v === "#f8f6f2" ||
+    v === "var(--color-bg)"
+  ) {
+    return "beige";
+  }
+  return "white";
+}
+
+function buildCtaPromoImage(
+  api: SiteConfigApiData,
+  ext: ContentExtendedData,
+  fallback?: CtaPromoImageSection
+): CtaPromoImageSection | undefined {
+  const extPromo = ext.ctaPromoImage;
+  const image =
+    api.ctaPromoImage?.trim() || extPromo?.image?.trim() || "";
+  if (!image) return fallback;
+
+  return {
+    image,
+    imagePc: api.ctaPromoImagePc?.trim() || extPromo?.imagePc?.trim(),
+    imageMobile:
+      api.ctaPromoImageMobile?.trim() || extPromo?.imageMobile?.trim(),
+    backgroundColor: parseCtaPromoBg(
+      api.ctaPromoBg || extPromo?.backgroundColor
+    ),
+  };
 }
 
 /** Sheet live API → 페이지 SiteConfig (fallback은 sheet 미연결 시에만 사용) */
@@ -111,6 +147,7 @@ export function buildSiteConfigFromApi(
       buttonText: ext.cta?.buttonText ?? fallback.cta.buttonText,
       privacyText: ext.cta?.privacyText ?? fallback.cta.privacyText,
     },
+    ctaPromoImage: buildCtaPromoImage(api, ext, fallback.ctaPromoImage),
     mobileBar: {
       hookText: api.mobileHookText?.trim() || fallback.mobileBar.hookText,
     },

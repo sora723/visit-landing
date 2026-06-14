@@ -91,6 +91,12 @@ export interface ContentManagementRow {
   unitTypeEnabled?: boolean | string;
   /** Y/N — 방문예약 일자 필드 노출 (기본 Y) */
   visitDateEnabled?: boolean | string;
+  /** CtaSection 아래 대형 홍보 이미지 URL */
+  ctaPromoImage?: string;
+  ctaPromoImagePc?: string;
+  ctaPromoImageMobile?: string;
+  /** white | beige | 흰색 | 베이지 */
+  ctaPromoBg?: string;
   /**
    * JSON — site.json 나머지 필드 (popup, footer, seo, liveStatus, reservationGuide, liveReservation, cta 버튼 등)
    * Sheet flat 컬럼에 없는 UI 설정은 여기에 통합
@@ -150,6 +156,12 @@ export interface ContentExtendedData {
   /** extendedData fallback — stickyPromoText 컬럼 우선 */
   stickyPromoText?: string;
   customSections?: import("./types").CustomImageSection[];
+  ctaPromoImage?: {
+    image?: string;
+    imagePc?: string;
+    imageMobile?: string;
+    backgroundColor?: string;
+  };
   reservationForm?: {
     unitTypeOptions?: string[] | string;
     visitDateDays?: number;

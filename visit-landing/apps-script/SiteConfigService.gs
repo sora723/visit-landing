@@ -72,6 +72,32 @@ var ACCENT_COLOR_ALIASES = [
   '포인트색'
 ];
 
+var CTA_PROMO_IMAGE_ALIASES = [
+  'ctaPromoImage',
+  'CTA홍보이미지',
+  '방문예약아래이미지',
+  '홍보관방문아래이미지'
+];
+
+var CTA_PROMO_IMAGE_PC_ALIASES = [
+  'ctaPromoImagePc',
+  'CTA홍보이미지PC',
+  '방문예약아래이미지PC'
+];
+
+var CTA_PROMO_IMAGE_MOBILE_ALIASES = [
+  'ctaPromoImageMobile',
+  'CTA홍보이미지모바일',
+  '방문예약아래이미지모바일'
+];
+
+var CTA_PROMO_BG_ALIASES = [
+  'ctaPromoBg',
+  'CTA홍보배경',
+  '방문예약아래배경',
+  '방문예약홍보배경'
+];
+
 var DEFAULT_MAIN_COLOR = '#0f1d3a';
 var DEFAULT_SUB_COLOR = '#d7b56d';
 var DEFAULT_ACCENT_COLOR = '#caa85c';
@@ -427,6 +453,57 @@ function ensureSiteThemeColumns() {
   };
 }
 
+/** CtaSection 아래 홍보 이미지 컬럼 — extendedData 앞 */
+function ensureCtaPromoImageColumns() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+  var promoHeaders = [
+    'ctaPromoBg',
+    'ctaPromoImageMobile',
+    'ctaPromoImagePc',
+    'ctaPromoImage'
+  ];
+  var promoAliases = [
+    CTA_PROMO_BG_ALIASES,
+    CTA_PROMO_IMAGE_MOBILE_ALIASES,
+    CTA_PROMO_IMAGE_PC_ALIASES,
+    CTA_PROMO_IMAGE_ALIASES
+  ];
+
+  for (var p = 0; p < promoHeaders.length; p++) {
+    if (hasAnyHeader_(map, promoAliases[p])) continue;
+    var result = ensureColumnBeforeExtended_(sheet, promoHeaders[p]);
+    if (result.added) added.push(promoHeaders[p]);
+    map = getHeaderIndexMap_(sheet);
+  }
+
+  added.reverse();
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    addedColumns: added,
+    message: added.length
+      ? 'CTA 홍보 이미지 컬럼 추가: ' + added.join(', ')
+      : 'CTA 홍보 이미지 컬럼 이미 존재'
+  };
+}
+
+function parseCtaPromoBg_(raw) {
+  var v = String(raw || '').trim().toLowerCase();
+  if (
+    v === 'beige' ||
+    v === '베이지' ||
+    v === 'bg' ||
+    v === '#f8f6f2' ||
+    v === 'var(--color-bg)'
+  ) {
+    return 'beige';
+  }
+  return 'white';
+}
+
 /** Apps Script 편집기에서 직접 실행 — 컬러 컬럼만 추가 */
 function runEnsureSiteThemeColumns() {
   var result = ensureSiteThemeColumns();
@@ -625,6 +702,10 @@ function buildPageContentFromContentRow_(contentRow, ext) {
     mobileHookText: getContentTextField_(contentRow, ['mobileHookText', '모바일훅문구']),
     heroImage: heroImage,
     heroVisualImage: heroVisualImage,
+    ctaPromoImage: getContentTextField_(contentRow, CTA_PROMO_IMAGE_ALIASES),
+    ctaPromoImagePc: getContentTextField_(contentRow, CTA_PROMO_IMAGE_PC_ALIASES),
+    ctaPromoImageMobile: getContentTextField_(contentRow, CTA_PROMO_IMAGE_MOBILE_ALIASES),
+    ctaPromoBg: getContentTextField_(contentRow, CTA_PROMO_BG_ALIASES),
     floatingTodayReservations: parsePositiveInt_(
       getContentTextField_(contentRow, ['floatingTodayReservations', '오늘방문예약수']),
       27
@@ -732,6 +813,10 @@ function getSiteLiveConfig(siteCode) {
     mobileHookText: pageContent.mobileHookText,
     heroImage: pageContent.heroImage,
     heroVisualImage: pageContent.heroVisualImage,
+    ctaPromoImage: pageContent.ctaPromoImage,
+    ctaPromoImagePc: pageContent.ctaPromoImagePc,
+    ctaPromoImageMobile: pageContent.ctaPromoImageMobile,
+    ctaPromoBg: pageContent.ctaPromoBg,
     floatingTodayReservations: pageContent.floatingTodayReservations,
     floatingActiveConsultations: pageContent.floatingActiveConsultations,
     overview: pageContent.overview,
