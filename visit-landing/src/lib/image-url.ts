@@ -13,7 +13,7 @@ export function normalizeImageUrl(url: string): string {
   for (const pattern of fileIdPatterns) {
     const match = trimmed.match(pattern);
     if (match?.[1]) {
-      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1920`;
     }
   }
 
