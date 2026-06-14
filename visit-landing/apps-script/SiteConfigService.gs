@@ -622,25 +622,53 @@ function ensureFooterDataColumn() {
   }
 
   ensureColumnBeforeExtended_(sheet, 'footerData');
+  SpreadsheetApp.flush();
 
   return {
     ok: true,
     added: true,
     addedColumns: ['footerData'],
-    message: 'footerData 컬럼 추가'
+    message: 'footerData 컬럼 추가 (extendedData 앞)'
   };
+}
+
+/**
+ * site.config 호출 시 누락 컬럼 자동 추가 (시트 메뉴 없이도 동작)
+ * Web App executeAs=USER_DEPLOYING — 배포 계정에 시트 편집 권한 필요
+ */
+function ensureContentSchemaColumns_() {
+  var results = [];
+  try {
+    results.push(ensureFooterDataColumn());
+  } catch (err) {
+    Logger.log('[ensureContentSchemaColumns_] footerData FAIL: ' + (err.message || err));
+  }
+  return results;
 }
 
 /** Apps Script 편집기 / 시트 메뉴 — footerData 컬럼만 추가 */
 function runEnsureFooterColumns() {
-  var result = ensureFooterDataColumn();
-  Logger.log('[footer] ' + result.message);
   try {
-    SpreadsheetApp.getUi().alert(result.message);
-  } catch (e) {
-    // 편집기 단독 실행
+    var result = ensureFooterDataColumn();
+    Logger.log('[footer] ' + result.message);
+    try {
+      SpreadsheetApp.getUi().alert(
+        result.added ? '✓ ' + result.message : result.message
+      );
+    } catch (e) {
+      // 편집기 단독 실행
+    }
+    return result;
+  } catch (err) {
+    var msg = err.message || String(err);
+    Logger.log('[footer] FAIL: ' + msg);
+    try {
+      SpreadsheetApp.getUi().alert('footerData 컬럼 추가 실패:\n' + msg);
+    } catch (e2) {
+      // 편집기 단독 실행
+    }
+    throw err;
   }
-  return result;
 }
 
 function normalizeFooterItem_(item) {
@@ -929,6 +957,7 @@ function buildSiteMetaFromSiteRow_(siteRow) {
   if (!siteRow) {
     return {
       siteName: '',
+      domain: '',
       phone: '',
       managerName: '',
       notificationPhone: '',
@@ -943,6 +972,7 @@ function buildSiteMetaFromSiteRow_(siteRow) {
 
   return {
     siteName: getSiteField_(siteRow, ['siteName', '현장명', '사이트명']),
+    domain: getDomainFromSiteRow_(siteRow) || '',
     phone: getSiteField_(siteRow, ['phone', '전화번호', '대표전화']),
     managerName: getSiteField_(siteRow, ['managerName', '담당자명', '관리자명']),
     notificationPhone: getSiteField_(siteRow, ['notifyPhone', 'notificationPhone', '알림수신번호']),
@@ -1036,6 +1066,9 @@ function getSiteLiveConfig(siteCode) {
     throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
   }
 
+  ensureContentSchemaColumns_();
+  ensureSiteManagementSchemaColumns_();
+
   var contentRow = findContentBySiteCode_(code);
   if (!contentRow) {
     throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리에 현장 없음: ' + code);
@@ -1066,6 +1099,7 @@ function getSiteLiveConfig(siteCode) {
   return {
     siteCode: code,
     siteName: siteMeta.siteName,
+    domain: siteMeta.domain || null,
     phone: siteMeta.phone,
     managerName: siteMeta.managerName,
     notificationPhone: siteMeta.notificationPhone,

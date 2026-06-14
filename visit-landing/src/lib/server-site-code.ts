@@ -1,19 +1,23 @@
 import { cookies, headers } from "next/headers";
-import { resolveSiteCode } from "@/lib/resolve-site-code";
+import {
+  fetchDomainSiteCodeMap,
+  resolveSiteCodeFromDomainMap,
+} from "@/lib/fetch-domain-site-code-map";
+import { resolveSiteCodeInput } from "@/lib/resolve-site-code";
 
-/** Server Component — searchParams → middleware header → cookie → env */
+/** Server Component — searchParams → middleware header → domain(시트) → cookie → env */
 export async function getServerSiteCode(
   searchParamsSiteCode?: string | null
 ): Promise<string> {
-  if (searchParamsSiteCode?.trim()) {
-    return resolveSiteCode(searchParamsSiteCode);
-  }
   const hdrs = await headers();
-  const fromHeader = hdrs.get("x-site-code");
-  if (fromHeader?.trim()) {
-    return resolveSiteCode(fromHeader);
-  }
-  const cookieStore = await cookies();
-  const fromCookie = cookieStore.get("siteCode")?.value;
-  return resolveSiteCode(fromCookie);
+  const hostname = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+  const domainMap = await fetchDomainSiteCodeMap();
+  const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
+
+  return resolveSiteCodeInput({
+    querySiteCode: searchParamsSiteCode,
+    headerSiteCode: hdrs.get("x-site-code"),
+    domainSiteCode,
+    cookieSiteCode: (await cookies()).get("siteCode")?.value,
+  });
 }

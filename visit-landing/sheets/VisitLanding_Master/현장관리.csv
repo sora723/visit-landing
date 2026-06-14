@@ -1,4 +1,4 @@
-siteCode,siteName,submissionSpreadsheetId,submissionSpreadsheetName,submissionSheetName,phone,managerName,managerPhone,notifyPhone,popupEnabled,liveStatusEnabled,virtualReservationEnabled,duplicateBlockMinutes,isActive,metaPixelId,metaConversionEvent,googleConversionId,googleConversionLabel,naverConversionScript,kakaoPixelId,metaOwnershipCode,googleOwnershipCode,naverOwnershipCode,kakaoOwnershipCode,전환코드,소유확인코드,createdAt,updatedAt
-L001,원주 한양립스,1G4TYbbxxzVxqcIoHLEwRVsCQQtVjNwD7Ye8KCy3vs_Q,L001_접수_원주한양립스,접수관리,1688-0000,홍담당,01012345678,01012345678,Y,Y,Y,120,Y,,,,,,,,,,,,,2026-06-08,2026-06-11
-L002,(신규현장 — L002),,,접수관리,1688-0001,김담당,01011112222,01011112222,N,N,N,120,N,,,,,,,,,,,,,,
-L003,(신규현장),,,접수관리,1688-0002,,,,Y,Y,Y,120,N,,,,,,,,,,,,,,
+siteCode,siteName,domain,submissionSpreadsheetId,submissionSpreadsheetName,submissionSheetName,phone,managerName,managerPhone,notifyPhone,popupEnabled,liveStatusEnabled,virtualReservationEnabled,duplicateBlockMinutes,isActive,metaPixelId,metaConversionEvent,googleConversionId,googleConversionLabel,naverConversionScript,kakaoPixelId,metaOwnershipCode,googleOwnershipCode,naverOwnershipCode,kakaoOwnershipCode,전환코드,소유확인코드,createdAt,updatedAt
+L001,원주 한양립스,eomgung-travis.com,1G4TYbbxxzVxqcIoHLEwRVsCQQtVjNwD7Ye8KCy3vs_Q,L001_접수_원주한양립스,접수관리,1688-0000,홍담당,01012345678,01012345678,Y,Y,Y,120,Y,,,,,,,,,,,,,2026-06-08,2026-06-11
+L002,(신규현장 — L002),wonju-hanyang.com,,,접수관리,1688-0001,김담당,01011112222,01011112222,N,N,N,120,N,,,,,,,,,,,,,,
+L003,(신규현장),haemoro-astra.com,,,접수관리,1688-0002,,,,Y,Y,Y,120,N,,,,,,,,,,,,,,

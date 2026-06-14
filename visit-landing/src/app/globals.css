@@ -62,6 +62,8 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* 브라우저 강제 다크(어둡게 보기) 비활성 — 랜딩은 라이트 전용 디자인 */
+  color-scheme: light only;
 }
 
 body {
@@ -97,22 +99,33 @@ textarea {
 
 .promo-sticky-bar {
   bottom: var(--bottom-bar-h);
+  color-scheme: light only;
 }
 
 .promo-sticky-text {
-  max-width: 100%;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .promo-sticky-text-inner {
   display: inline-block;
-  max-width: 100%;
+  width: max-content;
+  max-width: none;
   font-family: var(--font-paperlogy);
   font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  font-size: clamp(1.625rem, 6.8vw, 2rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap !important;
+  word-break: keep-all;
+  overflow-wrap: normal;
   text-align: center;
-  text-wrap: balance;
+  vertical-align: bottom;
+  color-scheme: light only;
+  forced-color-adjust: none;
 
   /* 글자 채움 + 좌→우 쉬머 (배경 레이어 없음) */
   background-image: linear-gradient(
@@ -142,12 +155,41 @@ textarea {
     promo-text-blink 1.15s ease-in-out infinite;
 }
 
+.promo-sticky-text-inner[data-promo-fitted="true"] {
+  /* JS 글자 크기 보정 완료 */
+}
+
+/* 모바일 — PNG 이미지 한 장 (DOM 텍스트·canvas 줄바꿈 없음) */
+@media (max-width: 767px) {
+  .promo-sticky-bar--image .promo-sticky-image-wrap {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    animation: promo-text-blink 1.15s ease-in-out infinite;
+  }
+
+  .promo-sticky-image {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    color-scheme: light only;
+    forced-color-adjust: none;
+  }
+
+  .promo-sticky-image-placeholder {
+    display: block;
+    width: 100%;
+    height: 1.75rem;
+  }
+}
+
 @media (min-width: 768px) {
   .promo-sticky-text-inner {
-    font-size: clamp(2.375rem, 3.8vw, 3rem);
+    font-size: clamp(1.5rem, 3.8vw, 3rem);
     letter-spacing: 0;
     -webkit-text-stroke: 2.5px #000000;
-    white-space: nowrap;
     filter:
       drop-shadow(0 3px 0 rgba(0, 0, 0, 0.92))
       drop-shadow(0 7px 0 rgba(0, 0, 0, 0.75))

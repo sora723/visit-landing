@@ -16,6 +16,7 @@ import {
   submitReservation,
 } from "@/lib/api";
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { buildSitePageTitle } from "@/lib/site-page-title";
 import { pickCtaText } from "@/lib/utils";
 import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
@@ -86,6 +87,10 @@ export function ConfigProvider({
       cancelled = true;
     };
   }, [siteCode]);
+
+  useEffect(() => {
+    document.title = buildSitePageTitle(config.siteName, config.seo.title);
+  }, [config.siteName, config.seo.title]);
 
   const ctaText = useMemo(
     () => pickCtaText(config.cta.texts),

@@ -3,6 +3,7 @@
  * 현재 UI는 site.json 사용. 향후 getSiteConfig() 대신 이 함수로 교체 가능.
  */
 
+import { buildSitePageTitle } from "@/lib/site-page-title";
 import { normalizeFooter } from "./footer-config";
 import type { SiteConfig } from "./types";
 import type { CtaPromoImageSection } from "./types";
@@ -393,10 +394,13 @@ export function buildSiteConfigFromSheet(
     ctaPromoImage: resolveCtaPromoImageFromContent(content, ext),
     mobileBar: { hookText: content.mobileHookText },
     footer,
-    seo: ext.seo ?? {
-      title: site.siteName,
-      description: "",
-      ogImage: content.heroVisualImage || content.heroImage,
+    seo: {
+      title: buildSitePageTitle(site.siteName, ext.seo?.title),
+      description: ext.seo?.description?.trim() ?? "",
+      ogImage:
+        ext.seo?.ogImage?.trim() ||
+        content.heroVisualImage ||
+        content.heroImage,
     },
     customSections: ext.customSections ?? [],
     reservationForm: {

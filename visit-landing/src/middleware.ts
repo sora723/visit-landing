@@ -1,21 +1,40 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { resolveSiteCode } from "@/lib/resolve-site-code";
+import {
+  fetchDomainSiteCodeMap,
+  resolveSiteCodeFromDomainMap,
+} from "@/lib/fetch-domain-site-code-map";
+import {
+  getRequestHostname,
+  resolveSiteCodeInput,
+} from "@/lib/resolve-site-code";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const fromQuery = request.nextUrl.searchParams.get("siteCode");
   const fromCookie = request.cookies.get("siteCode")?.value;
-  const siteCode = resolveSiteCode(fromQuery ?? fromCookie);
+  const hostname = getRequestHostname(request);
+  const domainMap = await fetchDomainSiteCodeMap();
+  const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
+
+  const siteCode = resolveSiteCodeInput({
+    querySiteCode: fromQuery,
+    domainSiteCode,
+    cookieSiteCode: fromCookie,
+  });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-site-code", siteCode);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
   response.headers.set("x-site-code", siteCode);
 
-  if (fromQuery?.trim()) {
+  const shouldPersistCookie =
+    Boolean(fromQuery?.trim()) || Boolean(domainSiteCode);
+
+  if (shouldPersistCookie) {
     response.cookies.set("siteCode", siteCode, {
       path: "/",
       sameSite: "lax",

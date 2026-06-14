@@ -10,7 +10,7 @@
 
 var VISIT_LANDING_REQUIRED_HEADERS = {
   '현장관리': [
-    'siteCode', 'siteName', 'submissionSpreadsheetId', 'submissionSpreadsheetName', 'submissionSheetName',
+    'siteCode', 'siteName', 'domain', 'submissionSpreadsheetId', 'submissionSpreadsheetName', 'submissionSheetName',
     'phone', 'managerName', 'managerPhone', 'notifyPhone',
     'popupEnabled', 'liveStatusEnabled', 'virtualReservationEnabled',
     'duplicateBlockMinutes', 'isActive',
@@ -30,7 +30,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText',
     'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
     'unitTypeEnabled', 'visitDateEnabled',
-    'mainColor', 'subColor', 'accentColor', 'extendedData'
+    'mainColor', 'subColor', 'accentColor', 'footerData', 'extendedData'
   ],
   '접수관리': [
     'id', 'siteCode', 'createdAt', 'name', 'phone',
@@ -93,6 +93,7 @@ function runVisitLandingSetupVerify() {
 
 /** 현장관리·콘텐츠관리 누락 컬럼 추가 + 구조 검증 */
 function runEnsureStickyPromoAndVerify() {
+  runEnsureStep_('domain', ensureDomainColumn);
   runEnsureStep_('submissionSpreadsheetName', ensureSubmissionSpreadsheetNameColumn);
   runEnsureStep_('stickyPromoText', ensureStickyPromoTextColumn);
   runEnsureStep_('reservationForm', ensureReservationFormColumns);

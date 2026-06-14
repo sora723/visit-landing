@@ -21,6 +21,7 @@ export type SiteConfigApiCommunity = SiteConfig["community"];
 export type SiteConfigApiData = {
   siteCode: string;
   siteName?: string;
+  domain?: string;
   phone?: string;
   managerName?: string;
   notificationPhone?: string;
@@ -262,6 +263,7 @@ export function parseSiteConfigApiResponse(
   return {
     siteCode: String(data.siteCode ?? fallbackSiteCode),
     siteName: optionalString(data.siteName),
+    domain: optionalString(data.domain),
     phone: optionalString(data.phone),
     managerName: optionalString(data.managerName),
     notificationPhone: optionalString(data.notificationPhone),

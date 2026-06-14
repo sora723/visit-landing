@@ -62,7 +62,7 @@ function handleDemoSubmit(
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const siteCode = resolveRequestSiteCode(
+  const siteCode = await resolveRequestSiteCode(
     request,
     typeof body.siteCode === "string" ? body.siteCode : null
   );

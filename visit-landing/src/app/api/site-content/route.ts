@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logAppsScriptEnv } from "@/lib/apps-script-env";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
+import { readHostnameFromRequest } from "@/lib/site-request-url";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ const FAILURE_HINTS: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest) {
-  const siteCode = resolveRequestSiteCode(request);
+  const siteCode = await resolveRequestSiteCode(request);
+  const requestedHost = readHostnameFromRequest(request);
   const envDebug = logAppsScriptEnv(LOG, siteCode);
 
   try {
@@ -32,7 +34,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          data: { source: live.source, siteCode },
+          data: {
+            source: live.source,
+            siteCode,
+            _requestedSiteCode: siteCode,
+            _requestedHost: requestedHost,
+          },
           error: {
             code: "SHEET_UNAVAILABLE",
             message: "Google Sheet 설정을 불러올 수 없습니다",
@@ -61,6 +68,7 @@ export async function GET(request: NextRequest) {
           updatedAt: live.updatedAt,
           _apiVersion: 2 as const,
           _requestedSiteCode: siteCode,
+          _requestedHost: requestedHost,
         },
         error: null,
       },

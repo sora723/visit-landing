@@ -2,7 +2,7 @@
  * Main.gs
  * VisitLanding Web App 진입점
  *
- * Actions: submit | reservations.recent | site.provision | site.config
+ * Actions: submit | reservations.recent | site.provision | site.config | site.domains | site.resolve
  */
 
 function doGet(e) {
@@ -56,6 +56,12 @@ function routeAction_(action, params) {
     case 'site.config':
       return getSiteLiveConfig(params.siteCode);
 
+    case 'site.domains':
+      return getSiteDomains();
+
+    case 'site.resolve':
+      return resolveSiteByDomain(params.domain || params.hostname || params.host);
+
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
   }
@@ -81,9 +87,22 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('VisitLanding')
     .addItem('누락 컬럼 전체 추가', 'runEnsureStickyPromoAndVerify')
-    .addItem('Hero 이미지 컬럼 추가 (PC/모바일)', 'runEnsureHeroImageColumns')
     .addItem('푸터 컬럼 추가 (footerData)', 'runEnsureFooterColumns')
+    .addItem('도메인 컬럼 추가 (domain)', 'runEnsureDomainColumn')
+    .addSeparator()
+    .addItem('메뉴 새로고침 (시트 닫았다 열기)', 'runVisitLandingMenuHint')
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
     .addToUi();
+}
+
+/** onOpen 메뉴가 안 보이면 편집기에서 runEnsureFooterColumns() 실행 */
+function runVisitLandingMenuHint() {
+  SpreadsheetApp.getUi().alert(
+    'VisitLanding 메뉴가 보이면 정상입니다.\n\n' +
+      '메뉴가 없으면:\n' +
+      '1) 시트를 새로고침(F5)\n' +
+      '2) Apps Script 편집기 → runEnsureFooterColumns 실행\n' +
+      '3) npm run setup:apps-script:push 로 최신 코드 배포'
+  );
 }

@@ -3,6 +3,7 @@
 import type { SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 import type { SiteConfigApiData } from "./site-config-api";
+import { buildSitePageTitle } from "@/lib/site-page-title";
 import { normalizeFooter } from "./footer-config";
 import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { mergeSiteTheme } from "./site-theme";
@@ -102,10 +103,13 @@ export function buildSiteConfigFromApi(
   const ctaTexts = parseCtaTexts(api.ctaText);
   const heroImage = api.heroImage?.trim() || "";
   const heroVisualImage = api.heroVisualImage?.trim() || heroImage;
+  const siteName = api.siteName?.trim() || fallback.siteName;
+  const seoFromExt = ext.seo;
+  const seoTitleSource = seoFromExt?.title ?? fallback.seo.title;
 
   return {
     siteCode: api.siteCode,
-    siteName: api.siteName?.trim() || fallback.siteName,
+    siteName,
     phone: api.phone?.trim() || fallback.phone,
     managerName: api.managerName?.trim() || fallback.managerName,
     notificationPhone: api.notificationPhone?.trim() || fallback.notificationPhone,
@@ -159,10 +163,15 @@ export function buildSiteConfigFromApi(
       hookText: api.mobileHookText?.trim() || fallback.mobileBar.hookText,
     },
     footer: normalizeFooter(api.footer, ext.footer, fallback.footer),
-    seo: ext.seo ?? {
-      title: api.siteName?.trim() || fallback.seo.title,
-      description: fallback.seo.description,
-      ogImage: heroVisualImage || fallback.seo.ogImage,
+    seo: {
+      title: buildSitePageTitle(siteName, seoTitleSource),
+      description:
+        seoFromExt?.description?.trim() ||
+        fallback.seo.description,
+      ogImage:
+        seoFromExt?.ogImage?.trim() ||
+        heroVisualImage ||
+        fallback.seo.ogImage,
     },
     customSections: ext.customSections ?? fallback.customSections ?? [],
     theme: mergeSiteTheme({

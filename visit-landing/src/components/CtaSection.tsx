@@ -124,7 +124,7 @@ export function SiteFooter() {
           <p className="text-xs leading-relaxed">{footer.bottomText}</p>
         )}
         <p className="mt-2 pb-6 text-xs text-white/28">
-          © {new Date().getFullYear()} All rights reserved.
+          © {new Date().getFullYear()} All rights reserved. - 다비드 제작
         </p>
       </div>
     </footer>

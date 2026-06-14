@@ -37,7 +37,7 @@ function sanitizeRealItems(items: ReservationItem[]) {
 
 export async function GET(request: NextRequest) {
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "12");
-  const siteCode = resolveRequestSiteCode(request);
+  const siteCode = await resolveRequestSiteCode(request);
   logEnv(siteCode);
   const appsScriptUrl = getAppsScriptUrl();
 
