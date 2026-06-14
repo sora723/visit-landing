@@ -1,8 +1,7 @@
 # visit-landing monorepo — Netlify base directory
 [build]
   base = "무제 폴더/visit-landing"
-  command = "node scripts/log-build-env.mjs && npm run build"
-  publish = ".next"
+  command = "npm run build"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
