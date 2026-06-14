@@ -315,10 +315,14 @@ export function buildSiteConfigFromSheet(
       virtualReservationsEnabled: parseBool(site.virtualReservationEnabled, true),
       duplicateBlockMinutes: parseNumber(site.duplicateBlockMinutes, 120),
     },
-    popup: ext.popup ?? {
-      title: "선착순 방문예약",
-      completeMessage: "방문예약이 접수되었습니다.",
-      privacyText: "개인정보 수집 및 이용에 동의합니다.",
+    popup: {
+      ...(ext.popup ?? {
+        title: "선착순 방문예약",
+        completeMessage: "방문예약이 접수되었습니다.",
+        privacyText: "개인정보 수집 및 이용에 동의합니다.",
+      }),
+      image1: content.popupImage1?.trim() || ext.popup?.image1?.trim(),
+      image2: content.popupImage2?.trim() || ext.popup?.image2?.trim(),
     },
     hero: {
       hook: content.heroTitle,

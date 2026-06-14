@@ -23,6 +23,10 @@ export interface SiteConfig {
     title: string;
     completeMessage: string;
     privacyText: string;
+    /** 이벤트 팝업 이미지 — Sheet popupImage1 */
+    image1?: string;
+    /** PC 전용 두 번째 이벤트 이미지 — Sheet popupImage2 */
+    image2?: string;
   };
   hero: {
     hook: string;

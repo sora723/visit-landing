@@ -99,6 +99,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('siteTheme', ensureSiteThemeColumns);
   runEnsureStep_('ctaPromoImage', ensureCtaPromoImageColumns);
   runEnsureStep_('unitTypesData', ensureUnitTypesDataColumn);
+  runEnsureStep_('popupImages', ensurePopupImageColumns);
   runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);
   return runVisitLandingSetupVerify();
 }

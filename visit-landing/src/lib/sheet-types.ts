@@ -59,6 +59,8 @@ export interface ContentManagementRow {
   /** JSON string: string[] — CTA A/B 문구 */
   ctaText: string;
   mobileHookText: string;
+  popupImage1?: string;
+  popupImage2?: string;
   heroImage: string;
   heroImagePc?: string;
   heroImageMobile?: string;
@@ -129,6 +131,8 @@ export interface ContentExtendedData {
     title: string;
     completeMessage: string;
     privacyText: string;
+    image1?: string;
+    image2?: string;
   };
   liveStatus?: { title: string; subtitle: string };
   reservationGuide?: {

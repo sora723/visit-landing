@@ -105,6 +105,20 @@ var UNIT_TYPES_DATA_ALIASES = [
   '세대안내데이터'
 ];
 
+var POPUP_IMAGE1_ALIASES = [
+  'popupImage1',
+  '팝업이미지1',
+  '이벤트팝업1',
+  '팝업이미지01'
+];
+
+var POPUP_IMAGE2_ALIASES = [
+  'popupImage2',
+  '팝업이미지2',
+  '이벤트팝업2',
+  '팝업이미지02'
+];
+
 var DEFAULT_MAIN_COLOR = '#0f1d3a';
 var DEFAULT_SUB_COLOR = '#d7b56d';
 var DEFAULT_ACCENT_COLOR = '#caa85c';
@@ -526,6 +540,33 @@ function ensureUnitTypesDataColumn() {
   };
 }
 
+/** 이벤트 팝업 이미지 컬럼 — extendedData 앞 */
+function ensurePopupImageColumns() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+  var headers = ['popupImage2', 'popupImage1'];
+  var aliases = [POPUP_IMAGE2_ALIASES, POPUP_IMAGE1_ALIASES];
+
+  for (var i = 0; i < headers.length; i++) {
+    if (hasAnyHeader_(map, aliases[i])) continue;
+    var result = ensureColumnBeforeExtended_(sheet, headers[i]);
+    if (result.added) added.push(headers[i]);
+    map = getHeaderIndexMap_(sheet);
+  }
+
+  added.reverse();
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    addedColumns: added,
+    message: added.length
+      ? '팝업 이미지 컬럼 추가: ' + added.join(', ')
+      : '팝업 이미지 컬럼 이미 존재'
+  };
+}
+
 function parseCtaPromoBg_(raw) {
   var v = String(raw || '').trim().toLowerCase();
   if (
@@ -780,6 +821,8 @@ function buildPageContentFromContentRow_(contentRow, ext) {
     cardIcon3: getContentTextField_(contentRow, ['cardIcon3', '카드아이콘3', '혜택3아이콘']),
     ctaText: getContentTextField_(contentRow, ['ctaText', 'CTA문구']),
     mobileHookText: getContentTextField_(contentRow, ['mobileHookText', '모바일훅문구']),
+    popupImage1: getContentTextField_(contentRow, POPUP_IMAGE1_ALIASES),
+    popupImage2: getContentTextField_(contentRow, POPUP_IMAGE2_ALIASES),
     heroImage: heroImage,
     heroVisualImage: heroVisualImage,
     ctaPromoImage: getContentTextField_(contentRow, CTA_PROMO_IMAGE_ALIASES),
@@ -888,6 +931,8 @@ function getSiteLiveConfig(siteCode) {
     cardIcon3: pageContent.cardIcon3,
     ctaText: pageContent.ctaText,
     mobileHookText: pageContent.mobileHookText,
+    popupImage1: pageContent.popupImage1,
+    popupImage2: pageContent.popupImage2,
     heroImage: pageContent.heroImage,
     heroVisualImage: pageContent.heroVisualImage,
     ctaPromoImage: pageContent.ctaPromoImage,

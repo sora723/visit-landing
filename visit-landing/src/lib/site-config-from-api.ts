@@ -112,7 +112,11 @@ export function buildSiteConfigFromApi(
     headerBrand: api.headerBrand?.trim() || undefined,
     headerSubBrand: api.headerSubBrand?.trim() || undefined,
     settings: api.settings ?? fallback.settings,
-    popup: ext.popup ?? fallback.popup,
+    popup: {
+      ...(ext.popup ?? fallback.popup),
+      image1: api.popupImage1?.trim() || ext.popup?.image1?.trim() || undefined,
+      image2: api.popupImage2?.trim() || ext.popup?.image2?.trim() || undefined,
+    },
     hero: {
       hook: api.heroTitle?.trim() || api.siteName?.trim() || fallback.siteName,
       sub: api.heroSubTitle?.trim() || "",
