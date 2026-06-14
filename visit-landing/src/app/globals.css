@@ -402,17 +402,17 @@ textarea {
   0%,
   55%,
   100% {
-    background-color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.3);
     border-color: rgba(var(--color-gold-rgb), 0.45);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
   }
   20%,
   38% {
-    background-color: rgba(255, 255, 255, 0.82);
+    background-color: rgba(255, 255, 255, 0.5);
     border-color: var(--color-gold);
     box-shadow:
-      0 0 28px rgba(var(--color-gold-rgb), 0.38),
-      0 4px 22px rgba(0, 0, 0, 0.16);
+      0 0 26px rgba(var(--color-gold-rgb), 0.42),
+      0 4px 22px rgba(0, 0, 0, 0.22);
   }
 }
 
@@ -420,23 +420,21 @@ textarea {
   0%,
   55%,
   100% {
-    color: var(--color-navy);
+    color: var(--color-gold);
   }
   20%,
   38% {
-    color: rgba(var(--color-navy-rgb), 0.72);
+    color: var(--color-navy);
   }
 }
 
 @keyframes hero-benefit-label {
   0%,
   55%,
-  100% {
-    color: var(--color-gold);
-  }
+  100%,
   20%,
   38% {
-    color: rgba(var(--color-navy-rgb), 0.85);
+    color: var(--color-gold);
   }
 }
 

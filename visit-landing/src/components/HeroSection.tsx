@@ -81,7 +81,7 @@ function HeroBenefitCards({
           return (
             <div
               key={`${item.title}-${item.value}-${i}`}
-              className={`hero-benefit-card hero-benefit-card-${i % 3} flex min-w-0 flex-1 flex-col items-center rounded-sm border border-[var(--color-gold)]/45 border-t-2 border-t-[var(--color-gold)] bg-white/60 px-2 py-2.5 shadow-[0_2px_14px_rgba(0,0,0,0.14)] backdrop-blur-sm`}
+              className={`hero-benefit-card hero-benefit-card-${i % 3} flex min-w-0 flex-1 flex-col items-center rounded-sm border border-[var(--color-gold)]/45 border-t-2 border-t-[var(--color-gold)] bg-white/30 px-2 py-2.5 shadow-[0_2px_16px_rgba(0,0,0,0.18)] backdrop-blur-md`}
             >
               <div className="mb-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-gold)]/50 bg-[var(--color-gold)]/12">
                 <Icon className="h-4 w-4 text-[var(--color-gold)]" aria-hidden />
@@ -92,7 +92,7 @@ function HeroBenefitCards({
                 {item.title}
               </div>
               <div
-                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy w-full truncate text-center text-[clamp(14px,3.8vw,16px)] leading-tight text-[var(--color-navy)]`}
+                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy w-full truncate text-center text-[clamp(14px,3.8vw,16px)] leading-tight text-[var(--color-gold)]`}
               >
                 {item.value}
               </div>
@@ -122,7 +122,7 @@ function HeroBenefitCards({
           return (
             <div
               key={`${item.title}-${item.value}-${i}`}
-              className={`hero-benefit-card hero-benefit-card-${i % 3} flex w-full max-w-[240px] flex-col items-center rounded-sm border border-[var(--color-gold)]/45 border-t-2 border-t-[var(--color-gold)] bg-white/60 px-4 py-6 shadow-[0_4px_20px_rgba(0,0,0,0.14)] backdrop-blur-sm`}
+              className={`hero-benefit-card hero-benefit-card-${i % 3} flex w-full max-w-[240px] flex-col items-center rounded-sm border border-[var(--color-gold)]/45 border-t-2 border-t-[var(--color-gold)] bg-white/30 px-4 py-6 shadow-[0_4px_22px_rgba(0,0,0,0.18)] backdrop-blur-md`}
             >
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-gold)]/50 bg-[var(--color-gold)]/12">
                 <Icon className="h-5 w-5 text-[var(--color-gold)]" aria-hidden />
@@ -133,7 +133,7 @@ function HeroBenefitCards({
                 {item.title}
               </div>
               <div
-                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy text-[clamp(20px,3vw,28px)] leading-tight text-[var(--color-navy)]`}
+                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy text-[clamp(20px,3vw,28px)] leading-tight text-[var(--color-gold)]`}
               >
                 {item.value}
               </div>
