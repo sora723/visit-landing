@@ -90,12 +90,23 @@ function updateEnvLocal(webAppUrl) {
 
 function extractExecUrl(deploymentsText) {
   const lines = deploymentsText.split("\n");
-  // @HEAD 제외, 버전 번호 있는 deployment 우선
+  let best = null;
+
   for (const line of lines) {
     if (/@HEAD/i.test(line)) continue;
-    const m = line.match(/-\s+(AKfy[\w-]+)/);
-    if (m) return `https://script.google.com/macros/s/${m[1]}/exec`;
+    const idMatch = line.match(/-\s+(AKfy[\w-]+)/);
+    if (!idMatch) continue;
+    const versionMatch = line.match(/@(\d+)/);
+    const version = versionMatch ? Number(versionMatch[1]) : -1;
+    if (!best || version > best.version) {
+      best = { id: idMatch[1], version };
+    }
   }
+
+  if (best) {
+    return `https://script.google.com/macros/s/${best.id}/exec`;
+  }
+
   for (const line of lines) {
     const m = line.match(/-\s+(AKfy[\w-]+)/);
     if (m) return `https://script.google.com/macros/s/${m[1]}/exec`;
