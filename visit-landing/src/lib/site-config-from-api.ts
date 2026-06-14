@@ -121,6 +121,8 @@ export function buildSiteConfigFromApi(
       hook: api.heroTitle?.trim() || api.siteName?.trim() || fallback.siteName,
       sub: api.heroSubTitle?.trim() || "",
       image: heroImage,
+      imagePc: api.heroImagePc?.trim() || undefined,
+      imageMobile: api.heroImageMobile?.trim() || undefined,
       visualImage: heroVisualImage,
       highlightDuration: ext.hero?.highlightDuration ?? 3500,
       benefits,

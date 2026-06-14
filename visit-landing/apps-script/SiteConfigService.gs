@@ -72,6 +72,20 @@ var ACCENT_COLOR_ALIASES = [
   '포인트색'
 ];
 
+var HERO_IMAGE_PC_ALIASES = [
+  'heroImagePc',
+  '히어로이미지PC',
+  '히어로PC',
+  '메인히어로PC'
+];
+
+var HERO_IMAGE_MOBILE_ALIASES = [
+  'heroImageMobile',
+  '히어로이미지모바일',
+  '히어로모바일',
+  '메인히어로모바일'
+];
+
 var CTA_PROMO_IMAGE_ALIASES = [
   'ctaPromoImage',
   'CTA홍보이미지',
@@ -474,6 +488,47 @@ function ensureSiteThemeColumns() {
   };
 }
 
+/** Hero 배경 PC/모바일 분리 컬럼 — heroVisualImage 뒤 */
+function ensureHeroImageColumns() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+  var headers = ['heroImageMobile', 'heroImagePc'];
+  var aliases = [HERO_IMAGE_MOBILE_ALIASES, HERO_IMAGE_PC_ALIASES];
+  var visualCol = map.heroVisualImage;
+  if (visualCol === undefined) {
+    visualCol = map['히어로비주얼'];
+  }
+
+  for (var h = 0; h < headers.length; h++) {
+    if (hasAnyHeader_(map, aliases[h])) continue;
+
+    if (visualCol !== undefined) {
+      sheet.insertColumnAfter(visualCol + 1);
+      sheet.getRange(1, visualCol + 2).setValue(headers[h]);
+      writeLog_('COLUMN_ADD', '', '콘텐츠관리.' + headers[h] + ' 컬럼 추가');
+      added.push(headers[h]);
+      map = getHeaderIndexMap_(sheet);
+      visualCol = map.heroVisualImage !== undefined ? map.heroVisualImage : visualCol;
+    } else {
+      var result = ensureColumnBeforeExtended_(sheet, headers[h]);
+      if (result.added) added.push(headers[h]);
+      map = getHeaderIndexMap_(sheet);
+    }
+  }
+
+  added.reverse();
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    addedColumns: added,
+    message: added.length
+      ? 'Hero 이미지 컬럼 추가: ' + added.join(', ')
+      : 'Hero 이미지 컬럼 이미 존재'
+  };
+}
+
 /** CtaSection 아래 홍보 이미지 컬럼 — extendedData 앞 */
 function ensureCtaPromoImageColumns() {
   var sheet = getSheet_(CONTENT_SHEET_NAME);
@@ -825,6 +880,8 @@ function buildPageContentFromContentRow_(contentRow, ext) {
     popupImage2: getContentTextField_(contentRow, POPUP_IMAGE2_ALIASES),
     heroImage: heroImage,
     heroVisualImage: heroVisualImage,
+    heroImagePc: getContentTextField_(contentRow, HERO_IMAGE_PC_ALIASES),
+    heroImageMobile: getContentTextField_(contentRow, HERO_IMAGE_MOBILE_ALIASES),
     ctaPromoImage: getContentTextField_(contentRow, CTA_PROMO_IMAGE_ALIASES),
     ctaPromoImagePc: getContentTextField_(contentRow, CTA_PROMO_IMAGE_PC_ALIASES),
     ctaPromoImageMobile: getContentTextField_(contentRow, CTA_PROMO_IMAGE_MOBILE_ALIASES),
@@ -935,6 +992,8 @@ function getSiteLiveConfig(siteCode) {
     popupImage2: pageContent.popupImage2,
     heroImage: pageContent.heroImage,
     heroVisualImage: pageContent.heroVisualImage,
+    heroImagePc: pageContent.heroImagePc,
+    heroImageMobile: pageContent.heroImageMobile,
     ctaPromoImage: pageContent.ctaPromoImage,
     ctaPromoImagePc: pageContent.ctaPromoImagePc,
     ctaPromoImageMobile: pageContent.ctaPromoImageMobile,

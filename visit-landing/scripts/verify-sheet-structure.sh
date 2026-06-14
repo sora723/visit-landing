@@ -38,7 +38,7 @@ check "$DIR/현장관리.csv" \
 check "$DIR/콘텐츠관리.csv" \
   siteCode heroTitle heroSubTitle benefit1Title benefit1Value \
   benefit2Title benefit2Value benefit3Title benefit3Value ctaText mobileHookText \
-  heroImage heroVisualImage overviewData premiumData locationData futureData \
+  heroImage heroVisualImage heroImagePc heroImageMobile overviewData premiumData locationData futureData \
   layoutData communityData floatingTodayReservations floatingActiveConsultations stickyPromoText extendedData
 
 check "$DIR/접수관리.csv" \

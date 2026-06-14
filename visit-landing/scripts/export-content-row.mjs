@@ -49,6 +49,8 @@ const row = {
   mobileHookText: site.mobileBar.hookText,
   stickyPromoText: site.stickyPromoText ?? "",
   heroImage: site.hero.image,
+  heroImagePc: site.hero.imagePc ?? "",
+  heroImageMobile: site.hero.imageMobile ?? "",
   heroVisualImage: site.hero.visualImage,
   overviewData: JSON.stringify(site.overview),
   premiumData: JSON.stringify(site.premium),

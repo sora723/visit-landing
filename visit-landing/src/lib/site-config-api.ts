@@ -49,6 +49,8 @@ export type SiteConfigApiData = {
   popupImage1?: string;
   popupImage2?: string;
   heroImage?: string;
+  heroImagePc?: string;
+  heroImageMobile?: string;
   heroVisualImage?: string;
   ctaPromoImage?: string;
   ctaPromoImagePc?: string;
@@ -278,6 +280,8 @@ export function parseSiteConfigApiResponse(
     popupImage1: optionalString(data.popupImage1),
     popupImage2: optionalString(data.popupImage2),
     heroImage: optionalString(data.heroImage),
+    heroImagePc: optionalString(data.heroImagePc),
+    heroImageMobile: optionalString(data.heroImageMobile),
     heroVisualImage: optionalString(data.heroVisualImage),
     ctaPromoImage: optionalString(data.ctaPromoImage),
     ctaPromoImagePc: optionalString(data.ctaPromoImagePc),

@@ -81,18 +81,18 @@ function HeroBenefitCards({
           return (
             <div
               key={`${item.title}-${item.value}-${i}`}
-              className={`hero-benefit-card hero-benefit-card-${i % 3} flex min-w-0 flex-1 flex-col items-center rounded-sm border border-[var(--color-gold)]/35 border-t-2 border-t-[var(--color-gold)] bg-white/[0.08] px-1.5 py-2 backdrop-blur-sm`}
+              className={`hero-benefit-card hero-benefit-card-${i % 3} flex min-w-0 flex-1 flex-col items-center rounded-sm border border-[var(--color-gold)]/35 border-t-2 border-t-[var(--color-gold)] bg-white/[0.08] px-2 py-2.5 backdrop-blur-sm`}
             >
-              <div className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10">
-                <Icon className="h-3.5 w-3.5 text-[var(--color-gold)]" aria-hidden />
+              <div className="mb-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10">
+                <Icon className="h-4 w-4 text-[var(--color-gold)]" aria-hidden />
               </div>
               <div
-                className={`hero-benefit-label hero-benefit-label-${i % 3} mb-0.5 w-full truncate text-center text-[9px] font-medium tracking-[0.12em] text-[var(--color-gold)]`}
+                className={`hero-benefit-label hero-benefit-label-${i % 3} mb-0.5 w-full truncate text-center text-[11px] font-medium tracking-[0.12em] text-[var(--color-gold)]`}
               >
                 {item.title}
               </div>
               <div
-                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy w-full truncate text-center text-[12px] leading-tight text-white`}
+                className={`hero-benefit-value hero-benefit-value-${i % 3} font-paperlogy w-full truncate text-center text-[clamp(14px,3.8vw,16px)] leading-tight text-white`}
               >
                 {item.value}
               </div>
