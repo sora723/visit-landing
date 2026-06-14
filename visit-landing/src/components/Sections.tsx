@@ -134,13 +134,13 @@ export function PremiumSection() {
 export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
-  const mapSrc =
+  const hasMapImage = !!(
     location.mapImage?.trim() ||
     location.mapImagePc?.trim() ||
-    location.mapImageMobile?.trim() ||
-    "";
+    location.mapImageMobile?.trim()
+  );
 
-  if (!mapSrc && !location.items.length) return null;
+  if (!hasMapImage && !location.items.length) return null;
 
   const groups = location.items.reduce<
     { cat: string; items: string[] }[]
@@ -159,10 +159,17 @@ export function LocationSection() {
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} dark />
         <div className="relative mb-10 h-[clamp(380px,50vw,540px)] overflow-hidden rounded-2xl bg-[#1a2e5a]">
-          {mapSrc && (
+          {hasMapImage && (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={mapSrc} alt="입지 지도" className="h-full w-full object-cover object-center" />
+              <ResponsiveImg
+                source={{
+                  image: location.mapImage,
+                  imagePc: location.mapImagePc,
+                  imageMobile: location.mapImageMobile,
+                }}
+                alt="입지 지도"
+                className="h-full w-full object-cover object-center"
+              />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
             </>
           )}

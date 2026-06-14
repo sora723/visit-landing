@@ -1,5 +1,6 @@
 /** Apps Script site.config API 응답 타입·파싱 */
 
+import { normalizeImageUrl } from "./image-url";
 import type { SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 
@@ -174,6 +175,11 @@ function parseImageItems(
   };
 }
 
+function optionalNormalizedImage(value: unknown): string | undefined {
+  const url = optionalString(value);
+  return url ? normalizeImageUrl(url) : undefined;
+}
+
 function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
   if (!isRecord(value)) return undefined;
   const items = Array.isArray(value.items)
@@ -193,9 +199,9 @@ function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
     : [];
   return {
     title: String(value.title ?? "입지환경").trim() || "입지환경",
-    mapImage: String(value.mapImage ?? "").trim(),
-    mapImagePc: optionalString(value.mapImagePc),
-    mapImageMobile: optionalString(value.mapImageMobile),
+    mapImage: normalizeImageUrl(String(value.mapImage ?? "").trim()),
+    mapImagePc: optionalNormalizedImage(value.mapImagePc),
+    mapImageMobile: optionalNormalizedImage(value.mapImageMobile),
     items,
   };
 }
