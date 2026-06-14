@@ -1,6 +1,6 @@
-# visit-landing monorepo — Netlify base directory
+# visit-landing — Netlify base via ASCII symlink (visit-landing → 무제 폴더/visit-landing)
 [build]
-  base = "무제 폴더/visit-landing"
+  base = "visit-landing"
   command = "npm run build"
 
 [[plugins]]
