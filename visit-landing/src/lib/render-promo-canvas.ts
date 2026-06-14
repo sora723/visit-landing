@@ -6,23 +6,29 @@ import {
 } from "@/lib/fit-promo-text";
 
 const PROMO_FONT_FAMILY = '"Paperlogy", "Pretendard", sans-serif';
+const SHIMMER_MS = 2400;
 
-export type PromoCanvasImage = {
-  src: string;
-  width: number;
-  height: number;
+type PromoCanvasLayout = {
+  containerWidth: number;
+  cssHeight: number;
+  fontSize: number;
+  strokePx: number;
+  dpr: number;
 };
 
-async function ensurePromoFont(): Promise<void> {
-  try {
-    await Promise.all([
+let fontsReady: Promise<void> | null = null;
+
+function ensurePromoFont(): Promise<void> {
+  if (!fontsReady) {
+    fontsReady = Promise.all([
       document.fonts.load(`900 12px Paperlogy`),
       document.fonts.load(`900 12px Pretendard`),
-    ]);
-    await document.fonts.ready;
-  } catch {
-    /* 시스템 폰트 fallback */
+    ])
+      .then(() => document.fonts.ready)
+      .then(() => undefined)
+      .catch(() => undefined);
   }
+  return fontsReady;
 }
 
 function fitPromoCanvasFontSize(text: string, available: number): number {
@@ -37,14 +43,79 @@ function fitPromoCanvasFontSize(text: string, available: number): number {
   return best;
 }
 
-function drawPromoLine(
+function computeLayout(
+  text: string,
+  containerWidth: number
+): PromoCanvasLayout | null {
+  if (containerWidth <= 0 || !text) return null;
+
+  const padX = 6;
+  const available = Math.max(0, containerWidth - padX);
+  const fontSize = fitPromoCanvasFontSize(text, available);
+  const strokePx = Math.min(1.75, fontSize * 0.13);
+  const cssHeight = Math.ceil(fontSize * 1.2 + strokePx * 2 + 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+
+  return {
+    containerWidth,
+    cssHeight,
+    fontSize,
+    strokePx,
+    dpr,
+  };
+}
+
+function resizeCanvas(
+  canvas: HTMLCanvasElement,
+  layout: PromoCanvasLayout
+): CanvasRenderingContext2D | null {
+  canvas.width = Math.ceil(layout.containerWidth * layout.dpr);
+  canvas.height = Math.ceil(layout.cssHeight * layout.dpr);
+  canvas.style.width = `${layout.containerWidth}px`;
+  canvas.style.height = `${layout.cssHeight}px`;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.setTransform(layout.dpr, 0, 0, layout.dpr, 0, 0);
+  return ctx;
+}
+
+/** CSS promo-shimmer-text 와 동일한 좌→우 하이라이트 */
+function createShimmerGradient(
   ctx: CanvasRenderingContext2D,
   text: string,
-  x: number,
-  y: number,
+  centerX: number,
   fontSize: number,
-  strokePx: number
+  phase: number
+): CanvasGradient {
+  ctx.font = `900 ${fontSize}px ${PROMO_FONT_FAMILY}`;
+  const textWidth = ctx.measureText(text).width;
+  const bandWidth = textWidth * 2.2;
+  const slide = (120 - phase * 240) / 100;
+  const startX = centerX - bandWidth * 0.5 + slide * textWidth;
+  const endX = startX + bandWidth;
+
+  const grad = ctx.createLinearGradient(startX, 0, endX, 0);
+  grad.addColorStop(0, "#ffffff");
+  grad.addColorStop(0.36, "#ffffff");
+  grad.addColorStop(0.48, "#00e5ff");
+  grad.addColorStop(0.6, "#ffffff");
+  grad.addColorStop(1, "#ffffff");
+  return grad;
+}
+
+function drawPromoFrame(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  layout: PromoCanvasLayout,
+  phase: number
 ): void {
+  const { containerWidth, cssHeight, fontSize, strokePx } = layout;
+  const x = containerWidth / 2;
+  const y = fontSize * 0.92;
+
+  ctx.clearRect(0, 0, containerWidth, cssHeight);
   ctx.font = `900 ${fontSize}px ${PROMO_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -55,78 +126,45 @@ function drawPromoLine(
   ctx.lineWidth = strokePx * 2;
   ctx.strokeText(text, x, y);
 
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = createShimmerGradient(ctx, text, x, fontSize, phase);
   ctx.fillText(text, x, y);
 }
 
-/** offscreen canvas 에 한 줄 그린 뒤 PNG data URL 반환 */
-export async function renderPromoCanvasToImage(
-  text: string,
-  containerWidth: number
-): Promise<PromoCanvasImage | null> {
-  if (containerWidth <= 0 || !text) return null;
-
-  await ensurePromoFont();
-
-  const padX = 6;
-  const available = Math.max(0, containerWidth - padX);
-  const fontSize = fitPromoCanvasFontSize(text, available);
-  const strokePx = Math.min(1.75, fontSize * 0.13);
-  const cssHeight = Math.ceil(fontSize * 1.2 + strokePx * 2 + 2);
-
-  const canvas = document.createElement("canvas");
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width = Math.ceil(containerWidth * dpr);
-  canvas.height = Math.ceil(cssHeight * dpr);
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, containerWidth, cssHeight);
-
-  drawPromoLine(ctx, text, containerWidth / 2, fontSize * 0.92, fontSize, strokePx);
-
-  return {
-    src: canvas.toDataURL("image/png"),
-    width: containerWidth,
-    height: cssHeight,
-  };
-}
-
-/** @deprecated use renderPromoCanvasToImage */
-export async function renderPromoCanvas(
+/** 모바일 canvas 쉬머 루프 — 한 줄 유지, DOM 텍스트 미사용 */
+export function startPromoCanvasAnimation(
   canvas: HTMLCanvasElement,
   text: string,
   containerWidth: number
-): Promise<number> {
-  const img = await renderPromoCanvasToImage(text, containerWidth);
-  if (!img) return 0;
+): () => void {
+  let rafId = 0;
+  let layout = computeLayout(text, containerWidth);
+  let ctx = layout ? resizeCanvas(canvas, layout) : null;
+  let running = true;
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width = Math.ceil(containerWidth * dpr);
-  canvas.height = Math.ceil(img.height * dpr);
-  canvas.style.width = `${containerWidth}px`;
-  canvas.style.height = `${img.height}px`;
+  const tick = (now: number) => {
+    if (!running || !layout || !ctx) return;
+    const phase = (now % SHIMMER_MS) / SHIMMER_MS;
+    drawPromoFrame(ctx, text, layout, phase);
+    rafId = requestAnimationFrame(tick);
+  };
 
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return 0;
-
-  const image = new Image();
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = () => reject(new Error("promo canvas image load failed"));
-    image.src = img.src;
+  void ensurePromoFont().then(() => {
+    if (!running) return;
+    layout = computeLayout(text, containerWidth);
+    ctx = layout ? resizeCanvas(canvas, layout) : null;
+    if (ctx && layout) {
+      drawPromoFrame(ctx, text, layout, 0);
+      rafId = requestAnimationFrame(tick);
+    }
   });
 
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, containerWidth, img.height);
-  ctx.drawImage(image, 0, 0, containerWidth, img.height);
-
-  return img.height;
+  return () => {
+    running = false;
+    cancelAnimationFrame(rafId);
+  };
 }
 
-export function shouldRenderPromoAsImage(
+export function shouldRenderPromoAsCanvas(
   serverMobile: boolean | undefined
 ): boolean {
   if (typeof window === "undefined") return serverMobile ?? false;
