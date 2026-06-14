@@ -1,4 +1,4 @@
-# visit-landing — Netlify base via ASCII symlink (visit-landing → 무제 폴더/visit-landing)
+# visit-landing at repo root (ASCII path for Netlify)
 [build]
   base = "visit-landing"
   command = "npm run build"
