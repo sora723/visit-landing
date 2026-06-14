@@ -81,6 +81,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('VisitLanding')
     .addItem('누락 컬럼 전체 추가', 'runEnsureStickyPromoAndVerify')
+    .addItem('Hero 이미지 컬럼 추가 (PC/모바일)', 'runEnsureHeroImageColumns')
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
     .addToUi();

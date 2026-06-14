@@ -83,7 +83,7 @@ function runVisitLandingSetupVerify() {
   var a = verifyVisitLandingStructure();
   var b = verifyVisitLandingSampleSite();
   if (!a) {
-    Logger.log('누락 컬럼 자동 추가: runEnsureStickyPromoAndVerify() 재실행');
+    Logger.log('누락 컬럼 자동 추가: runEnsureStickyPromoAndVerify() 또는 runEnsureHeroImageColumns() 실행');
     Logger.log('  - 현장관리: submissionSpreadsheetName');
     Logger.log('  - 콘텐츠관리: stickyPromoText');
   }
