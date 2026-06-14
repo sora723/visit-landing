@@ -68,7 +68,7 @@ UI 타입: `src/lib/types.ts` → `SiteConfig`
 | `premium` | premiumData |
 | `location` | locationData |
 | `futureValue` | futureData |
-| `siteLayout` | layoutData |
+| `unitTypes` | unitTypesData (별칭: unitTypes, 세대안내) |
 | `community` | communityData |
 | `popup`, `footer`, `seo`, `liveStatus`, `reservationGuide`, `liveReservation`, `hero.highlightDuration` | 콘텐츠관리.extendedData (JSON) |
 

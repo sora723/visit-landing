@@ -98,6 +98,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('reservationForm', ensureReservationFormColumns);
   runEnsureStep_('siteTheme', ensureSiteThemeColumns);
   runEnsureStep_('ctaPromoImage', ensureCtaPromoImageColumns);
+  runEnsureStep_('unitTypesData', ensureUnitTypesDataColumn);
   runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);
   return runVisitLandingSetupVerify();
 }

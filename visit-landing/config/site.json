@@ -206,12 +206,25 @@
       }
     ]
   },
-  "siteLayout": {
-    "title": "단지배치도",
+  "unitTypes": {
+    "title": "세대안내",
     "items": [
       {
-        "title": "단지배치도",
-        "description": "최적 동·호 배치와 쾌적한 단지 설계",
+        "tab": "59A",
+        "title": "59A 타입",
+        "description": "실속형 3Bay 구조",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "tab": "74A",
+        "title": "74A 타입",
+        "description": "맞통풍 판상형",
+        "image": "/images/hero-aerial.png"
+      },
+      {
+        "tab": "84A",
+        "title": "84A 타입",
+        "description": "4Bay 대형평형",
         "image": "/images/hero-aerial.png"
       }
     ]

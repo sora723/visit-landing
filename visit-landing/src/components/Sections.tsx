@@ -271,38 +271,90 @@ function ImageLightbox({
   );
 }
 
-export function SitePlanSection() {
+export function UnitTypesSection() {
   const { config } = useConfig();
-  const section = config.siteLayout;
+  const section = config.unitTypes;
+  const items = section.items.filter(
+    (item) => item.tab?.trim() || item.title?.trim() || item.image?.trim()
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  if (!section.items.length) return null;
-  const item = section.items[0]!;
-  const imgSrc = item.imagePc || item.imageMobile || item.image;
+
+  if (!items.length) return null;
+
+  const safeIndex = activeIndex >= items.length ? 0 : activeIndex;
+  const active = items[safeIndex]!;
+  const imgSrc = active.imagePc || active.imageMobile || active.image;
 
   return (
-    <section id="단지배치도" className="scroll-mt-[var(--site-top-offset)] bg-white px-6 py-20">
+    <section id="세대안내" className="scroll-mt-[var(--site-top-offset)] bg-white px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
-        <FigmaSectionTitle en="SITE PLAN" title={section.title} />
-        <button
-          type="button"
-          onClick={() => setLightbox(true)}
-          className="group relative block w-full overflow-hidden rounded-xl"
-        >
-          <ResponsiveImg
-            source={item}
-            alt={item.title}
-            className="aspect-[16/10] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] sm:aspect-[21/9]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-navy)]/60 via-transparent to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-6 text-left sm:p-8">
-            <h3 className="text-lg font-semibold text-white sm:text-xl">{item.title}</h3>
-            <p className="mt-1 text-sm text-white/75">{item.description}</p>
-            <span className="mt-3 inline-block text-xs tracking-wide text-[var(--color-gold)]">
-              클릭하여 확대
-            </span>
+        <FigmaSectionTitle en="UNIT TYPES" title={section.title} />
+
+        <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+          <div className="flex min-w-min gap-2 sm:justify-center">
+            {items.map((item, index) => {
+              const selected = index === safeIndex;
+              return (
+                <button
+                  key={`${item.tab}-${index}`}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className={`shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold tracking-wide transition-colors ${
+                    selected
+                      ? "border-[var(--color-navy)] bg-[var(--color-navy)] text-white shadow-[0_4px_16px_rgba(15,29,58,0.18)]"
+                      : "border-[var(--color-navy)]/15 bg-white text-[var(--color-navy)] hover:border-[var(--color-gold)]/50 hover:text-[var(--color-navy)]"
+                  }`}
+                  aria-pressed={selected}
+                >
+                  {item.tab}
+                </button>
+              );
+            })}
           </div>
-        </button>
-        <ImageLightbox src={imgSrc} alt={item.title} open={lightbox} onClose={() => setLightbox(false)} />
+        </div>
+
+        <motion.div
+          key={active.tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {active.image && (
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              className="group relative block w-full overflow-hidden rounded-xl bg-[#e8e4dc]"
+            >
+              <ResponsiveImg
+                source={active}
+                alt={active.title}
+                className="aspect-[4/3] w-full object-contain transition-transform duration-300 group-hover:scale-[1.01] sm:aspect-[16/10]"
+              />
+              <span className="absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
+                클릭하여 확대
+              </span>
+            </button>
+          )}
+
+          <div className="mt-6 text-center sm:mt-8">
+            <h3 className="text-[clamp(20px,3vw,28px)] font-bold text-[var(--color-navy)]">
+              {active.title}
+            </h3>
+            {active.description && (
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#7a7060] sm:text-[15px]">
+                {active.description}
+              </p>
+            )}
+          </div>
+        </motion.div>
+
+        <ImageLightbox
+          src={imgSrc}
+          alt={active.title}
+          open={lightbox}
+          onClose={() => setLightbox(false)}
+        />
       </div>
     </section>
   );

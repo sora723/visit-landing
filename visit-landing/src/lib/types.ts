@@ -87,9 +87,11 @@ export interface SiteConfig {
       imageMobile?: string;
     }[];
   };
-  siteLayout: {
+  /** 세대안내 — 타입별 탭 (Sheet unitTypesData) */
+  unitTypes: {
     title: string;
     items: {
+      tab: string;
       title: string;
       description: string;
       image: string;

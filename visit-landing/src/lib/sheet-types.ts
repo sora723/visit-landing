@@ -73,8 +73,10 @@ export interface ContentManagementRow {
   locationData: string;
   /** JSON — futureValue */
   futureData: string;
-  /** JSON — siteLayout */
-  layoutData: string;
+  /** JSON — unitTypes (세대안내 탭) */
+  unitTypesData?: string;
+  /** @deprecated layoutData → unitTypesData 로 이전 */
+  layoutData?: string;
   /** JSON — community */
   communityData: string;
   floatingTodayReservations: number | string;

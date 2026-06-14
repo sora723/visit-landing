@@ -134,7 +134,7 @@ export function buildSiteConfigFromApi(
     premium: api.premium ?? { title: "프리미엄", items: [] },
     location: api.location ?? { title: "입지환경", mapImage: "", items: [] },
     futureValue: api.futureValue ?? { title: "미래가치", items: [] },
-    siteLayout: api.siteLayout ?? { title: "단지배치도", items: [] },
+    unitTypes: api.unitTypes ?? fallback.unitTypes ?? { title: "세대안내", items: [] },
     community: api.community ?? { title: "커뮤니티", items: [] },
     cta: {
       texts: ctaTexts.length

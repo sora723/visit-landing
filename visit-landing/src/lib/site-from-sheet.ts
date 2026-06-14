@@ -75,6 +75,70 @@ function resolveCtaPromoImageFromContent(
   };
 }
 
+function resolveUnitTypesFromContent(
+  content: ContentManagementRow
+): SiteConfig["unitTypes"] {
+  type UnitItem = SiteConfig["unitTypes"]["items"][number];
+  type LegacyItem = {
+    tab?: string;
+    title?: string;
+    description?: string;
+    image?: string;
+    imagePc?: string;
+    imageMobile?: string;
+  };
+
+  const normalizeItems = (items: LegacyItem[]): UnitItem[] => {
+    const result: UnitItem[] = [];
+    for (const item of items) {
+      const tab = item.tab?.trim() || item.title?.trim() || "";
+      const title = item.title?.trim() || tab;
+      const image = item.image?.trim() || "";
+      if (!tab && !title && !image) continue;
+      const resolvedTab = tab || title;
+      result.push({
+        tab: resolvedTab,
+        title: title || resolvedTab,
+        description: item.description?.trim() || "",
+        image,
+        imagePc: item.imagePc?.trim(),
+        imageMobile: item.imageMobile?.trim(),
+      });
+    }
+    return result;
+  };
+
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const unitTypesRaw =
+    row.unitTypesData?.trim() ||
+    row.unitTypes?.trim() ||
+    content.unitTypesData?.trim();
+
+  if (unitTypesRaw) {
+    const parsed = parseJson<{ title?: string; items?: LegacyItem[] }>(
+      unitTypesRaw,
+      {}
+    );
+    const items = normalizeItems(parsed.items ?? []);
+    if (items.length) {
+      return {
+        title: parsed.title?.trim() || "세대안내",
+        items,
+      };
+    }
+  }
+
+  const legacy = parseJson<{ title?: string; items?: LegacyItem[] }>(
+    content.layoutData,
+    { title: "세대안내", items: [] }
+  );
+  const legacyItems = normalizeItems(legacy.items ?? []);
+  return {
+    title: "세대안내",
+    items: legacyItems,
+  };
+}
+
 function resolveStickyPromoText(
   content: ContentManagementRow,
   ext: ContentExtendedData
@@ -226,10 +290,7 @@ export function buildSiteConfigFromSheet(
     title: "미래가치",
     items: [] as { title: string; description: string; image: string }[],
   });
-  const siteLayout = parseJson(content.layoutData, {
-    title: "단지배치도",
-    items: [] as { title: string; description: string; image: string }[],
-  });
+  const unitTypes = resolveUnitTypesFromContent(content);
   const community = parseJson(content.communityData, {
     title: "커뮤니티",
     items: [] as { title: string; description: string; image: string }[],
@@ -311,7 +372,7 @@ export function buildSiteConfigFromSheet(
     premium,
     location,
     futureValue,
-    siteLayout,
+    unitTypes,
     community,
     cta: {
       texts: ctaTexts.length

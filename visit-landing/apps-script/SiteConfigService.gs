@@ -98,6 +98,13 @@ var CTA_PROMO_BG_ALIASES = [
   '방문예약홍보배경'
 ];
 
+var UNIT_TYPES_DATA_ALIASES = [
+  'unitTypesData',
+  'unitTypes',
+  '세대안내',
+  '세대안내데이터'
+];
+
 var DEFAULT_MAIN_COLOR = '#0f1d3a';
 var DEFAULT_SUB_COLOR = '#d7b56d';
 var DEFAULT_ACCENT_COLOR = '#caa85c';
@@ -490,6 +497,35 @@ function ensureCtaPromoImageColumns() {
   };
 }
 
+/** 세대안내 JSON 컬럼 — layoutData 뒤 또는 extendedData 앞 */
+function ensureUnitTypesDataColumn() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+
+  if (hasAnyHeader_(map, UNIT_TYPES_DATA_ALIASES)) {
+    return {
+      ok: true,
+      added: false,
+      message: 'unitTypesData 컬럼 이미 존재'
+    };
+  }
+
+  var layoutCol = map.layoutData;
+  if (layoutCol !== undefined) {
+    sheet.insertColumnAfter(layoutCol + 1);
+    sheet.getRange(1, layoutCol + 2).setValue('unitTypesData');
+  } else {
+    ensureColumnBeforeExtended_(sheet, 'unitTypesData');
+  }
+
+  writeLog_('COLUMN_ADD', '', '콘텐츠관리.unitTypesData 컬럼 추가');
+  return {
+    ok: true,
+    added: true,
+    message: 'unitTypesData 컬럼 추가'
+  };
+}
+
 function parseCtaPromoBg_(raw) {
   var v = String(raw || '').trim().toLowerCase();
   if (
@@ -502,6 +538,50 @@ function parseCtaPromoBg_(raw) {
     return 'beige';
   }
   return 'white';
+}
+
+function normalizeUnitTypeItems_(items) {
+  if (!Array.isArray(items)) return [];
+  var result = [];
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    if (!item || typeof item !== 'object') continue;
+    var tab = String(item.tab || item.title || '').trim();
+    var title = String(item.title || tab || '').trim();
+    var image = String(item.image || '').trim();
+    if (!tab && !title && !image) continue;
+    var resolvedTab = tab || title;
+    result.push({
+      tab: resolvedTab,
+      title: title || resolvedTab,
+      description: String(item.description || '').trim(),
+      image: image,
+      imagePc: item.imagePc ? String(item.imagePc).trim() : '',
+      imageMobile: item.imageMobile ? String(item.imageMobile).trim() : ''
+    });
+  }
+  return result;
+}
+
+function parseUnitTypesFromContentRow_(contentRow) {
+  var raw = getSiteField_(contentRow, UNIT_TYPES_DATA_ALIASES);
+  var parsed = parseJsonField_(raw, null);
+  if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
+    return {
+      title: String(parsed.title || '세대안내').trim() || '세대안내',
+      items: normalizeUnitTypeItems_(parsed.items)
+    };
+  }
+
+  var legacy = parseJsonField_(getField_(contentRow, 'layoutData'), null);
+  if (legacy && Array.isArray(legacy.items) && legacy.items.length) {
+    return {
+      title: '세대안내',
+      items: normalizeUnitTypeItems_(legacy.items)
+    };
+  }
+
+  return { title: '세대안내', items: [] };
 }
 
 /** Apps Script 편집기에서 직접 실행 — 컬러 컬럼만 추가 */
@@ -732,10 +812,7 @@ function buildPageContentFromContentRow_(contentRow, ext) {
       title: '미래가치',
       items: []
     }),
-    siteLayout: parseJsonField_(getField_(contentRow, 'layoutData'), {
-      title: '단지배치도',
-      items: []
-    }),
+    unitTypes: parseUnitTypesFromContentRow_(contentRow),
     community: parseJsonField_(getField_(contentRow, 'communityData'), {
       title: '커뮤니티',
       items: []
@@ -823,7 +900,7 @@ function getSiteLiveConfig(siteCode) {
     premium: pageContent.premium,
     location: pageContent.location,
     futureValue: pageContent.futureValue,
-    siteLayout: pageContent.siteLayout,
+    unitTypes: pageContent.unitTypes,
     community: pageContent.community,
     extendedData: pageContent.extendedData,
     conversionTracking: conversionTracking,

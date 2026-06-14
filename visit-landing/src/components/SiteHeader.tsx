@@ -9,7 +9,7 @@ const NAV: { label: string; href: string; highlight?: boolean }[] = [
   { label: "사업개요", href: "#사업개요" },
   { label: "프리미엄", href: "#프리미엄" },
   { label: "입지환경", href: "#입지환경" },
-  { label: "단지배치도", href: "#단지배치도" },
+  { label: "세대안내", href: "#세대안내" },
   { label: "방문예약", href: "#방문예약", highlight: true },
 ];
 

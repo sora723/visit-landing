@@ -10,7 +10,7 @@ import {
   PremiumSection,
   LocationSection,
   FutureValueSection,
-  SitePlanSection,
+  UnitTypesSection,
   CommunitySection,
 } from "./Sections";
 import { CtaSection, SiteFooter } from "./CtaSection";
@@ -34,7 +34,7 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
         <OverviewSection />
         <LocationSection />
         <FutureValueSection />
-        <SitePlanSection />
+        <UnitTypesSection />
         <CommunitySection />
         <CustomSections />
         <FooterReservationSection />

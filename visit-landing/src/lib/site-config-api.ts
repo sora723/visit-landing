@@ -11,7 +11,7 @@ export type SiteConfigApiOverview = SiteConfig["overview"];
 export type SiteConfigApiPremium = SiteConfig["premium"];
 export type SiteConfigApiLocation = SiteConfig["location"];
 export type SiteConfigApiFutureValue = SiteConfig["futureValue"];
-export type SiteConfigApiSiteLayout = SiteConfig["siteLayout"];
+export type SiteConfigApiUnitTypes = SiteConfig["unitTypes"];
 export type SiteConfigApiCommunity = SiteConfig["community"];
 
 /** Apps Script getSiteLiveConfig() data 필드 (파싱 후) */
@@ -58,7 +58,7 @@ export type SiteConfigApiData = {
   premium?: SiteConfigApiPremium;
   location?: SiteConfigApiLocation;
   futureValue?: SiteConfigApiFutureValue;
-  siteLayout?: SiteConfigApiSiteLayout;
+  unitTypes?: SiteConfigApiUnitTypes;
   community?: SiteConfigApiCommunity;
   extendedData?: ContentExtendedData;
   conversionTracking?: Record<string, unknown>;
@@ -196,6 +196,34 @@ function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
   };
 }
 
+function parseUnitTypes(value: unknown): SiteConfigApiUnitTypes | undefined {
+  if (!isRecord(value)) return undefined;
+  const items = Array.isArray(value.items)
+    ? value.items
+        .map((item) => {
+          if (!isRecord(item)) return null;
+          const tab = String(item.tab ?? item.title ?? "").trim();
+          const title = String(item.title ?? tab).trim();
+          const image = String(item.image ?? "").trim();
+          if (!tab && !title && !image) return null;
+          const resolvedTab = tab || title;
+          return {
+            tab: resolvedTab,
+            title: title || resolvedTab,
+            description: String(item.description ?? "").trim(),
+            image,
+            imagePc: optionalString(item.imagePc),
+            imageMobile: optionalString(item.imageMobile),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+    : [];
+  return {
+    title: String(value.title ?? "세대안내").trim() || "세대안내",
+    items,
+  };
+}
+
 function parseExtendedData(value: unknown): ContentExtendedData | undefined {
   if (!isRecord(value)) return undefined;
   return value as ContentExtendedData;
@@ -261,7 +289,7 @@ export function parseSiteConfigApiResponse(
     premium: parseImageItems(data.premium, "프리미엄"),
     location: parseLocation(data.location),
     futureValue: parseImageItems(data.futureValue, "미래가치"),
-    siteLayout: parseImageItems(data.siteLayout, "단지배치도"),
+    unitTypes: parseUnitTypes(data.unitTypes),
     community: parseImageItems(data.community, "커뮤니티"),
     extendedData: parseExtendedData(data.extendedData),
     conversionTracking: isRecord(data.conversionTracking)
