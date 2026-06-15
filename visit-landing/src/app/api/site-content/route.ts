@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  API_NO_STORE_CACHE_CONTROL,
+  SITE_CONTENT_CACHE_CONTROL,
+} from "@/lib/api-cache-headers";
 import { logAppsScriptEnv } from "@/lib/apps-script-env";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 import { readHostnameFromRequest } from "@/lib/site-request-url";
-
-export const dynamic = "force-dynamic";
 
 const LOG = "[api/site-content]";
 
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
         },
         {
           status: 503,
-          headers: { "Cache-Control": "no-store, max-age=0" },
+          headers: { "Cache-Control": API_NO_STORE_CACHE_CONTROL },
         }
       );
     }
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest) {
         },
         error: null,
       },
-      { headers: { "Cache-Control": "no-store, max-age=0" } }
+      { headers: { "Cache-Control": SITE_CONTENT_CACHE_CONTROL } }
     );
   } catch (err) {
     console.error(`${LOG} 503 unhandled error:`, err);
@@ -88,7 +90,7 @@ export async function GET(request: NextRequest) {
       },
       {
         status: 503,
-        headers: { "Cache-Control": "no-store, max-age=0" },
+        headers: { "Cache-Control": API_NO_STORE_CACHE_CONTROL },
       }
     );
   }

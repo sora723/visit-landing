@@ -25,9 +25,9 @@ import {
   Users,
 } from "lucide-react";
 import { useConfig } from "./ConfigProvider";
-import { useIsMobile } from "@/hooks/useResponsiveImage";
 import { normalizeHeroCardIconKey } from "@/lib/hero-card-icons";
-import { resolveHeroImage } from "@/lib/responsive-image";
+import { getImageFallbackUrl } from "@/lib/image-url";
+import { resolveHeroImageSources } from "@/lib/responsive-image";
 import { scrollToReservation } from "@/lib/utils";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -182,8 +182,7 @@ export function HeroSection() {
   const { config } = useConfig();
   const { hero, siteName, mobileBar } = config;
   const benefits = hero.benefits.filter((item) => item.title || item.value);
-  const isMobile = useIsMobile();
-  const heroImage = resolveHeroImage(hero, isMobile);
+  const heroSources = resolveHeroImageSources(hero);
   const headline = hero.hook?.trim() || siteName;
 
   return (
@@ -192,13 +191,27 @@ export function HeroSection() {
       className="relative min-h-[100svh] overflow-hidden bg-[var(--color-navy)]"
     >
       <div className="absolute inset-x-0 top-0 h-[70svh] md:inset-0 md:h-full">
-        {heroImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroImage}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover object-center"
-          />
+        {(heroSources.mobile || heroSources.desktop) && (
+          <picture>
+            <source media="(max-width: 767px)" srcSet={heroSources.mobile} />
+            <source media="(min-width: 768px)" srcSet={heroSources.desktop} />
+            <img
+              src={heroSources.desktop || heroSources.mobile}
+              alt=""
+              fetchPriority="high"
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              onError={(e) => {
+                const img = e.currentTarget;
+                const fallback = getImageFallbackUrl(
+                  heroSources.desktop || heroSources.mobile,
+                  "hero"
+                );
+                if (img.src !== fallback) img.src = fallback;
+              }}
+            />
+          </picture>
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-navy)]/38 via-[var(--color-navy)]/18 to-[var(--color-navy)]/48 md:from-[var(--color-navy)]/42 md:via-[var(--color-navy)]/22 md:to-[var(--color-navy)]/52" />
       </div>

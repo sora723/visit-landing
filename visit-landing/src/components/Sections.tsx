@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { useConfig } from "./ConfigProvider";
 import { useResponsiveImage } from "@/hooks/useResponsiveImage";
@@ -96,13 +95,9 @@ export function PremiumSection() {
         <FigmaSectionTitle en="PREMIUM AMENITY" title={premium.title} />
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {premium.items.map((item, i) => (
-            <motion.article
+            <article
               key={item.title}
               className="overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.08)] transition-transform duration-250 hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(15,29,58,0.14)]"
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.04 }}
             >
               {item.image && (
                 <div className="relative aspect-video overflow-hidden bg-[#e8e4dc]">
@@ -124,7 +119,7 @@ export function PremiumSection() {
                   {item.description}
                 </p>
               </div>
-            </motion.article>
+            </article>
           ))}
         </div>
       </div>
@@ -234,14 +229,10 @@ export function FutureValueSection() {
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="FUTURE VALUE" title={futureValue.title} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {futureValue.items.map((item, i) => (
-            <motion.article
+          {futureValue.items.map((item) => (
+            <article
               key={item.title}
               className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
             >
               {item.image && (
                 <ResponsiveImg source={item} alt={item.title} className="aspect-video w-full object-cover" />
@@ -250,7 +241,7 @@ export function FutureValueSection() {
                 <h3 className="text-base font-bold text-[var(--color-navy)]">{item.title}</h3>
                 <p className="mt-2 text-[13px] leading-relaxed text-[#7a7060]">{item.description}</p>
               </div>
-            </motion.article>
+            </article>
           ))}
         </div>
       </div>
@@ -338,12 +329,7 @@ export function UnitTypesSection() {
           </div>
         </div>
 
-        <motion.div
-          key={active.tab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-        >
+        <div key={active.tab} className="location-tab-panel">
           {active.image && (
             <button
               type="button"
@@ -371,7 +357,7 @@ export function UnitTypesSection() {
               </p>
             )}
           </div>
-        </motion.div>
+        </div>
 
         <ImageLightbox
           src={imgSrc}
@@ -394,14 +380,10 @@ export function CommunitySection() {
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="COMMUNITY" title={section.title} />
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {section.items.map((item, i) => (
-            <motion.article
+          {section.items.map((item) => (
+            <article
               key={item.title}
               className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
             >
               <ResponsiveImg source={item} alt={item.title} className="aspect-square w-full object-cover" />
               <div className="p-3 sm:p-4">
@@ -410,7 +392,7 @@ export function CommunitySection() {
                   {item.description}
                 </p>
               </div>
-            </motion.article>
+            </article>
           ))}
         </div>
       </div>

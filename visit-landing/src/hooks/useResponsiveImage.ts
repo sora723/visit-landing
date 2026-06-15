@@ -38,7 +38,10 @@ export function useIsDesktopFeed() {
   return isDesktop;
 }
 
-export function useResponsiveImage(source: ResponsiveImageFields): string {
+export function useResponsiveImage(
+  source: ResponsiveImageFields,
+  preset: import("@/lib/image-url").ImageSizePreset = "section"
+): string {
   const isMobile = useIsMobile();
-  return resolveResponsiveImage(source, isMobile);
+  return resolveResponsiveImage(source, isMobile, preset);
 }

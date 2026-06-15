@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { API_NO_STORE_CACHE_CONTROL } from "@/lib/api-cache-headers";
 import { isDemoDuplicate, recordDemoSubmission } from "@/lib/demo-store";
 import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
+const NO_STORE = { "Cache-Control": API_NO_STORE_CACHE_CONTROL };
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
@@ -33,31 +35,34 @@ function handleDemoSubmit(
         },
         _debug: { clientIp, mode: "demo" },
       },
-      { status: 400 }
+      { status: 400, headers: NO_STORE }
     );
   }
 
   recordDemoSubmission(name, phone);
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      submissionId: `demo-${Date.now()}`,
-      demo: true,
-      notificationSent: false,
-      stored: {
-        utmSource: body.utmSource ?? "",
-        utmMedium: body.utmMedium ?? "",
-        utmCampaign: body.utmCampaign ?? "",
-        sourceUrl: body.sourceUrl ?? "",
-        referer: body.referer ?? "",
-        device: body.device ?? "",
-        clientIp,
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        submissionId: `demo-${Date.now()}`,
+        demo: true,
+        notificationSent: false,
+        stored: {
+          utmSource: body.utmSource ?? "",
+          utmMedium: body.utmMedium ?? "",
+          utmCampaign: body.utmCampaign ?? "",
+          sourceUrl: body.sourceUrl ?? "",
+          referer: body.referer ?? "",
+          device: body.device ?? "",
+          clientIp,
+        },
       },
+      error: null,
+      _debug: { clientIp, mode: "demo" },
     },
-    error: null,
-    _debug: { clientIp, mode: "demo" },
-  });
+    { headers: NO_STORE }
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
           message: "가상 접수는 저장할 수 없습니다",
         },
       },
-      { status: 400 }
+      { status: 400, headers: NO_STORE }
     );
   }
 
@@ -117,7 +122,7 @@ export async function POST(request: NextRequest) {
     const json = await res.json();
     return NextResponse.json(
       { ...json, _debug: { clientIp, mode: "live", siteCode } },
-      { status: json.success ? 200 : 400 }
+      { status: json.success ? 200 : 400, headers: NO_STORE }
     );
   } catch {
     return NextResponse.json(
@@ -127,7 +132,7 @@ export async function POST(request: NextRequest) {
         error: { code: "NETWORK_ERROR", message: "API 서버에 연결할 수 없습니다" },
         _debug: { clientIp, mode: "live", siteCode },
       },
-      { status: 502 }
+      { status: 502, headers: NO_STORE }
     );
   }
 }

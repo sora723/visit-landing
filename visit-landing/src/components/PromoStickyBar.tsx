@@ -107,9 +107,7 @@ export function PromoStickyBar({
 
   const fetchLivePromo = useCallback(async () => {
     try {
-      const res = await fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
-        cache: "no-store",
-      });
+      const res = await fetch(appendSiteCodeQuery("/api/site-content", siteCode));
       const json = await res.json();
       if (json.success && json.data?.source === "sheet") {
         setText(sanitizePromoText(json.data.stickyPromoText));

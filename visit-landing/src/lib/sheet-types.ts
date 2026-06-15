@@ -134,7 +134,11 @@ export interface ContentExtendedData {
     completeMessage: string;
     privacyText: string;
     image1?: string;
+    image1Mobile?: string;
+    image1Pc?: string;
     image2?: string;
+    image2Mobile?: string;
+    image2Pc?: string;
   };
   liveStatus?: { title: string; subtitle: string };
   reservationGuide?: {

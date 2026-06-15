@@ -71,9 +71,7 @@ export function ConfigProvider({
   // Sheet 실시간 갱신 — 요청 siteCode와 응답 siteCode 일치할 때만 반영 (L001 덮어쓰기 방지)
   useEffect(() => {
     let cancelled = false;
-    fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
-      cache: "no-store",
-    })
+    fetch(appendSiteCodeQuery("/api/site-content", siteCode))
       .then((res) => res.json())
       .then((json) => {
         if (cancelled || !json.success || !json.data) return;

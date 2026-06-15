@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useConfig } from "./ConfigProvider";
 import { ReservationForm } from "./ReservationForm";
 import { useIsMobile } from "@/hooks/useResponsiveImage";
-import { normalizeImageUrl } from "@/lib/image-url";
+import { getImageFallbackUrl } from "@/lib/image-url";
+import { resolvePopupImageUrl, resolvePopupZoomUrl } from "@/lib/popup-image";
 import {
   markPopupDismissed,
   shouldShowPopup,
@@ -39,6 +40,8 @@ function ImageZoomModal({
         src={src}
         alt=""
         className="max-h-[92vh] max-w-full object-contain"
+        loading="lazy"
+        decoding="async"
         onClick={(e) => e.stopPropagation()}
       />
     </div>
@@ -54,7 +57,11 @@ function EventImagePanel({
   onZoom: () => void;
   className?: string;
 }) {
-  const normalized = normalizeImageUrl(src);
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+  }, [src]);
 
   return (
     <button
@@ -65,9 +72,12 @@ function EventImagePanel({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={normalized}
+        src={currentSrc}
         alt=""
+        loading="lazy"
+        decoding="async"
         className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
+        onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
       />
       <span className="pointer-events-none absolute bottom-3 right-3 rounded bg-[var(--color-navy)]/75 px-2.5 py-1 text-[10px] tracking-wide text-white/90 backdrop-blur-sm">
         클릭하여 확대
@@ -133,11 +143,13 @@ export function ReservationPopup() {
   const { config, siteCode } = useConfig();
   const isMobile = useIsMobile();
   const resolvedSiteCode = siteCode || config.siteCode;
-  const image1 = config.popup.image1?.trim() || "";
-  const image2 = config.popup.image2?.trim() || "";
-  const pcImages = !isMobile ? [image1, image2].filter(Boolean) : [];
-  const showMobileImage = isMobile && !!image1;
-  /** 방문예약 팝업과 동일 너비 */
+  const mobileImageSrc = resolvePopupImageUrl(config.popup, "image1", true);
+  const pcImage1Src = resolvePopupImageUrl(config.popup, "image1", false);
+  const pcImage2Src = resolvePopupImageUrl(config.popup, "image2", false);
+  const pcImages = !isMobile
+    ? [pcImage1Src, pcImage2Src].filter(Boolean)
+    : [];
+  const showMobileImage = isMobile && !!mobileImageSrc;
   const popupPanelClass = "w-full max-w-md shrink-0";
 
   const [visible, setVisible] = useState(false);
@@ -146,6 +158,11 @@ export function ReservationPopup() {
   );
   const [complete, setComplete] = useState(false);
   const [zoomSrc, setZoomSrc] = useState<string | null>(null);
+  const [mobileImgSrc, setMobileImgSrc] = useState(mobileImageSrc);
+
+  useEffect(() => {
+    setMobileImgSrc(mobileImageSrc);
+  }, [mobileImageSrc]);
 
   const finishPopup = useCallback(() => {
     setVisible(false);
@@ -176,7 +193,7 @@ export function ReservationPopup() {
   return (
     <>
       <AnimatePresence mode="wait">
-        {isMobile && mobilePhase === "image" && image1 ? (
+        {isMobile && mobilePhase === "image" && mobileImageSrc ? (
           <motion.div
             key="mobile-event-image"
             className="fixed inset-0 z-[300] flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
@@ -203,14 +220,21 @@ export function ReservationPopup() {
               </button>
               <button
                 type="button"
-                onClick={() => setZoomSrc(normalizeImageUrl(image1))}
+                onClick={() =>
+                  setZoomSrc(resolvePopupZoomUrl(config.popup, "image1", true))
+                }
                 className="block w-full"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={normalizeImageUrl(image1)}
+                  src={mobileImgSrc}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="max-h-[75dvh] w-full object-contain"
+                  onError={() =>
+                    setMobileImgSrc(getImageFallbackUrl(mobileImageSrc, "popup-mobile"))
+                  }
                 />
               </button>
             </motion.div>
@@ -238,7 +262,15 @@ export function ReservationPopup() {
                 <EventImagePanel
                   key={`${src}-${index}`}
                   src={src}
-                  onZoom={() => setZoomSrc(normalizeImageUrl(src))}
+                  onZoom={() =>
+                    setZoomSrc(
+                      resolvePopupZoomUrl(
+                        config.popup,
+                        index === 0 ? "image1" : "image2",
+                        false
+                      )
+                    )
+                  }
                   className={`hidden md:block ${popupPanelClass} ${panelHeightClass}`}
                 />
               ))}

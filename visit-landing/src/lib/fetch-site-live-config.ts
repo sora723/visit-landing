@@ -77,6 +77,23 @@ function looksLikeHtml(body: string): boolean {
 export async function fetchSiteLiveConfigFromSheet(
   siteCodeOverride?: string | null
 ): Promise<SiteLiveConfigData> {
+  const { siteCode } = getAppsScriptEnv(siteCodeOverride);
+
+  const { readSiteLiveConfigCache, writeSiteLiveConfigCache } =
+    await import("@/lib/site-live-config-cache");
+  const cached = readSiteLiveConfigCache(siteCode);
+  if (cached) {
+    return cached;
+  }
+
+  const data = await fetchSiteLiveConfigFromSheetUncached(siteCodeOverride);
+  writeSiteLiveConfigCache(siteCode, data);
+  return data;
+}
+
+async function fetchSiteLiveConfigFromSheetUncached(
+  siteCodeOverride?: string | null
+): Promise<SiteLiveConfigData> {
   const envDebug = logAppsScriptEnv(LOG, siteCodeOverride);
   const { url: appsScriptUrl, siteCode, deploymentId } =
     getAppsScriptEnv(siteCodeOverride);
@@ -104,7 +121,7 @@ export async function fetchSiteLiveConfigFromSheet(
     console.error(`${LOG} fetch URL=${fetchUrl}`);
 
     const res = await fetch(fetchUrl, {
-      cache: "no-store",
+      next: { revalidate: 60 },
       redirect: "follow",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(15000),
