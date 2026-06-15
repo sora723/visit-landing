@@ -6,9 +6,9 @@ import { useConfig } from "./ConfigProvider";
 import { ReservationCard } from "./ReservationCard";
 import { fetchRecentReservations } from "@/lib/api";
 import {
-  buildDeterministicLiveFeed,
+  buildInitialFeedStack,
+  createInjectionItemAtIndex,
   currentInjectionIndex,
-  createLiveInjectionItem,
   msUntilNextInjection,
 } from "@/lib/deterministic-live-feed";
 import { buildVirtualInquiryPool, inferSubmissionStatusLabel } from "@/lib/reservation-form-options";
@@ -18,12 +18,12 @@ import {
   LIVE_FEED_PC_MAX,
   anchorReservationTimes,
   calcMinutesAgo,
-  collectDismissed,
-  createLocalSubmissionItem,
   clearLocalPendingIfSynced,
   clearPendingSubmission,
+  createLocalSubmissionItem,
   feedItemKey,
   loadPendingSubmission,
+  prependToFeedStack,
   savePendingSubmission,
   sortByRecency,
   tickReservationTimes,
@@ -89,31 +89,6 @@ function FeedList({
   );
 }
 
-/** 재빌드 시 가상 카드 submittedAt 앵커 유지 — 경과 시간·키 안정 */
-function preserveVirtualAnchors(
-  previous: ReservationItem[],
-  next: ReservationItem[],
-  now = Date.now()
-): ReservationItem[] {
-  const anchorBySlot = new Map<string, string>();
-  for (const item of previous) {
-    if (item.virtualSlotId && item.submittedAt) {
-      anchorBySlot.set(item.virtualSlotId, item.submittedAt);
-    }
-  }
-
-  return next.map((item) => {
-    if (!item.virtualSlotId) return item;
-    const anchored = anchorBySlot.get(item.virtualSlotId);
-    if (!anchored) return item;
-    return {
-      ...item,
-      submittedAt: anchored,
-      minutesAgo: calcMinutesAgo(anchored, now),
-    };
-  });
-}
-
 export function LiveReservationSection() {
   const { config, siteCode } = useConfig();
   const inquiryPool = useMemo(
@@ -123,7 +98,6 @@ export function LiveReservationSection() {
   const mobileMax =
     config.liveReservation?.mobileVisibleCount ?? LIVE_FEED_MOBILE_MAX;
   const pcMax = config.liveReservation?.pcVisibleCount ?? LIVE_FEED_PC_MAX;
-  /** 피드는 PC 최대치까지 빌드 — 모바일은 렌더 시 slice로 5건만 노출 */
   const buildMaxCount = pcMax;
   const title = config.liveStatus.title || "실시간 방문예약 현황";
 
@@ -136,14 +110,14 @@ export function LiveReservationSection() {
   const [insertAnimKeys, setInsertAnimKeys] = useState<Set<string>>(() => new Set());
   const [newestKey, setNewestKey] = useState<string | null>(null);
   const newestKeyRef = useRef<string | null>(null);
-  const prevItemsRef = useRef<ReservationItem[]>([]);
+  const stackRef = useRef<ReservationItem[]>([]);
   const lastRawRef = useRef<ReservationItem[]>([]);
   const virtualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const realPriorityUntilRef = useRef(0);
-  const liveInjectionsRef = useRef<Map<string, ReservationItem>>(new Map());
   const lastInjectionIndexRef = useRef(-1);
   const mountedRef = useRef(false);
   const clientReadyRef = useRef(false);
+  const prevSiteCodeRef = useRef(siteCode);
 
   const markInsertAnimation = useCallback((key: string) => {
     setInsertAnimKeys((prev) => new Set(prev).add(key));
@@ -199,82 +173,120 @@ export function LiveReservationSection() {
     [markInsertAnimation]
   );
 
-  const buildFeed = useCallback(
-    (raw: ReservationItem[], now = Date.now()) => {
-      const built = buildDeterministicLiveFeed(raw, {
+  const commitStack = useCallback(
+    (built: ReservationItem[], previous: ReservationItem[], opts?: { animateTop?: boolean }) => {
+      syncNewestHighlight(built, previous, opts);
+      stackRef.current = built;
+      mountedRef.current = true;
+      setItems(built);
+    },
+    [syncNewestHighlight]
+  );
+
+  const initializeStack = useCallback(
+    (raw: ReservationItem[], animateTop = false) => {
+      const previous = stackRef.current;
+      const built = buildInitialFeedStack(raw, {
         siteCode,
         maxCount: buildMaxCount,
         virtualEnabled: config.settings.virtualReservationsEnabled,
         dismissed: dismissedRef.current,
         localPending: pendingLocalRef.current,
         inquiryPool,
-        now,
-        liveInjections: [...liveInjectionsRef.current.values()],
       });
-      return preserveVirtualAnchors(prevItemsRef.current, built, now);
+      lastInjectionIndexRef.current = currentInjectionIndex(siteCode);
+      commitStack(built, previous, animateTop ? { animateTop: true } : undefined);
     },
     [
       siteCode,
       buildMaxCount,
       config.settings.virtualReservationsEnabled,
       inquiryPool,
+      commitStack,
     ]
   );
 
-  const applyFeed = useCallback(
-    (raw: ReservationItem[], opts?: { animateTop?: boolean }) => {
-      const built = buildFeed(raw);
-      const previous = prevItemsRef.current;
-
-      dismissedRef.current = collectDismissed(
+  const prependIncoming = useCallback(
+    (incoming: ReservationItem, animateTop = false) => {
+      const previous = stackRef.current;
+      const built = prependToFeedStack(
         previous,
-        built,
+        incoming,
+        buildMaxCount,
         dismissedRef.current
       );
-
-      syncNewestHighlight(built, previous, opts);
-      prevItemsRef.current = built;
-      mountedRef.current = true;
-      setItems(built);
+      commitStack(built, previous, animateTop ? { animateTop: true } : undefined);
     },
-    [buildFeed, syncNewestHighlight]
+    [buildMaxCount, commitStack]
+  );
+
+  const mergeRealFromApi = useCallback(
+    (raw: ReservationItem[]) => {
+      const anchored = anchorReservationTimes(raw);
+      lastRawRef.current = anchored;
+      pendingLocalRef.current = clearLocalPendingIfSynced(
+        pendingLocalRef.current,
+        anchored
+      );
+
+      if (pendingLocalRef.current) {
+        prependIncoming(pendingLocalRef.current, false);
+      }
+
+      const stackKeys = new Set(stackRef.current.map(feedItemKey));
+      let changed = false;
+
+      for (const item of sortByRecency(anchored.filter((i) => !i.isVirtual))) {
+        const key = feedItemKey(item);
+        if (stackKeys.has(key)) continue;
+        stackKeys.add(key);
+        const previous = stackRef.current;
+        const built = prependToFeedStack(
+          previous,
+          item,
+          buildMaxCount,
+          dismissedRef.current
+        );
+        commitStack(built, previous);
+        changed = true;
+      }
+
+      return changed;
+    },
+    [buildMaxCount, commitStack, prependIncoming]
   );
 
   const tickFeed = useCallback(() => {
     if (!config.settings.liveStatusEnabled) return;
-
-    lastRawRef.current = tickReservationTimes(lastRawRef.current);
 
     if (pendingLocalRef.current?.submittedAt) {
       const minutesAgo = calcMinutesAgo(pendingLocalRef.current.submittedAt);
       if (minutesAgo > LIVE_FEED_MAX_MINUTES) {
         pendingLocalRef.current = null;
         clearPendingSubmission();
-      } else {
-        pendingLocalRef.current = {
-          ...pendingLocalRef.current,
-          minutesAgo,
-        };
       }
     }
 
+    const previous = stackRef.current;
     const ticked = sortByRecency(
-      tickReservationTimes(prevItemsRef.current)
-    ).filter((item) => item.minutesAgo <= LIVE_FEED_MAX_MINUTES);
+      tickReservationTimes(previous).filter(
+        (item) => item.minutesAgo <= LIVE_FEED_MAX_MINUTES
+      )
+    );
 
-    if (ticked.length < buildMaxCount && config.settings.virtualReservationsEnabled) {
-      applyFeed(lastRawRef.current);
+    if (ticked.length !== previous.length) {
+      commitStack(ticked, previous);
       return;
     }
 
-    prevItemsRef.current = ticked;
-    setItems(ticked);
-  }, [
-    applyFeed,
-    buildMaxCount,
-    config.settings.liveStatusEnabled,
-    config.settings.virtualReservationsEnabled,
-  ]);
+    const timesChanged = ticked.some(
+      (item, i) => item.minutesAgo !== previous[i]?.minutesAgo
+    );
+    if (timesChanged) {
+      stackRef.current = ticked;
+      setItems(ticked);
+    }
+  }, [commitStack, config.settings.liveStatusEnabled]);
 
   const loadItems = useCallback(() => {
     if (!config.settings.liveStatusEnabled) return;
@@ -284,18 +296,13 @@ export function LiveReservationSection() {
       siteCode
     )
       .then((raw) => {
-        lastRawRef.current = anchorReservationTimes(raw);
-        pendingLocalRef.current = clearLocalPendingIfSynced(
-          pendingLocalRef.current,
-          lastRawRef.current
-        );
-        applyFeed(lastRawRef.current);
+        mergeRealFromApi(raw);
       })
       .catch(() => {});
   }, [
     config.settings.liveStatusEnabled,
     config.settings.virtualReservationsEnabled,
-    applyFeed,
+    mergeRealFromApi,
     siteCode,
     pcMax,
   ]);
@@ -311,21 +318,17 @@ export function LiveReservationSection() {
 
     virtualTimerRef.current = setTimeout(() => {
       const idx = currentInjectionIndex(siteCode);
-      if (
-        config.settings.virtualReservationsEnabled &&
-        idx > lastInjectionIndexRef.current
-      ) {
+      if (idx > lastInjectionIndexRef.current) {
         lastInjectionIndexRef.current = idx;
-        const item = createLiveInjectionItem(siteCode, idx, inquiryPool);
-        liveInjectionsRef.current.set(item.virtualSlotId!, item);
+        const item = createInjectionItemAtIndex(siteCode, idx, inquiryPool);
+        prependIncoming(item, true);
       }
-      applyFeed(lastRawRef.current, { animateTop: true });
       scheduleDeterministicInject();
     }, delay);
   }, [
-    applyFeed,
     config.settings.virtualReservationsEnabled,
     inquiryPool,
+    prependIncoming,
     siteCode,
   ]);
 
@@ -339,11 +342,8 @@ export function LiveReservationSection() {
     if (clientReadyRef.current) return;
     clientReadyRef.current = true;
     pendingLocalRef.current = loadPendingSubmission();
-    lastInjectionIndexRef.current = currentInjectionIndex(siteCode);
-    const built = buildFeed([]);
-    prevItemsRef.current = built;
-    setItems(built);
-  }, [buildFeed, siteCode]);
+    initializeStack([]);
+  }, [initializeStack]);
 
   useEffect(() => {
     loadItems();
@@ -364,11 +364,11 @@ export function LiveReservationSection() {
   }, [tickFeed]);
 
   useEffect(() => {
+    if (prevSiteCodeRef.current === siteCode) return;
+    prevSiteCodeRef.current = siteCode;
     dismissedRef.current.clear();
-    liveInjectionsRef.current.clear();
-    lastInjectionIndexRef.current = currentInjectionIndex(siteCode);
-    applyFeed(lastRawRef.current);
-  }, [inquiryPool, siteCode, applyFeed]);
+    initializeStack(lastRawRef.current);
+  }, [siteCode, initializeStack]);
 
   useEffect(() => {
     const onSubmitted = (event: Event) => {
@@ -391,14 +391,14 @@ export function LiveReservationSection() {
       );
       savePendingSubmission(name);
       deferVirtualForRealSubmission();
-      applyFeed(lastRawRef.current, { animateTop: true });
+      prependIncoming(pendingLocalRef.current, true);
       setTimeout(loadItems, 2000);
     };
 
     window.addEventListener("reservation-submitted", onSubmitted);
     return () =>
       window.removeEventListener("reservation-submitted", onSubmitted);
-  }, [applyFeed, loadItems, deferVirtualForRealSubmission, config]);
+  }, [prependIncoming, loadItems, deferVirtualForRealSubmission, config]);
 
   const mobileItems = items.slice(0, mobileMax);
   const pcItems = items.slice(0, pcMax);

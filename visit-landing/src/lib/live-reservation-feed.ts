@@ -201,6 +201,22 @@ export function sortByRecency(items: ReservationItem[]): ReservationItem[] {
   });
 }
 
+/** 최상단에 쌓기 — 1-2-3-4-5 + 신규 → 0-1-2-3-4 (max 초과 하단 숨김) */
+export function prependToFeedStack(
+  stack: ReservationItem[],
+  incoming: ReservationItem,
+  maxCount: number,
+  dismissed: Set<string>
+): ReservationItem[] {
+  const incomingKey = feedItemKey(incoming);
+  const filtered = stack.filter((i) => feedItemKey(i) !== incomingKey);
+  const anchored = {
+    ...incoming,
+    minutesAgo: calcMinutesAgo(incoming.submittedAt ?? Date.now()),
+  };
+  return trimFeedToMax(sortByRecency([anchored, ...filtered]), maxCount, dismissed);
+}
+
 /**
  * maxCount 초과 시 가장 오래된(하단) 항목 제거 + dismissed 등록
  * — 모바일 5 / PC 10 초과분은 다시 노출되지 않음
