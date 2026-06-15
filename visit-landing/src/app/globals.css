@@ -315,17 +315,82 @@ textarea {
 @keyframes live-new-emphasis {
   0%,
   100% {
-    opacity: 0.8;
+    opacity: 0.85;
     transform: scale(1);
   }
   50% {
     opacity: 1;
-    transform: scale(1.08);
+    transform: scale(1.06);
+  }
+}
+
+@keyframes live-new-badge-shimmer {
+  0% {
+    background-position: 120% 50%;
+  }
+  100% {
+    background-position: -80% 50%;
+  }
+}
+
+@keyframes live-card-shimmer-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-14deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(230%) skewX(-14deg);
+    opacity: 0;
   }
 }
 
 .live-new-badge {
-  animation: live-new-emphasis 1.5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(var(--color-gold-rgb), 0.55);
+  background: linear-gradient(
+    90deg,
+    rgba(var(--color-gold-rgb), 0.35) 0%,
+    rgba(var(--color-gold-rgb), 0.7) 38%,
+    #fff6dc 50%,
+    rgba(var(--color-gold-rgb), 0.7) 62%,
+    rgba(var(--color-gold-rgb), 0.35) 100%
+  );
+  background-size: 220% 100%;
+  color: var(--color-navy);
+  animation:
+    live-new-badge-shimmer 2s linear infinite,
+    live-new-emphasis 1.5s ease-in-out infinite;
+}
+
+.live-reservation-card-new {
+  position: relative;
+  overflow: hidden;
+}
+
+.live-reservation-card-new::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 28%,
+    rgba(var(--color-gold-rgb), 0.22) 44%,
+    rgba(255, 246, 220, 0.45) 50%,
+    rgba(var(--color-gold-rgb), 0.22) 56%,
+    transparent 72%
+  );
+  animation: live-card-shimmer-sweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.live-reservation-card-new > * {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes live-status-dot-blink {
@@ -433,6 +498,7 @@ textarea {
 
 .live-reservation-card-top {
   animation: live-card-glow 1.2s ease-in-out infinite;
+  border-color: rgba(var(--color-gold-rgb), 0.55) !important;
 }
 
 .live-reservation-card {

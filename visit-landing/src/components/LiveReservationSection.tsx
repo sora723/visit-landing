@@ -137,37 +137,19 @@ export function LiveReservationSection() {
       opts?: { animateTop?: boolean }
     ) => {
       const topKey = built[0] ? feedItemKey(built[0]) : null;
-      const prevFeedKeys = new Set(previous.map(feedItemKey));
-      const incomingAtTop = Boolean(topKey && !prevFeedKeys.has(topKey));
+      const prevTopKey = previous[0] ? feedItemKey(previous[0]) : null;
+      const isNewTop = Boolean(topKey && topKey !== prevTopKey);
 
-      if (opts?.animateTop && topKey) {
+      if (isNewTop && topKey && opts?.animateTop) {
         markInsertAnimation(topKey);
-        newestKeyRef.current = topKey;
-        setNewestKey(topKey);
-        return;
       }
 
-      if (!mountedRef.current) return;
-
-      if (incomingAtTop && topKey) {
+      if (topKey) {
         newestKeyRef.current = topKey;
         setNewestKey(topKey);
-        return;
-      }
-
-      const current = newestKeyRef.current;
-      if (!current) return;
-
-      const highlightedIdx = built.findIndex((i) => feedItemKey(i) === current);
-      if (highlightedIdx === -1) {
+      } else {
         newestKeyRef.current = null;
         setNewestKey(null);
-        return;
-      }
-
-      if (highlightedIdx > 0 && topKey && topKey !== current) {
-        newestKeyRef.current = topKey;
-        setNewestKey(topKey);
       }
     },
     [markInsertAnimation]

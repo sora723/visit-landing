@@ -49,8 +49,8 @@ export function ReservationCard({
     >
       <div
         className={`live-reservation-card flex items-center justify-between gap-3 rounded-2xl border px-[18px] py-3.5 md:px-5 md:py-4 ${
-          isTopCard
-            ? "live-reservation-card-top border-[var(--color-gold)]/45 bg-[var(--color-gold)]/[0.07]"
+          isTopCard && showNewBadge
+            ? "live-reservation-card-top live-reservation-card-new border-[var(--color-gold)]/45 bg-[var(--color-gold)]/[0.07]"
             : "border-white/[0.08] bg-white/[0.05]"
         }`}
       >
@@ -80,7 +80,7 @@ export function ReservationCard({
 
         <div className="flex shrink-0 flex-col items-end gap-1">
           {showNewBadge && (
-            <span className="live-new-badge rounded-sm bg-[var(--color-gold)]/20 px-2 py-0.5 text-[10px] font-bold tracking-[0.15em] text-[var(--color-gold)]">
+            <span className="live-new-badge rounded-sm px-2 py-0.5 text-[10px] font-bold tracking-[0.15em]">
               NEW
             </span>
           )}
