@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useConfig } from "./ConfigProvider";
 import { useResponsiveImage } from "@/hooks/useResponsiveImage";
+import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import { ResponsiveImg } from "./ResponsiveImg";
 
 function FigmaSectionTitle({
@@ -131,12 +132,18 @@ export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
   const [lightbox, setLightbox] = useState(false);
-  const mapSrc = useResponsiveImage({
-    image: location.mapImage,
-    imagePc: location.mapImagePc,
-    imageMobile: location.mapImageMobile,
-  });
-  const hasMapImage = !!mapSrc.trim();
+  const mapLightboxSrc = useResponsiveImage(
+    {
+      image: location.mapImage,
+      imagePc: location.mapImagePc,
+      imageMobile: location.mapImageMobile,
+    },
+    "lightbox"
+  );
+  const hasMapImage =
+    !!location.mapImage?.trim() ||
+    !!location.mapImagePc?.trim() ||
+    !!location.mapImageMobile?.trim();
 
   if (!hasMapImage && !location.items.length) return null;
 
@@ -186,7 +193,7 @@ export function LocationSection() {
           )}
         </div>
         <ImageLightbox
-          src={mapSrc}
+          src={mapLightboxSrc}
           alt={location.title || "입지 지도"}
           open={lightbox}
           onClose={() => setLightbox(false)}
@@ -260,7 +267,17 @@ function ImageLightbox({
   open: boolean;
   onClose: () => void;
 }) {
-  if (!open) return null;
+  const [zoomSrc, setZoomSrc] = useState(() =>
+    src ? normalizeImageUrl(src, "lightbox") : ""
+  );
+
+  useEffect(() => {
+    if (!src) return;
+    setZoomSrc(normalizeImageUrl(src, "lightbox"));
+  }, [src]);
+
+  if (!open || !zoomSrc) return null;
+
   return (
     <div
       className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 p-4"
@@ -277,10 +294,17 @@ function ImageLightbox({
       </button>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={zoomSrc}
         alt={alt}
         className="max-h-[90vh] max-w-full object-contain"
+        decoding="async"
         onClick={(e) => e.stopPropagation()}
+        onError={() => {
+          const fallback = getImageFallbackUrl(src, "lightbox");
+          if (zoomSrc.includes("sz=w2560") && fallback.includes("sz=w1200")) {
+            setZoomSrc(fallback);
+          }
+        }}
       />
     </div>
   );
@@ -295,11 +319,23 @@ export function UnitTypesSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
 
+  const safeIndex =
+    items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
+  const active = items[safeIndex];
+  const lightboxSrc = useResponsiveImage(
+    active
+      ? {
+          image: active.image,
+          imagePc: active.imagePc,
+          imageMobile: active.imageMobile,
+        }
+      : { image: "" },
+    "lightbox"
+  );
+
   if (!items.length) return null;
 
-  const safeIndex = activeIndex >= items.length ? 0 : activeIndex;
-  const active = items[safeIndex]!;
-  const imgSrc = active.imagePc || active.imageMobile || active.image;
+  const current = items[safeIndex]!;
 
   return (
     <section id="세대안내" className="scroll-mt-[var(--site-top-offset)] bg-white px-6 py-20">
@@ -329,16 +365,16 @@ export function UnitTypesSection() {
           </div>
         </div>
 
-        <div key={active.tab} className="location-tab-panel">
-          {active.image && (
+        <div key={current.tab} className="location-tab-panel">
+          {current.image && (
             <button
               type="button"
               onClick={() => setLightbox(true)}
               className="group relative block w-full overflow-hidden rounded-xl bg-[#e8e4dc]"
             >
               <ResponsiveImg
-                source={active}
-                alt={active.title}
+                source={current}
+                alt={current.title}
                 className="aspect-[4/3] w-full object-contain transition-transform duration-300 group-hover:scale-[1.01] sm:aspect-[16/10]"
               />
               <span className="absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
@@ -349,19 +385,19 @@ export function UnitTypesSection() {
 
           <div className="mt-6 text-center sm:mt-8">
             <h3 className="text-[clamp(20px,3vw,28px)] font-bold text-[var(--color-navy)]">
-              {active.title}
+              {current.title}
             </h3>
-            {active.description && (
+            {current.description && (
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#7a7060] sm:text-[15px]">
-                {active.description}
+                {current.description}
               </p>
             )}
           </div>
         </div>
 
         <ImageLightbox
-          src={imgSrc}
-          alt={active.title}
+          src={lightboxSrc}
+          alt={current.title}
           open={lightbox}
           onClose={() => setLightbox(false)}
         />

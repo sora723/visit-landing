@@ -5,7 +5,8 @@ export type ImageSizePreset =
   | "hero-mobile"
   | "popup-pc"
   | "popup-mobile"
-  | "section";
+  | "section"
+  | "lightbox";
 
 const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   hero: 1920,
@@ -13,6 +14,7 @@ const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   "popup-pc": 1280,
   "popup-mobile": 720,
   section: 1200,
+  lightbox: 2560,
 };
 
 const PLACEHOLDER_SVG =
@@ -64,6 +66,9 @@ export function getImageFallbackUrl(
 
   const fileId = extractDriveFileId(trimmed);
   if (fileId) {
+    if (preset === "lightbox") {
+      return driveThumbnailUrl(fileId, DRIVE_THUMB_WIDTH.section);
+    }
     const current = DRIVE_THUMB_WIDTH[preset];
     const smaller = Math.max(480, Math.round(current * 0.55));
     if (smaller < current) {

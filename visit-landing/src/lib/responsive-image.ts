@@ -40,6 +40,13 @@ export function resolveHeroImage(
   );
 }
 
+export function resolveLightboxImage(
+  source: ResponsiveImageFields,
+  isMobile: boolean
+): string {
+  return resolveResponsiveImage(source, isMobile, "lightbox");
+}
+
 export function resolveHeroImageSources(hero: {
   image: string;
   imagePc?: string;
