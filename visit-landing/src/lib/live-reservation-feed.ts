@@ -64,11 +64,13 @@ export function formatReservationName(name: string | null | undefined): string {
 }
 
 export function reservationKey(item: ReservationItem): string {
+  if (item.virtualSlotId) return item.virtualSlotId;
   return `${formatReservationName(item.name)}|${item.isVirtual ? "v" : "r"}`;
 }
 
 /** 리스트 애니메이션용 고유 키 */
 export function feedItemKey(item: ReservationItem): string {
+  if (item.virtualSlotId) return item.virtualSlotId;
   const ts = item.submittedAt ?? `m${item.minutesAgo}`;
   return `${reservationKey(item)}|${ts}`;
 }
@@ -180,7 +182,7 @@ export function clearPendingSubmission() {
   sessionStorage.removeItem(PENDING_SUBMIT_KEY);
 }
 
-function dedupeByName(items: ReservationItem[]): ReservationItem[] {
+export function dedupeByName(items: ReservationItem[]): ReservationItem[] {
   const seen = new Set<string>();
   return items.filter((item) => {
     const n = formatReservationName(item.name);
@@ -190,7 +192,7 @@ function dedupeByName(items: ReservationItem[]): ReservationItem[] {
   });
 }
 
-function sortByRecency(items: ReservationItem[]): ReservationItem[] {
+export function sortByRecency(items: ReservationItem[]): ReservationItem[] {
   return [...items].sort((a, b) => {
     if (a.minutesAgo !== b.minutesAgo) return a.minutesAgo - b.minutesAgo;
     const ta = new Date(a.submittedAt ?? 0).getTime();

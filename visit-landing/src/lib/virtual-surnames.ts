@@ -48,6 +48,24 @@ function toMasked(surname: string) {
   return `${surname}○○`;
 }
 
+export function pickWeightedKoreanSurnameSeeded(
+  rand: () => number,
+  usedNames: Set<string> = new Set()
+): string {
+  let pool = ALLOWED_SURNAMES.filter((e) => !usedNames.has(toMasked(e.surname)));
+  if (pool.length === 0) pool = [...ALLOWED_SURNAMES];
+
+  const total = pool.reduce((sum, e) => sum + e.weight, 0);
+  let roll = rand() * total;
+
+  for (const entry of pool) {
+    roll -= entry.weight;
+    if (roll <= 0) return entry.surname;
+  }
+
+  return pool[pool.length - 1]!.surname;
+}
+
 export function pickWeightedKoreanSurname(
   usedNames: Set<string> = new Set()
 ): string {

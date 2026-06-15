@@ -184,6 +184,8 @@ export interface ReservationItem {
   status?: string;
   /** ISO — 경과 시간 실시간 계산용 */
   submittedAt?: string;
+  /** 결정론적 가상 카드 — React key·목록 안정화용 */
+  virtualSlotId?: string;
 }
 
 export interface SubmitPayload {

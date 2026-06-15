@@ -5,28 +5,25 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useConfig } from "./ConfigProvider";
 import { ReservationCard } from "./ReservationCard";
 import { fetchRecentReservations } from "@/lib/api";
+import {
+  buildDeterministicLiveFeed,
+  msUntilNextInjection,
+} from "@/lib/deterministic-live-feed";
 import { buildVirtualInquiryPool, inferSubmissionStatusLabel } from "@/lib/reservation-form-options";
 import {
   LIVE_FEED_MAX_MINUTES,
   LIVE_FEED_MOBILE_MAX,
   LIVE_FEED_PC_MAX,
   anchorReservationTimes,
-  buildLiveFeed,
   calcMinutesAgo,
   collectDismissed,
-  createIncomingVirtualItem,
   createLocalSubmissionItem,
   clearLocalPendingIfSynced,
   clearPendingSubmission,
   feedItemKey,
-  formatReservationName,
-  formatReservationType,
   loadPendingSubmission,
-  randomVirtualInjectDelayMs,
-  registerVirtualItem,
   savePendingSubmission,
   tickReservationTimes,
-  tickStableVirtuals,
 } from "@/lib/live-reservation-feed";
 import type { ReservationItem } from "@/lib/types";
 
@@ -89,20 +86,28 @@ function FeedList({
   );
 }
 
-function createInitialFeed(
-  virtualEnabled: boolean,
-  dismissed: Set<string>,
-  stableVirtuals: Map<string, ReservationItem>,
-  localPending: ReservationItem | null,
-  inquiryPool: readonly string[]
+/** 재빌드 시 가상 카드 submittedAt 앵커 유지 — 경과 시간·키 안정 */
+function preserveVirtualAnchors(
+  previous: ReservationItem[],
+  next: ReservationItem[],
+  now = Date.now()
 ): ReservationItem[] {
-  return buildLiveFeed([], {
-    maxCount: LIVE_FEED_PC_MAX,
-    virtualEnabled,
-    dismissed,
-    stableVirtuals,
-    localPending,
-    inquiryPool,
+  const anchorBySlot = new Map<string, string>();
+  for (const item of previous) {
+    if (item.virtualSlotId && item.submittedAt) {
+      anchorBySlot.set(item.virtualSlotId, item.submittedAt);
+    }
+  }
+
+  return next.map((item) => {
+    if (!item.virtualSlotId) return item;
+    const anchored = anchorBySlot.get(item.virtualSlotId);
+    if (!anchored) return item;
+    return {
+      ...item,
+      submittedAt: anchored,
+      minutesAgo: calcMinutesAgo(anchored, now),
+    };
   });
 }
 
@@ -112,12 +117,10 @@ export function LiveReservationSection() {
     () => buildVirtualInquiryPool(config),
     [config]
   );
-  /** Figma AI — 항상 10건 빌드, CSS로 모바일 5 / PC 10 표시 분리 */
   const buildMaxCount = LIVE_FEED_PC_MAX;
   const title = config.liveStatus.title || "실시간 방문예약 현황";
 
   const dismissedRef = useRef<Set<string>>(new Set());
-  const stableVirtualsRef = useRef<Map<string, ReservationItem>>(new Map());
   const pendingLocalRef = useRef<ReservationItem | null>(
     typeof window !== "undefined" ? loadPendingSubmission() : null
   );
@@ -128,7 +131,6 @@ export function LiveReservationSection() {
   const newestKeyRef = useRef<string | null>(null);
   const prevItemsRef = useRef<ReservationItem[]>([]);
   const lastRawRef = useRef<ReservationItem[]>([]);
-  const prevTopKeyRef = useRef<string | null>(null);
   const virtualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const realPriorityUntilRef = useRef(0);
   const mountedRef = useRef(false);
@@ -180,7 +182,6 @@ export function LiveReservationSection() {
         return;
       }
 
-      // 이전에 강조됐던 카드가 더 이상 1번(최상단)이 아니면 → 현재 최상단으로 이동
       if (highlightedIdx > 0 && topKey && topKey !== current) {
         newestKeyRef.current = topKey;
         setNewestKey(topKey);
@@ -189,18 +190,32 @@ export function LiveReservationSection() {
     [markInsertAnimation]
   );
 
-  const applyFeed = useCallback(
-    (raw: ReservationItem[], opts?: { animateTop?: boolean }) => {
-      const built = buildLiveFeed(raw, {
+  const buildFeed = useCallback(
+    (raw: ReservationItem[], now = Date.now()) => {
+      const built = buildDeterministicLiveFeed(raw, {
+        siteCode,
         maxCount: buildMaxCount,
         virtualEnabled: config.settings.virtualReservationsEnabled,
         dismissed: dismissedRef.current,
-        stableVirtuals: stableVirtualsRef.current,
         localPending: pendingLocalRef.current,
         inquiryPool,
+        now,
       });
+      return preserveVirtualAnchors(prevItemsRef.current, built, now);
+    },
+    [
+      siteCode,
+      buildMaxCount,
+      config.settings.virtualReservationsEnabled,
+      inquiryPool,
+    ]
+  );
 
+  const applyFeed = useCallback(
+    (raw: ReservationItem[], opts?: { animateTop?: boolean }) => {
+      const built = buildFeed(raw);
       const previous = prevItemsRef.current;
+
       dismissedRef.current = collectDismissed(
         previous,
         built,
@@ -208,26 +223,17 @@ export function LiveReservationSection() {
       );
 
       syncNewestHighlight(built, previous, opts);
-
       prevItemsRef.current = built;
-      prevTopKeyRef.current = built[0] ? feedItemKey(built[0]) : null;
       mountedRef.current = true;
-
       setItems(built);
     },
-    [
-      buildMaxCount,
-      config.settings.virtualReservationsEnabled,
-      inquiryPool,
-      syncNewestHighlight,
-    ]
+    [buildFeed, syncNewestHighlight]
   );
 
   const tickFeed = useCallback(() => {
     if (!config.settings.liveStatusEnabled) return;
 
     lastRawRef.current = tickReservationTimes(lastRawRef.current);
-    tickStableVirtuals(stableVirtualsRef.current);
 
     if (pendingLocalRef.current?.submittedAt) {
       const minutesAgo = calcMinutesAgo(pendingLocalRef.current.submittedAt);
@@ -242,8 +248,23 @@ export function LiveReservationSection() {
       }
     }
 
-    applyFeed(lastRawRef.current);
-  }, [applyFeed, config.settings.liveStatusEnabled]);
+    const ticked = tickReservationTimes(prevItemsRef.current).filter(
+      (item) => item.minutesAgo <= LIVE_FEED_MAX_MINUTES
+    );
+
+    if (ticked.length < buildMaxCount && config.settings.virtualReservationsEnabled) {
+      applyFeed(lastRawRef.current);
+      return;
+    }
+
+    prevItemsRef.current = ticked;
+    setItems(ticked);
+  }, [
+    applyFeed,
+    buildMaxCount,
+    config.settings.liveStatusEnabled,
+    config.settings.virtualReservationsEnabled,
+  ]);
 
   const loadItems = useCallback(() => {
     if (!config.settings.liveStatusEnabled) return;
@@ -268,72 +289,48 @@ export function LiveReservationSection() {
     siteCode,
   ]);
 
-  const injectVirtualReservation = useCallback(() => {
-    if (!config.settings.virtualReservationsEnabled) return;
-    if (Date.now() < realPriorityUntilRef.current) return;
-
-    const usedNames = new Set(
-      [...prevItemsRef.current].map((i) => formatReservationName(i.name))
-    );
-    const usedTypes = new Set(
-      [...prevItemsRef.current].map((i) => formatReservationType(i.type))
-    );
-    const usedMinutes = new Set(
-      [...prevItemsRef.current].map((i) => i.minutesAgo)
-    );
-    const item = createIncomingVirtualItem(
-      usedNames,
-      usedTypes,
-      usedMinutes,
-      inquiryPool
-    );
-    registerVirtualItem(stableVirtualsRef.current, item);
-    applyFeed(lastRawRef.current, { animateTop: true });
-  }, [applyFeed, config.settings.virtualReservationsEnabled, inquiryPool]);
-
-  const scheduleVirtualInject = useCallback(() => {
+  const scheduleDeterministicInject = useCallback(() => {
     if (!config.settings.virtualReservationsEnabled) return;
     if (virtualTimerRef.current) clearTimeout(virtualTimerRef.current);
+
+    const delay =
+      Date.now() < realPriorityUntilRef.current
+        ? REAL_PRIORITY_COOLDOWN_MS
+        : msUntilNextInjection(siteCode);
+
     virtualTimerRef.current = setTimeout(() => {
-      injectVirtualReservation();
-      scheduleVirtualInject();
-    }, randomVirtualInjectDelayMs());
-  }, [config.settings.virtualReservationsEnabled, injectVirtualReservation]);
+      applyFeed(lastRawRef.current, { animateTop: true });
+      scheduleDeterministicInject();
+    }, delay);
+  }, [applyFeed, config.settings.virtualReservationsEnabled, siteCode]);
 
   const deferVirtualForRealSubmission = useCallback(() => {
     realPriorityUntilRef.current = Date.now() + REAL_PRIORITY_COOLDOWN_MS;
     if (virtualTimerRef.current) clearTimeout(virtualTimerRef.current);
-    scheduleVirtualInject();
-  }, [scheduleVirtualInject]);
+    scheduleDeterministicInject();
+  }, [scheduleDeterministicInject]);
 
   useLayoutEffect(() => {
     if (clientReadyRef.current) return;
     clientReadyRef.current = true;
     pendingLocalRef.current = loadPendingSubmission();
-    const built = createInitialFeed(
-      config.settings.virtualReservationsEnabled,
-      dismissedRef.current,
-      stableVirtualsRef.current,
-      pendingLocalRef.current,
-      inquiryPool
-    );
+    const built = buildFeed([]);
     prevItemsRef.current = built;
-    prevTopKeyRef.current = built[0] ? feedItemKey(built[0]) : null;
     setItems(built);
-  }, [config.settings.virtualReservationsEnabled, inquiryPool]);
+  }, [buildFeed]);
 
   useEffect(() => {
     loadItems();
     const refresh = setInterval(loadItems, 45000);
     return () => clearInterval(refresh);
-  }, [loadItems, applyFeed]);
+  }, [loadItems]);
 
   useEffect(() => {
-    scheduleVirtualInject();
+    scheduleDeterministicInject();
     return () => {
       if (virtualTimerRef.current) clearTimeout(virtualTimerRef.current);
     };
-  }, [scheduleVirtualInject]);
+  }, [scheduleDeterministicInject]);
 
   useEffect(() => {
     const tick = setInterval(tickFeed, TICK_MS);
@@ -341,9 +338,9 @@ export function LiveReservationSection() {
   }, [tickFeed]);
 
   useEffect(() => {
-    stableVirtualsRef.current.clear();
+    dismissedRef.current.clear();
     applyFeed(lastRawRef.current);
-  }, [inquiryPool, applyFeed]);
+  }, [inquiryPool, siteCode, applyFeed]);
 
   useEffect(() => {
     const onSubmitted = (event: Event) => {
@@ -388,7 +385,6 @@ export function LiveReservationSection() {
       <div className="mx-auto w-full max-w-[1100px]">
         <LiveSectionHeader title={title} />
 
-        {/* Figma RealtimeStatus — 모바일 5건 (768px 미만) */}
         <div className="md:hidden">
           <LayoutGroup id="live-reservation-list-mobile">
             <FeedList
@@ -399,7 +395,6 @@ export function LiveReservationSection() {
           </LayoutGroup>
         </div>
 
-        {/* Figma RealtimeStatus — PC 2열 × 5행 = 10건 (768px 이상, 즉시 표시) */}
         <div className="hidden md:grid md:grid-cols-2 md:gap-3">
           <LayoutGroup id="live-reservation-list-desktop">
             <FeedList
