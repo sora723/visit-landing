@@ -9,7 +9,6 @@ import {
   buildInitialFeedStack,
   FEED_BUCKET_MS,
   isSortedByRecency,
-  VIRTUAL_GAP_MAX,
   VIRTUAL_GAP_MIN,
 } from "../src/lib/deterministic-live-feed";
 import {
@@ -66,9 +65,14 @@ assertTrue("최신순 정렬", isSortedByRecency(feedA));
 
 const gaps = adjacentMinuteGaps(feedA);
 assertTrue(
-  "인접 카드 간격 1~10분",
-  gaps.every((g) => g >= VIRTUAL_GAP_MIN && g <= VIRTUAL_GAP_MAX),
+  "인접 카드 간격 최소 1분",
+  gaps.every((g) => g >= VIRTUAL_GAP_MIN),
   gaps.join(", ")
+);
+assertTrue(
+  "가장 오래된 카드 20분",
+  feedA[feedA.length - 1]?.minutesAgo === 20,
+  String(feedA[feedA.length - 1]?.minutesAgo)
 );
 
 const stack = buildDeterministicLiveFeed([], {

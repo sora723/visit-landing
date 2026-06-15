@@ -26,6 +26,7 @@ import {
   prependToFeedStack,
   savePendingSubmission,
   sortByRecency,
+  spreadVisibleFeedItems,
   tickReservationTimes,
 } from "@/lib/live-reservation-feed";
 import type { ReservationItem } from "@/lib/types";
@@ -382,7 +383,7 @@ export function LiveReservationSection() {
       window.removeEventListener("reservation-submitted", onSubmitted);
   }, [prependIncoming, loadItems, deferVirtualForRealSubmission, config]);
 
-  const mobileItems = items.slice(0, mobileMax);
+  const mobileItems = spreadVisibleFeedItems(items, mobileMax);
   const pcItems = items.slice(0, pcMax);
 
   if (!config.settings.liveStatusEnabled) return null;

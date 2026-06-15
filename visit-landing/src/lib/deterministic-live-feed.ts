@@ -1,6 +1,6 @@
 /**
  * 실시간 방문예약 현황 — 결정론적 가상 피드
- * 카드 간격: 이전 카드 대비 1~10분 (시드 기반, 기기 간 동일)
+ * 카드 타임라인: 최신 ~ 최대 20분 전, 랜덤 간격(시드 기반, 기기 간 동일)
  * 스택: 신규 최상단 적재 → 밀려난 오래된 카드 숨김
  */
 
@@ -22,8 +22,8 @@ import { createSeededRandom, hashSeed } from "@/lib/seeded-random";
 import { pickWeightedKoreanSurnameSeeded } from "@/lib/virtual-surnames";
 
 export const FEED_BUCKET_MS = 30 * 60 * 1000;
+/** 가상 타임라인 인접 카드 최소 간격(분) */
 export const VIRTUAL_GAP_MIN = 1;
-export const VIRTUAL_GAP_MAX = 10;
 
 const INJECT_MIN_MS = 90_000;
 const INJECT_MAX_MS = 150_000;
@@ -32,18 +32,56 @@ function bucketStart(now: number): number {
   return Math.floor(now / FEED_BUCKET_MS) * FEED_BUCKET_MS;
 }
 
-function pickGapMinutes(
-  rand: () => number,
-  remainingSlots: number,
-  remainingMinutes: number
-): number {
-  if (remainingSlots <= 0 || remainingMinutes <= 0) return VIRTUAL_GAP_MAX;
-  const maxAllowed = Math.min(
-    VIRTUAL_GAP_MAX,
-    Math.max(VIRTUAL_GAP_MIN, Math.floor(remainingMinutes / remainingSlots))
-  );
-  const minAllowed = Math.min(VIRTUAL_GAP_MIN, maxAllowed);
-  return minAllowed + Math.floor(rand() * (maxAllowed - minAllowed + 1));
+/** count개 간격이 totalSpan(분)을 채우도록 시드 랜덤 분배 — 각 간격 ≥ minGap */
+function allocateRandomGaps(
+  count: number,
+  totalSpan: number,
+  minGap: number,
+  rand: () => number
+): number[] {
+  if (count <= 0) return [];
+  const minTotal = count * minGap;
+  if (totalSpan <= 0) return Array(count).fill(minGap);
+  if (totalSpan < minTotal) {
+    const base = Math.max(1, Math.floor(totalSpan / count));
+    const gaps = Array.from({ length: count }, () => base);
+    gaps[gaps.length - 1]! += totalSpan - base * count;
+    return gaps;
+  }
+
+  const slack = totalSpan - minTotal;
+  const weights = Array.from({ length: count }, () => 1 + rand() * 9);
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  let allocatedSlack = 0;
+
+  return weights.map((weight, index) => {
+    if (index === count - 1) return minGap + (slack - allocatedSlack);
+    const extra = Math.floor((weight / weightSum) * slack);
+    allocatedSlack += extra;
+    return minGap + extra;
+  });
+}
+
+/** fromMinutes ~ toMinutes 구간에 count개 minutesAgo를 랜덤 간격으로 배치 (오름차순) */
+function pickTimelineMinutes(
+  count: number,
+  fromMinutes: number,
+  toMinutes: number,
+  rand: () => number
+): number[] {
+  const span = toMinutes - fromMinutes;
+  if (count <= 0 || span <= 0) return [];
+
+  const gaps = allocateRandomGaps(count, span, VIRTUAL_GAP_MIN, rand);
+  const minutes: number[] = [];
+  let cursor = fromMinutes;
+
+  for (let i = 0; i < gaps.length; i++) {
+    cursor += gaps[i]!;
+    minutes.push(i === gaps.length - 1 ? toMinutes : Math.min(cursor, toMinutes));
+  }
+
+  return minutes;
 }
 
 function pickVirtualInquiryTypeSeeded(
@@ -162,16 +200,17 @@ function fillVirtualTimelineGaps(
 
   const bucket = bucketStart(now);
   const rand = createSeededRandom(hashSeed(`${siteCode}:gaps:${bucket}`));
-  let lastMinutes = merged.length > 0 ? merged[merged.length - 1]!.minutesAgo : 0;
+  const oldestMinutes =
+    merged.length > 0 ? merged[merged.length - 1]!.minutesAgo : 0;
+  const timelineMinutes = pickTimelineMinutes(
+    need,
+    oldestMinutes,
+    LIVE_FEED_MAX_MINUTES,
+    rand
+  );
 
-  for (let slot = 0; slot < need; slot++) {
-    const remainingSlots = need - slot;
-    const remainingMinutes = LIVE_FEED_MAX_MINUTES - lastMinutes;
-    const gap = pickGapMinutes(rand, remainingSlots, remainingMinutes);
-    const minutesAgo = lastMinutes + gap;
-    if (minutesAgo > LIVE_FEED_MAX_MINUTES) break;
-
-    lastMinutes = minutesAgo;
+  for (let slot = 0; slot < timelineMinutes.length; slot++) {
+    const minutesAgo = timelineMinutes[slot]!;
     const slotId = `${siteCode}:base:${bucket}:${slot}`;
     if (dismissed.has(slotId)) continue;
 

@@ -201,6 +201,22 @@ export function sortByRecency(items: ReservationItem[]): ReservationItem[] {
   });
 }
 
+/** 모바일 등 적은 노출 수에서도 0~20분 타임라인이 보이도록 균등 샘플링 (최신순 유지) */
+export function spreadVisibleFeedItems(
+  items: ReservationItem[],
+  count: number
+): ReservationItem[] {
+  if (items.length <= count) return items;
+
+  const picked: ReservationItem[] = [];
+  for (let i = 0; i < count; i++) {
+    const idx =
+      count === 1 ? 0 : Math.round((i * (items.length - 1)) / (count - 1));
+    picked.push(items[idx]!);
+  }
+  return picked;
+}
+
 /** 최상단에 쌓기 — 1-2-3-4-5 + 신규 → 0-1-2-3-4 (max 초과 하단 숨김) */
 export function prependToFeedStack(
   stack: ReservationItem[],
