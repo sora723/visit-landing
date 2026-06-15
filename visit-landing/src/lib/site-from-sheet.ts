@@ -365,9 +365,9 @@ export function buildSiteConfigFromSheet(
       },
     },
     liveReservation: ext.liveReservation ?? {
-      mobileVisibleCount: 3,
+      mobileVisibleCount: 5,
       mobileRotateSeconds: 5,
-      pcVisibleCount: 12,
+      pcVisibleCount: 10,
       statusLabels: ["접수완료", "예약확정", "상담예정"],
     },
     liveStatus: ext.liveStatus ?? {

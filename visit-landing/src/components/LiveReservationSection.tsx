@@ -7,6 +7,8 @@ import { ReservationCard } from "./ReservationCard";
 import { fetchRecentReservations } from "@/lib/api";
 import {
   buildDeterministicLiveFeed,
+  currentInjectionIndex,
+  createLiveInjectionItem,
   msUntilNextInjection,
 } from "@/lib/deterministic-live-feed";
 import { buildVirtualInquiryPool, inferSubmissionStatusLabel } from "@/lib/reservation-form-options";
@@ -23,6 +25,7 @@ import {
   feedItemKey,
   loadPendingSubmission,
   savePendingSubmission,
+  sortByRecency,
   tickReservationTimes,
 } from "@/lib/live-reservation-feed";
 import type { ReservationItem } from "@/lib/types";
@@ -117,7 +120,11 @@ export function LiveReservationSection() {
     () => buildVirtualInquiryPool(config),
     [config]
   );
-  const buildMaxCount = LIVE_FEED_PC_MAX;
+  const mobileMax =
+    config.liveReservation?.mobileVisibleCount ?? LIVE_FEED_MOBILE_MAX;
+  const pcMax = config.liveReservation?.pcVisibleCount ?? LIVE_FEED_PC_MAX;
+  /** 피드는 PC 최대치까지 빌드 — 모바일은 렌더 시 slice로 5건만 노출 */
+  const buildMaxCount = pcMax;
   const title = config.liveStatus.title || "실시간 방문예약 현황";
 
   const dismissedRef = useRef<Set<string>>(new Set());
@@ -133,6 +140,8 @@ export function LiveReservationSection() {
   const lastRawRef = useRef<ReservationItem[]>([]);
   const virtualTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const realPriorityUntilRef = useRef(0);
+  const liveInjectionsRef = useRef<Map<string, ReservationItem>>(new Map());
+  const lastInjectionIndexRef = useRef(-1);
   const mountedRef = useRef(false);
   const clientReadyRef = useRef(false);
 
@@ -200,6 +209,7 @@ export function LiveReservationSection() {
         localPending: pendingLocalRef.current,
         inquiryPool,
         now,
+        liveInjections: [...liveInjectionsRef.current.values()],
       });
       return preserveVirtualAnchors(prevItemsRef.current, built, now);
     },
@@ -248,9 +258,9 @@ export function LiveReservationSection() {
       }
     }
 
-    const ticked = tickReservationTimes(prevItemsRef.current).filter(
-      (item) => item.minutesAgo <= LIVE_FEED_MAX_MINUTES
-    );
+    const ticked = sortByRecency(
+      tickReservationTimes(prevItemsRef.current)
+    ).filter((item) => item.minutesAgo <= LIVE_FEED_MAX_MINUTES);
 
     if (ticked.length < buildMaxCount && config.settings.virtualReservationsEnabled) {
       applyFeed(lastRawRef.current);
@@ -270,7 +280,7 @@ export function LiveReservationSection() {
     if (!config.settings.liveStatusEnabled) return;
     fetchRecentReservations(
       config.settings.virtualReservationsEnabled,
-      LIVE_FEED_PC_MAX,
+      pcMax,
       siteCode
     )
       .then((raw) => {
@@ -287,6 +297,7 @@ export function LiveReservationSection() {
     config.settings.virtualReservationsEnabled,
     applyFeed,
     siteCode,
+    pcMax,
   ]);
 
   const scheduleDeterministicInject = useCallback(() => {
@@ -299,10 +310,24 @@ export function LiveReservationSection() {
         : msUntilNextInjection(siteCode);
 
     virtualTimerRef.current = setTimeout(() => {
+      const idx = currentInjectionIndex(siteCode);
+      if (
+        config.settings.virtualReservationsEnabled &&
+        idx > lastInjectionIndexRef.current
+      ) {
+        lastInjectionIndexRef.current = idx;
+        const item = createLiveInjectionItem(siteCode, idx, inquiryPool);
+        liveInjectionsRef.current.set(item.virtualSlotId!, item);
+      }
       applyFeed(lastRawRef.current, { animateTop: true });
       scheduleDeterministicInject();
     }, delay);
-  }, [applyFeed, config.settings.virtualReservationsEnabled, siteCode]);
+  }, [
+    applyFeed,
+    config.settings.virtualReservationsEnabled,
+    inquiryPool,
+    siteCode,
+  ]);
 
   const deferVirtualForRealSubmission = useCallback(() => {
     realPriorityUntilRef.current = Date.now() + REAL_PRIORITY_COOLDOWN_MS;
@@ -314,10 +339,11 @@ export function LiveReservationSection() {
     if (clientReadyRef.current) return;
     clientReadyRef.current = true;
     pendingLocalRef.current = loadPendingSubmission();
+    lastInjectionIndexRef.current = currentInjectionIndex(siteCode);
     const built = buildFeed([]);
     prevItemsRef.current = built;
     setItems(built);
-  }, [buildFeed]);
+  }, [buildFeed, siteCode]);
 
   useEffect(() => {
     loadItems();
@@ -339,6 +365,8 @@ export function LiveReservationSection() {
 
   useEffect(() => {
     dismissedRef.current.clear();
+    liveInjectionsRef.current.clear();
+    lastInjectionIndexRef.current = currentInjectionIndex(siteCode);
     applyFeed(lastRawRef.current);
   }, [inquiryPool, siteCode, applyFeed]);
 
@@ -372,8 +400,8 @@ export function LiveReservationSection() {
       window.removeEventListener("reservation-submitted", onSubmitted);
   }, [applyFeed, loadItems, deferVirtualForRealSubmission, config]);
 
-  const mobileItems = items.slice(0, LIVE_FEED_MOBILE_MAX);
-  const pcItems = items.slice(0, LIVE_FEED_PC_MAX);
+  const mobileItems = items.slice(0, mobileMax);
+  const pcItems = items.slice(0, pcMax);
 
   if (!config.settings.liveStatusEnabled) return null;
 

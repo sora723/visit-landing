@@ -1,12 +1,12 @@
 /**
  * 실시간 방문예약 현황 — 결정론적 가상 피드
- * siteCode + 30분 버킷 기준 동일 생성 → 모바일/PC·새로고침 간 목록 일치
+ * siteCode + 30분 버킷 — 기기·새로고침 간 동일 목록
+ * 카드 간격: 이전 카드 대비 1~10분 (시드 기반, Math.random 아님)
  */
 
 import {
   LIVE_FEED_MAX_MINUTES,
   VIRTUAL_INQUIRY_TYPES,
-  VIRTUAL_MINUTE_GAP,
   calcMinutesAgo,
   dedupeByName,
   formatReservationName,
@@ -17,10 +17,13 @@ import {
   trimFeedToMax,
 } from "@/lib/live-reservation-feed";
 import type { ReservationItem } from "@/lib/types";
-import { createSeededRandom, hashSeed, seededShuffle } from "@/lib/seeded-random";
+import { createSeededRandom, hashSeed } from "@/lib/seeded-random";
 import { pickWeightedKoreanSurnameSeeded } from "@/lib/virtual-surnames";
 
 export const FEED_BUCKET_MS = 30 * 60 * 1000;
+export const VIRTUAL_GAP_MIN = 1;
+export const VIRTUAL_GAP_MAX = 10;
+
 const INJECT_MIN_MS = 90_000;
 const INJECT_MAX_MS = 150_000;
 
@@ -28,50 +31,14 @@ function bucketStart(now: number): number {
   return Math.floor(now / FEED_BUCKET_MS) * FEED_BUCKET_MS;
 }
 
-/** 현장별 고정 주입 간격 — 버킷 내 동일 */
-export function injectionIntervalMs(siteCode: string, now = Date.now()): number {
-  const seed = hashSeed(`${siteCode}:interval:${bucketStart(now)}`);
-  const rand = createSeededRandom(seed);
-  return INJECT_MIN_MS + Math.floor(rand() * (INJECT_MAX_MS - INJECT_MIN_MS + 1));
-}
-
-function hasMinuteGapConflict(candidate: number, others: Set<number>): boolean {
-  for (const other of others) {
-    if (Math.abs(other - candidate) < VIRTUAL_MINUTE_GAP) return true;
-  }
-  return false;
-}
-
-function pickVirtualMinutesSeeded(
-  seed: number,
-  used: Set<number>,
-  count: number
-): number[] {
-  const rand = createSeededRandom(seed);
-  const picked: number[] = [];
-  const blocked = new Set(used);
-  const pool = seededShuffle(
-    Array.from({ length: LIVE_FEED_MAX_MINUTES - 1 }, (_, i) => i + 1),
-    rand
+function pickGapMinutes(rand: () => number, remainingSlots: number, remainingMinutes: number): number {
+  if (remainingSlots <= 0 || remainingMinutes <= 0) return VIRTUAL_GAP_MAX;
+  const maxAllowed = Math.min(
+    VIRTUAL_GAP_MAX,
+    Math.max(VIRTUAL_GAP_MIN, Math.floor(remainingMinutes / remainingSlots))
   );
-
-  for (const m of pool) {
-    if (picked.length >= count) break;
-    if (hasMinuteGapConflict(m, blocked)) continue;
-    picked.push(m);
-    blocked.add(m);
-  }
-
-  if (picked.length < count) {
-    for (const m of pool) {
-      if (picked.length >= count) break;
-      if (blocked.has(m)) continue;
-      picked.push(m);
-      blocked.add(m);
-    }
-  }
-
-  return picked;
+  const minAllowed = Math.min(VIRTUAL_GAP_MIN, maxAllowed);
+  return minAllowed + Math.floor(rand() * (maxAllowed - minAllowed + 1));
 }
 
 function pickVirtualInquiryTypeSeeded(
@@ -84,17 +51,16 @@ function pickVirtualInquiryTypeSeeded(
   return list[Math.floor(rand() * list.length)]!;
 }
 
-function createBaseVirtualItem(
+function createVirtualItem(
   siteCode: string,
-  slotIndex: number,
+  slotId: string,
   minutesAgo: number,
   now: number,
+  seed: number,
   inquiryPool: readonly string[],
   usedNames: Set<string>,
   usedTypes: Set<string>
 ): ReservationItem {
-  const bucket = bucketStart(now);
-  const seed = hashSeed(`${siteCode}:base:${bucket}:${slotIndex}:${minutesAgo}`);
   const rand = createSeededRandom(seed);
   const surname = pickWeightedKoreanSurnameSeeded(rand, usedNames);
   const name = `${surname}○○`;
@@ -108,64 +74,97 @@ function createBaseVirtualItem(
     isVirtual: true,
     type,
     submittedAt,
-    virtualSlotId: `${siteCode}:base:${bucket}:${slotIndex}`,
+    virtualSlotId: slotId,
   };
 }
 
-/** 버킷 시작 이후 경과 시간 기준 — 주입되어야 할 가상 접수 */
-export function createScheduledInjectionItems(
-  siteCode: string,
-  now: number,
-  inquiryPool: readonly string[],
-  existingKeys: Set<string>
-): ReservationItem[] {
-  const start = bucketStart(now);
-  const interval = injectionIntervalMs(siteCode, now);
-  if (interval <= 0) return [];
-
-  const elapsed = now - start;
-  const injectionCount = Math.floor(elapsed / interval);
-  const items: ReservationItem[] = [];
-  const usedNames = new Set(existingKeys);
-
-  for (let i = 0; i < injectionCount; i++) {
-    const firedAt = start + (i + 1) * interval;
-    if (firedAt > now) break;
-
-    const seed = hashSeed(`${siteCode}:inj:${bucketStart(now)}:${i}`);
-    const rand = createSeededRandom(seed);
-    const surname = pickWeightedKoreanSurnameSeeded(rand, usedNames);
-    const name = `${surname}○○`;
-    const key = `${name}|v`;
-    if (existingKeys.has(key)) continue;
-
-    const type = pickVirtualInquiryTypeSeeded(rand, new Set(), inquiryPool);
-    const submittedAt = new Date(firedAt).toISOString();
-    const minutesAgo = calcMinutesAgo(submittedAt, now);
-    if (minutesAgo > LIVE_FEED_MAX_MINUTES) continue;
-
-    items.push({
-      name,
-      minutesAgo,
-      isVirtual: true,
-      type,
-      submittedAt,
-      virtualSlotId: `${siteCode}:inj:${bucketStart(now)}:${i}`,
-    });
-    usedNames.add(name);
-    existingKeys.add(key);
-  }
-
-  return items;
+/** 현장별 고정 주입 간격 — 버킷 내 동일 */
+export function injectionIntervalMs(siteCode: string, now = Date.now()): number {
+  const seed = hashSeed(`${siteCode}:interval:${bucketStart(now)}`);
+  const rand = createSeededRandom(seed);
+  return INJECT_MIN_MS + Math.floor(rand() * (INJECT_MAX_MS - INJECT_MIN_MS + 1));
 }
 
-/** 다음 가상 주입까지 남은 ms — 클라이언트 타이머용 */
+export function currentInjectionIndex(siteCode: string, now = Date.now()): number {
+  const start = bucketStart(now);
+  const interval = injectionIntervalMs(siteCode, now);
+  if (interval <= 0) return 0;
+  return Math.floor((now - start) / interval);
+}
+
+/** LIVE 타이머 — 신규 1건 (최상단 방금 전) */
+export function createLiveInjectionItem(
+  siteCode: string,
+  injectionIndex: number,
+  inquiryPool: readonly string[],
+  now = Date.now()
+): ReservationItem {
+  const bucket = bucketStart(now);
+  const usedNames = new Set<string>();
+  const usedTypes = new Set<string>();
+  return createVirtualItem(
+    siteCode,
+    `${siteCode}:inj:${bucket}:${injectionIndex}`,
+    0,
+    now,
+    hashSeed(`${siteCode}:inj:${bucket}:${injectionIndex}`),
+    inquiryPool,
+    usedNames,
+    usedTypes
+  );
+}
+
+/** 다음 가상 주입까지 남은 ms */
 export function msUntilNextInjection(siteCode: string, now = Date.now()): number {
   const start = bucketStart(now);
   const interval = injectionIntervalMs(siteCode, now);
   const elapsed = now - start;
   const nextAt = start + (Math.floor(elapsed / interval) + 1) * interval;
   return Math.max(1000, nextAt - now);
+}
+
+/**
+ * 최신순 목록 하단부터 1~10분 간격으로 가상 카드 보충
+ * (목록 순서 = 시간순, 카드 간 텀만 랜덤처럼 보이게)
+ */
+function fillVirtualTimelineGaps(
+  merged: ReservationItem[],
+  need: number,
+  siteCode: string,
+  now: number,
+  inquiryPool: readonly string[],
+  usedNames: Set<string>,
+  usedTypes: Set<string>,
+  dismissed: Set<string>
+): void {
+  if (need <= 0) return;
+
+  const bucket = bucketStart(now);
+  const rand = createSeededRandom(hashSeed(`${siteCode}:gaps:${bucket}`));
+  let lastMinutes = merged.length > 0 ? merged[merged.length - 1]!.minutesAgo : 0;
+
+  for (let slot = 0; slot < need; slot++) {
+    const remainingSlots = need - slot;
+    const remainingMinutes = LIVE_FEED_MAX_MINUTES - lastMinutes;
+    const gap = pickGapMinutes(rand, remainingSlots, remainingMinutes);
+    const minutesAgo = lastMinutes + gap;
+    if (minutesAgo > LIVE_FEED_MAX_MINUTES) break;
+
+    lastMinutes = minutesAgo;
+    const item = createVirtualItem(
+      siteCode,
+      `${siteCode}:base:${bucket}:${slot}`,
+      minutesAgo,
+      now,
+      hashSeed(`${siteCode}:base:${bucket}:${slot}:${minutesAgo}`),
+      inquiryPool,
+      usedNames,
+      usedTypes
+    );
+
+    if (dismissed.has(reservationKey(item))) continue;
+    merged.push(item);
+  }
 }
 
 export function buildDeterministicLiveFeed(
@@ -178,6 +177,8 @@ export function buildDeterministicLiveFeed(
     localPending?: ReservationItem | null;
     inquiryPool?: readonly string[];
     now?: number;
+    /** LIVE 타이머로 추가된 최상단 가상 접수 */
+    liveInjections?: ReservationItem[];
   }
 ): ReservationItem[] {
   const {
@@ -188,6 +189,7 @@ export function buildDeterministicLiveFeed(
     localPending,
     inquiryPool = VIRTUAL_INQUIRY_TYPES,
     now = Date.now(),
+    liveInjections = [],
   } = options;
 
   let real = sortByRecency(
@@ -209,57 +211,65 @@ export function buildDeterministicLiveFeed(
   }
 
   real = dedupeByName(real);
-  let merged = trimFeedToMax(real, maxCount, dismissed);
 
-  if (!virtualEnabled || merged.length >= maxCount) {
-    return merged;
-  }
+  const usedNames = new Set(real.map((i) => formatReservationName(i.name)));
+  const usedTypes = new Set(real.map((i) => formatReservationType(i.type)));
 
-  const existingKeys = new Set(merged.map(reservationKey));
-  const usedMinutes = new Set(merged.map((i) => i.minutesAgo));
-  const usedNames = new Set(merged.map((i) => formatReservationName(i.name)));
-  const usedTypes = new Set(merged.map((i) => formatReservationType(i.type)));
+  let merged: ReservationItem[] = [...real];
 
-  const injections = createScheduledInjectionItems(
-    siteCode,
-    now,
-    inquiryPool,
-    existingKeys
-  );
-  for (const item of sortByRecency(injections)) {
-    if (merged.length >= maxCount) break;
-    if (dismissed.has(reservationKey(item))) continue;
-    merged.push(item);
-    usedMinutes.add(item.minutesAgo);
-    usedNames.add(formatReservationName(item.name));
-    usedTypes.add(formatReservationType(item.type));
+  for (const inject of liveInjections) {
+    if (dismissed.has(reservationKey(inject))) continue;
+    const name = formatReservationName(inject.name);
+    if (usedNames.has(name)) continue;
+    merged.push({
+      ...inject,
+      minutesAgo: calcMinutesAgo(inject.submittedAt ?? now, now),
+    });
+    usedNames.add(name);
+    usedTypes.add(formatReservationType(inject.type));
   }
 
   merged = sortByRecency(merged);
+  merged = trimFeedToMax(merged, maxCount, dismissed);
 
-  if (merged.length < maxCount) {
-    const need = maxCount - merged.length;
-    const minutes = pickVirtualMinutesSeeded(
-      hashSeed(`${siteCode}:fill:${bucketStart(now)}`),
-      usedMinutes,
-      need
-    );
-
-    minutes.forEach((min, slotIndex) => {
-      if (merged.length >= maxCount) return;
-      const item = createBaseVirtualItem(
-        siteCode,
-        slotIndex,
-        min,
-        now,
-        inquiryPool,
-        usedNames,
-        usedTypes
-      );
-      if (dismissed.has(reservationKey(item))) return;
-      merged.push(item);
-    });
+  if (!virtualEnabled || merged.length >= maxCount) {
+    return sortByRecency(merged);
   }
 
+  fillVirtualTimelineGaps(
+    merged,
+    maxCount - merged.length,
+    siteCode,
+    now,
+    inquiryPool,
+    usedNames,
+    usedTypes,
+    dismissed
+  );
+
   return trimFeedToMax(sortByRecency(merged), maxCount, dismissed);
+}
+
+/** 인접 카드 간격이 1~10분인지 (최신순 목록) */
+export function adjacentMinuteGaps(items: ReservationItem[]): number[] {
+  const sorted = sortByRecency(items);
+  const gaps: number[] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    gaps.push(sorted[i + 1]!.minutesAgo - sorted[i]!.minutesAgo);
+  }
+  return gaps;
+}
+
+export function isSortedByRecency(items: ReservationItem[]): boolean {
+  for (let i = 0; i < items.length - 1; i++) {
+    if (items[i]!.minutesAgo > items[i + 1]!.minutesAgo) return false;
+    if (
+      items[i]!.minutesAgo === items[i + 1]!.minutesAgo &&
+      new Date(items[i]!.submittedAt ?? 0).getTime() <
+        new Date(items[i + 1]!.submittedAt ?? 0).getTime()
+    ) {
+      return false;
+    }
+  }
+  return true;
 }
