@@ -9,10 +9,10 @@ import {
   VIRTUAL_INQUIRY_TYPES,
   calcMinutesAgo,
   dedupeByName,
+  feedItemKey,
   formatReservationName,
   formatReservationType,
   normalizeReservationItems,
-  prependToFeedStack,
   reservationKey,
   sortByRecency,
   trimFeedToMax,
@@ -292,7 +292,9 @@ export function buildDeterministicLiveFeed(
     dismissed
   );
 
-  return trimFeedToMax(sortByRecency(merged), maxCount, dismissed);
+  return trimFeedToMax(sortByRecency(merged), maxCount, dismissed, undefined, {
+    preserveTimelineAnchor: virtualEnabled,
+  });
 }
 
 /** 첫 진입·siteCode 변경 — 베이스 + 버킷 내 LIVE 주입 이력을 스택으로 복원 */
@@ -318,7 +320,7 @@ export function buildInitialFeedStack(
     ...rest
   } = options;
 
-  let stack = buildDeterministicLiveFeed(raw, {
+  const stack = buildDeterministicLiveFeed(raw, {
     siteCode,
     maxCount,
     virtualEnabled,
@@ -333,11 +335,23 @@ export function buildInitialFeedStack(
   const injections = sortByRecency(
     buildHistoricalInjectionItems(siteCode, now, inquiryPool, dismissed)
   );
-  for (let i = injections.length - 1; i >= 0; i--) {
-    stack = prependToFeedStack(stack, injections[i]!, maxCount, dismissed);
-  }
+  const merged = sortByRecency(
+    dedupeByFeedItemKey([...stack, ...injections])
+  );
 
-  return stack;
+  return trimFeedToMax(merged, maxCount, dismissed, undefined, {
+    preserveTimelineAnchor: true,
+  });
+}
+
+function dedupeByFeedItemKey(items: ReservationItem[]): ReservationItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = feedItemKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function adjacentMinuteGaps(items: ReservationItem[]): number[] {

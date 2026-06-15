@@ -217,6 +217,48 @@ export function spreadVisibleFeedItems(
   return picked;
 }
 
+/** 타임라인 하단 앵커(최대 20분) — base 가상 슬롯 우선 */
+export function findTimelineAnchorKey(
+  items: ReservationItem[]
+): string | null {
+  const baseCandidates = items.filter(
+    (item) =>
+      item.isVirtual &&
+      item.virtualSlotId?.includes(":base:") &&
+      item.minutesAgo >= LIVE_FEED_MAX_MINUTES - 1
+  );
+  const candidates =
+    baseCandidates.length > 0
+      ? baseCandidates
+      : items.filter(
+          (item) =>
+            item.isVirtual && item.minutesAgo >= LIVE_FEED_MAX_MINUTES - 1
+        );
+
+  if (candidates.length === 0) return null;
+
+  const anchor = candidates.reduce((best, item) =>
+    item.minutesAgo >= best.minutesAgo ? item : best
+  );
+  return feedItemKey(anchor);
+}
+
+function pickFeedItemsWithAnchor(
+  sorted: ReservationItem[],
+  maxCount: number,
+  anchorKey: string | null
+): ReservationItem[] {
+  if (sorted.length <= maxCount) return sorted;
+  if (!anchorKey || maxCount <= 1) return sorted.slice(0, maxCount);
+
+  const anchor = sorted.find((item) => feedItemKey(item) === anchorKey);
+  if (!anchor) return sorted.slice(0, maxCount);
+
+  const rest = sorted.filter((item) => feedItemKey(item) !== anchorKey);
+  const head = rest.slice(0, maxCount - 1);
+  return sortByRecency([...head, anchor]);
+}
+
 /** 최상단에 쌓기 — 1-2-3-4-5 + 신규 → 0-1-2-3-4 (max 초과 하단 숨김) */
 export function prependToFeedStack(
   stack: ReservationItem[],
@@ -230,7 +272,9 @@ export function prependToFeedStack(
     ...incoming,
     minutesAgo: calcMinutesAgo(incoming.submittedAt ?? Date.now()),
   };
-  return trimFeedToMax(sortByRecency([anchored, ...filtered]), maxCount, dismissed);
+  return trimFeedToMax(sortByRecency([anchored, ...filtered]), maxCount, dismissed, undefined, {
+    preserveTimelineAnchor: true,
+  });
 }
 
 /**
@@ -241,15 +285,20 @@ export function trimFeedToMax(
   items: ReservationItem[],
   maxCount: number,
   dismissed: Set<string>,
-  stableVirtuals?: Map<string, ReservationItem>
+  stableVirtuals?: Map<string, ReservationItem>,
+  options?: { preserveTimelineAnchor?: boolean }
 ): ReservationItem[] {
   const sorted = sortByRecency(
     items.filter((i) => !dismissed.has(reservationKey(i)))
   );
   if (sorted.length <= maxCount) return sorted;
 
-  const kept = sorted.slice(0, maxCount);
-  const dropped = sorted.slice(maxCount);
+  const preserveAnchor = options?.preserveTimelineAnchor ?? false;
+  const anchorKey = preserveAnchor ? findTimelineAnchorKey(sorted) : null;
+  const kept = pickFeedItemsWithAnchor(sorted, maxCount, anchorKey);
+  const keptKeys = new Set(kept.map(feedItemKey));
+  const dropped = sorted.filter((item) => !keptKeys.has(feedItemKey(item)));
+
   for (const item of dropped) {
     dismissed.add(reservationKey(item));
     stableVirtuals?.delete(reservationKey(item));

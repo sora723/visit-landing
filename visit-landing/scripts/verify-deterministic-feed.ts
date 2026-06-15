@@ -75,7 +75,20 @@ assertTrue(
   String(feedA[feedA.length - 1]?.minutesAgo)
 );
 
-const stack = buildDeterministicLiveFeed([], {
+const stack = buildInitialFeedStack([], {
+  siteCode,
+  maxCount: 10,
+  virtualEnabled: true,
+  dismissed: new Set(),
+  now,
+});
+assertTrue(
+  "초기 스택 가장 오래된 카드 20분",
+  stack[stack.length - 1]?.minutesAgo === 20,
+  String(stack[stack.length - 1]?.minutesAgo)
+);
+
+const stack5 = buildDeterministicLiveFeed([], {
   siteCode,
   maxCount: 5,
   virtualEnabled: true,
@@ -90,7 +103,7 @@ const incoming = {
   submittedAt: new Date().toISOString(),
   virtualSlotId: `${siteCode}:test:new`,
 };
-const pushed = prependToFeedStack(stack, incoming, 5, new Set());
+const pushed = prependToFeedStack(stack5, incoming, 5, new Set());
 assertTrue("스택 prepend 후 최상단 신규", pushed[0]?.name === "신규○○");
 assertEqual("스택 max 5 유지", pushed.length, 5);
 assertTrue("스택 prepend 후 최신순", isSortedByRecency(pushed));
