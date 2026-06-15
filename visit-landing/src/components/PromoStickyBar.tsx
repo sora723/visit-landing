@@ -118,7 +118,6 @@ export function PromoStickyBar({
   }, [siteCode]);
 
   useEffect(() => {
-    fetchLivePromo();
     const timer = setInterval(fetchLivePromo, POLL_MS);
 
     const onVisible = () => {

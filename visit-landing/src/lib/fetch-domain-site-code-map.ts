@@ -8,6 +8,7 @@ type DomainMapCache = {
 };
 
 let domainMapCache: DomainMapCache | null = null;
+let domainMapInFlight: Promise<Record<string, string>> | null = null;
 
 export function normalizeHostname(hostname?: string | null): string {
   let host = String(hostname ?? "")
@@ -32,11 +33,7 @@ export function resolveSiteCodeFromDomainMap(
   return map[host] ?? map[`www.${host}`] ?? null;
 }
 
-export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> {
-  if (domainMapCache && Date.now() < domainMapCache.expiresAt) {
-    return domainMapCache.map;
-  }
-
+async function fetchDomainSiteCodeMapUncached(): Promise<Record<string, string>> {
   const appsScriptUrl = String(process.env.APPS_SCRIPT_URL ?? "").trim();
   if (!appsScriptUrl) {
     return domainMapCache?.map ?? {};
@@ -44,7 +41,7 @@ export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> 
 
   try {
     const res = await fetch(`${appsScriptUrl}?action=site.domains`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
       redirect: "follow",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(10_000),
@@ -81,6 +78,23 @@ export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> 
   return domainMapCache?.map ?? {};
 }
 
+export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> {
+  if (domainMapCache && Date.now() < domainMapCache.expiresAt) {
+    return domainMapCache.map;
+  }
+
+  if (domainMapInFlight) {
+    return domainMapInFlight;
+  }
+
+  domainMapInFlight = fetchDomainSiteCodeMapUncached().finally(() => {
+    domainMapInFlight = null;
+  });
+
+  return domainMapInFlight;
+}
+
 export function clearDomainSiteCodeMapCache(): void {
   domainMapCache = null;
+  domainMapInFlight = null;
 }

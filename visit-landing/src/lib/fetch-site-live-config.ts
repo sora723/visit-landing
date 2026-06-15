@@ -1,5 +1,6 @@
 /** Google Sheet 콘텐츠관리 — 실시간 UI 설정 (site.config) */
 
+import { cache } from "react";
 import siteJson from "../../config/site.json";
 import {
   getAppsScriptEnv,
@@ -58,6 +59,11 @@ export type SiteLiveConfigData = {
 
 const LOG = "[fetchSiteLiveConfigFromSheet]";
 const FILE_FALLBACK = siteJson as SiteConfig;
+const IS_DEV = process.env.NODE_ENV === "development";
+
+function logDebug(...args: unknown[]): void {
+  if (IS_DEV) console.error(LOG, ...args);
+}
 
 function unavailableResult(debug: SiteLiveConfigDebug): SiteLiveConfigData {
   return {
@@ -74,22 +80,23 @@ function looksLikeHtml(body: string): boolean {
   return t.startsWith("<!doctype") || t.startsWith("<html");
 }
 
-export async function fetchSiteLiveConfigFromSheet(
+async function fetchSiteLiveConfigFromSheetImpl(
   siteCodeOverride?: string | null
 ): Promise<SiteLiveConfigData> {
   const { siteCode } = getAppsScriptEnv(siteCodeOverride);
 
-  const { readSiteLiveConfigCache, writeSiteLiveConfigCache } =
-    await import("@/lib/site-live-config-cache");
-  const cached = readSiteLiveConfigCache(siteCode);
-  if (cached) {
-    return cached;
-  }
-
-  const data = await fetchSiteLiveConfigFromSheetUncached(siteCodeOverride);
-  writeSiteLiveConfigCache(siteCode, data);
-  return data;
+  const { dedupeSiteLiveConfigFetch } = await import(
+    "@/lib/site-live-config-cache"
+  );
+  return dedupeSiteLiveConfigFetch(siteCode, () =>
+    fetchSiteLiveConfigFromSheetUncached(siteCodeOverride)
+  );
 }
+
+/** 요청당 React cache + 프로세스 내 in-flight dedup */
+export const fetchSiteLiveConfigFromSheet = cache(
+  fetchSiteLiveConfigFromSheetImpl
+);
 
 async function fetchSiteLiveConfigFromSheetUncached(
   siteCodeOverride?: string | null
@@ -118,7 +125,7 @@ async function fetchSiteLiveConfigFromSheetUncached(
     `&siteCode=${encodeURIComponent(siteCode)}`;
 
   try {
-    console.error(`${LOG} fetch URL=${fetchUrl}`);
+    logDebug("fetch URL=", fetchUrl);
 
     const res = await fetch(fetchUrl, {
       next: { revalidate: 60 },
@@ -129,8 +136,13 @@ async function fetchSiteLiveConfigFromSheetUncached(
 
     const bodyText = await res.text();
     const contentType = res.headers.get("content-type");
-    console.error(`${LOG} response status=${res.status} content-type=${contentType ?? "(none)"}`);
-    console.error(`${LOG} response body=${bodyText.slice(0, 800)}`);
+    logDebug(
+      "response status=",
+      res.status,
+      "content-type=",
+      contentType ?? "(none)"
+    );
+    logDebug("response body=", bodyText.slice(0, 800));
 
     const fetchDebug: SiteLiveConfigDebug = {
       ...baseDebug,

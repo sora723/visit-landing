@@ -56,6 +56,11 @@ export async function resolveRequestSiteCode(
     request.nextUrl.searchParams.get("siteCode") ??
     new URL(request.url).searchParams.get("siteCode");
 
+  const headerSiteCode = request.headers.get("x-site-code")?.trim();
+  if (headerSiteCode && !fromQuery?.trim() && !bodySiteCode?.trim()) {
+    return headerSiteCode;
+  }
+
   const hostname = getRequestHostname(request);
   const { fetchDomainSiteCodeMap, resolveSiteCodeFromDomainMap } =
     await import("@/lib/fetch-domain-site-code-map");

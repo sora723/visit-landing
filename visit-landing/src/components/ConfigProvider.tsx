@@ -21,6 +21,8 @@ import { pickCtaText } from "@/lib/utils";
 import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
 
+const POLL_MS = 15_000;
+
 export type ContentSource = "sheet" | "unavailable";
 
 interface ConfigContextValue {
@@ -68,23 +70,35 @@ export function ConfigProvider({
     setContentSource(initialSource);
   }, [initialConfig, initialSource, siteCode]);
 
-  // Sheet 실시간 갱신 — 요청 siteCode와 응답 siteCode 일치할 때만 반영 (L001 덮어쓰기 방지)
+  // Sheet 실시간 갱신 — SSR에 sheet 데이터가 있으면 첫 mount fetch 생략 (초기 로딩 경쟁 제거)
   useEffect(() => {
     let cancelled = false;
-    fetch(appendSiteCodeQuery("/api/site-content", siteCode))
-      .then((res) => res.json())
-      .then((json) => {
-        if (cancelled || !json.success || !json.data) return;
-        const liveConfig = parseLiveSiteConfig(json.data as Record<string, unknown>);
-        if (!liveConfig || liveConfig.siteCode !== siteCode) return;
-        setConfig(liveConfig);
-        setContentSource("sheet");
-      })
-      .catch(() => {});
+
+    const refresh = () => {
+      fetch(appendSiteCodeQuery("/api/site-content", siteCode))
+        .then((res) => res.json())
+        .then((json) => {
+          if (cancelled || !json.success || !json.data) return;
+          const liveConfig = parseLiveSiteConfig(
+            json.data as Record<string, unknown>
+          );
+          if (!liveConfig || liveConfig.siteCode !== siteCode) return;
+          setConfig(liveConfig);
+          setContentSource("sheet");
+        })
+        .catch(() => {});
+    };
+
+    if (initialSource !== "sheet") {
+      refresh();
+    }
+
+    const timer = setInterval(refresh, POLL_MS);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
-  }, [siteCode]);
+  }, [siteCode, initialSource]);
 
   useEffect(() => {
     document.title = buildSitePageTitle(config.siteName, config.seo.title);

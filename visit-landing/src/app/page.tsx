@@ -1,10 +1,13 @@
-import { Suspense } from "react";
+import { preload } from "react-dom";
+import { headers } from "next/headers";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { isMobileUserAgent } from "@/lib/is-mobile-user-agent";
+import { resolveHeroImageSources } from "@/lib/responsive-image";
 import { getServerSiteCode } from "@/lib/server-site-code";
 import { ConfigProvider } from "@/components/ConfigProvider";
 import { LandingPage } from "@/components/LandingPage";
-import { PromoStickyBarServer } from "@/components/PromoStickyBarServer";
+import { PromoStickyBar } from "@/components/PromoStickyBar";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +23,16 @@ export default async function Home({ searchParams }: HomeProps) {
   const config =
     live.source === "sheet" && live.siteConfig ? live.siteConfig : fallback;
 
+  const hdrs = await headers();
+  const serverMobile = isMobileUserAgent(hdrs.get("user-agent") ?? "");
+  const heroSources = resolveHeroImageSources(config.hero);
+  const heroPreloadUrl = serverMobile
+    ? heroSources.mobile || heroSources.desktop
+    : heroSources.desktop || heroSources.mobile;
+  if (heroPreloadUrl) {
+    preload(heroPreloadUrl, { as: "image", fetchPriority: "high" });
+  }
+
   return (
     <ConfigProvider
       key={siteCode}
@@ -29,9 +42,11 @@ export default async function Home({ searchParams }: HomeProps) {
     >
       <LandingPage
         promoBar={
-          <Suspense fallback={null}>
-            <PromoStickyBarServer siteCode={siteCode} />
-          </Suspense>
+          <PromoStickyBar
+            siteCode={siteCode}
+            initialText={config.stickyPromoText ?? null}
+            serverMobile={serverMobile}
+          />
         }
       />
     </ConfigProvider>

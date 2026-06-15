@@ -10,6 +10,7 @@ type Entry = {
 };
 
 const cache = new Map<string, Entry>();
+const inFlight = new Map<string, Promise<SiteLiveConfigData>>();
 
 export function readSiteLiveConfigCache(siteCode: string): SiteLiveConfigData | null {
   const hit = cache.get(siteCode);
@@ -28,7 +29,33 @@ export function writeSiteLiveConfigCache(
 export function clearSiteLiveConfigCache(siteCode?: string): void {
   if (siteCode) {
     cache.delete(siteCode);
+    inFlight.delete(siteCode);
     return;
   }
   cache.clear();
+  inFlight.clear();
+}
+
+/** 동시 요청( metadata + layout + page ) — Apps Script 1회만 호출 */
+export function dedupeSiteLiveConfigFetch(
+  siteCode: string,
+  fetcher: () => Promise<SiteLiveConfigData>
+): Promise<SiteLiveConfigData> {
+  const cached = readSiteLiveConfigCache(siteCode);
+  if (cached) return Promise.resolve(cached);
+
+  const pending = inFlight.get(siteCode);
+  if (pending) return pending;
+
+  const promise = fetcher()
+    .then((data) => {
+      writeSiteLiveConfigCache(siteCode, data);
+      return data;
+    })
+    .finally(() => {
+      inFlight.delete(siteCode);
+    });
+
+  inFlight.set(siteCode, promise);
+  return promise;
 }
