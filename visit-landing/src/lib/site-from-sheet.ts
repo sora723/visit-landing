@@ -5,6 +5,7 @@
 
 import { buildSitePageTitle } from "@/lib/site-page-title";
 import { resolveBrandingFromExtended } from "./branding-url";
+import { resolveOgImageUrl } from "./image-url";
 import { normalizeFooter } from "./footer-config";
 import type { SiteConfig } from "./types";
 import type { CtaPromoImageSection } from "./types";
@@ -404,9 +405,11 @@ export function buildSiteConfigFromSheet(
       title: buildSitePageTitle(site.siteName, ext.seo?.title),
       description: ext.seo?.description?.trim() ?? "",
       ogImage:
-        ext.seo?.ogImage?.trim() ||
-        content.heroVisualImage ||
-        content.heroImage,
+        resolveOgImageUrl(
+          ext.seo?.ogImage,
+          content.heroVisualImage,
+          content.heroImage
+        ) ?? "",
       faviconUrl,
     },
     customSections: ext.customSections ?? [],

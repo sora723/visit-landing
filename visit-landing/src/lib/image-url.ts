@@ -60,6 +60,19 @@ export function normalizeImageUrl(
   return trimmed;
 }
 
+/** seo.ogImage — Drive 공유 링크 → 썸네일, 비어 있으면 fallback 순서대로 */
+export function resolveOgImageUrl(
+  primary: string | undefined,
+  ...fallbacks: (string | undefined)[]
+): string | undefined {
+  for (const raw of [primary, ...fallbacks]) {
+    const trimmed = raw?.trim();
+    if (!trimmed) continue;
+    return normalizeImageUrl(trimmed, "section");
+  }
+  return undefined;
+}
+
 /** Drive 로드 실패 시 더 작은 썸네일 → placeholder */
 export function getImageFallbackUrl(
   url: string,

@@ -7,6 +7,7 @@ import { buildSitePageTitle } from "@/lib/site-page-title";
 import { normalizeFooter } from "./footer-config";
 import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { resolveBrandingFromExtended } from "./branding-url";
+import { resolveOgImageUrl } from "./image-url";
 import { mergeSiteTheme } from "./site-theme";
 import type { CtaPromoImageSection } from "./types";
 
@@ -185,9 +186,11 @@ export function buildSiteConfigFromApi(
         seoFromExt?.description?.trim() ||
         fallback.seo.description,
       ogImage:
-        seoFromExt?.ogImage?.trim() ||
-        heroVisualImage ||
-        fallback.seo.ogImage,
+        resolveOgImageUrl(
+          seoFromExt?.ogImage,
+          heroVisualImage,
+          fallback.seo.ogImage
+        ) ?? fallback.seo.ogImage,
       faviconUrl,
     },
     customSections: ext.customSections ?? fallback.customSections ?? [],
