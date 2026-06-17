@@ -10,6 +10,25 @@ import {
 } from "@/lib/resolve-site-code";
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === "/favicon.ico") {
+    const fromCookie = request.cookies.get("siteCode")?.value;
+    const hostname = getRequestHostname(request);
+    const domainMap = await fetchDomainSiteCodeMap();
+    const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
+    const siteCode = resolveSiteCodeInput({
+      querySiteCode: request.nextUrl.searchParams.get("siteCode"),
+      domainSiteCode,
+      cookieSiteCode: fromCookie,
+    });
+
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-site-code", siteCode);
+
+    const url = request.nextUrl.clone();
+    url.pathname = "/api/favicon";
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+
   const fromQuery = request.nextUrl.searchParams.get("siteCode");
   const fromCookie = request.cookies.get("siteCode")?.value;
   const hostname = getRequestHostname(request);
@@ -46,5 +65,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: [
+    "/favicon.ico",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
+  ],
 };

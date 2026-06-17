@@ -25,7 +25,7 @@ export function buildSiteSeoMetadata(input: {
   const canonical = buildAbsoluteSiteUrl(pathname, origin);
   const pageTitle = buildSitePageTitle(siteName, seo.title);
   const ogImages = seo.ogImage ? [{ url: seo.ogImage }] : [];
-  const iconUrl = faviconUrl?.trim() || seo.faviconUrl?.trim();
+  const hasFavicon = Boolean(faviconUrl?.trim() || seo.faviconUrl?.trim());
 
   const other: Record<string, string> = {};
   if (ownership.metaOwnershipCode) {
@@ -42,11 +42,12 @@ export function buildSiteSeoMetadata(input: {
     metadataBase: new URL(`${origin.replace(/\/$/, "")}/`),
     title: pageTitle,
     description: seo.description,
-    ...(iconUrl
+    /** 외부 URL 중복 link 방지 — /favicon.ico rewrite가 시트 이미지를 서빙 */
+    ...(hasFavicon
       ? {
           icons: {
-            icon: [{ url: iconUrl }],
-            apple: [{ url: iconUrl }],
+            icon: [{ url: "/favicon.ico", type: "image/png", sizes: "32x32" }],
+            apple: [{ url: "/favicon.ico" }],
           },
         }
       : {}),
