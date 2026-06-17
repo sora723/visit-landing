@@ -59,6 +59,8 @@ export interface ContentManagementRow {
   /** JSON string: string[] — CTA A/B 문구 */
   ctaText: string;
   mobileHookText: string;
+  headerBrand?: string;
+  headerSubBrand?: string;
   popupImage1?: string;
   popupImage2?: string;
   heroImage: string;
@@ -166,7 +168,9 @@ export interface ContentExtendedData {
     businessNumber?: string;
     contact?: string;
   };
-  seo?: { title: string; description: string; ogImage: string };
+  seo?: { title: string; description: string; ogImage: string; faviconUrl?: string };
+  /** extendedData — 상단 헤더 로고 URL */
+  headerLogoUrl?: string;
   /** extendedData fallback — stickyPromoText 컬럼 우선 */
   stickyPromoText?: string;
   customSections?: import("./types").CustomImageSection[];

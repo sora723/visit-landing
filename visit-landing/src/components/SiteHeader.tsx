@@ -3,6 +3,7 @@
 import { IconPhone } from "./icons";
 import { useEffect, useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { normalizeImageUrl } from "@/lib/image-url";
 import { formatHeaderTagline } from "@/lib/utils";
 
 const NAV: { label: string; href: string; highlight?: boolean }[] = [
@@ -22,6 +23,9 @@ export function SiteHeader() {
   const { config } = useConfig();
   const tel = config.phone.replace(/\D/g, "");
   const headerTagline = formatHeaderTagline(config.headerBrand, config.headerSubBrand);
+  const headerLogoSrc = config.headerLogoUrl
+    ? normalizeImageUrl(config.headerLogoUrl, "logo")
+    : "";
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -43,20 +47,31 @@ export function SiteHeader() {
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="flex flex-col leading-tight text-left"
+          className="flex min-w-0 items-center gap-2.5 text-left"
         >
-          {headerTagline ? (
-            <span className="text-[9px] tracking-[0.28em] text-[var(--color-gold)]">
-              {headerTagline}
-            </span>
+          {headerLogoSrc ? (
+            <img
+              src={headerLogoSrc}
+              alt=""
+              width={120}
+              height={32}
+              className="h-8 w-auto max-w-[120px] shrink-0 object-contain object-left"
+            />
           ) : null}
-          <span
-            className={`text-xl font-black tracking-wide transition-colors duration-300 ${
-              scrolled ? "text-[var(--color-navy)]" : "text-white"
-            }`}
-          >
-            {config.siteName}
-          </span>
+          <div className="min-w-0 flex flex-col leading-tight">
+            {headerTagline ? (
+              <span className="text-[9px] tracking-[0.28em] text-[var(--color-gold)]">
+                {headerTagline}
+              </span>
+            ) : null}
+            <span
+              className={`truncate text-xl font-black tracking-wide transition-colors duration-300 ${
+                scrolled ? "text-[var(--color-navy)]" : "text-white"
+              }`}
+            >
+              {config.siteName}
+            </span>
+          </div>
         </button>
 
         <nav className="hidden items-center gap-7 md:flex">

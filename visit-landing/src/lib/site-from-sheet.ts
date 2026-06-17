@@ -4,6 +4,7 @@
  */
 
 import { buildSitePageTitle } from "@/lib/site-page-title";
+import { resolveBrandingFromExtended } from "./branding-url";
 import { normalizeFooter } from "./footer-config";
 import type { SiteConfig } from "./types";
 import type { CtaPromoImageSection } from "./types";
@@ -307,6 +308,7 @@ export function buildSiteConfigFromSheet(
     todayLabel: "오늘 방문예약",
     activeLabel: "실시간 상담",
   };
+  const { faviconUrl, headerLogoUrl } = resolveBrandingFromExtended(ext);
 
   return {
     siteCode: site.siteCode,
@@ -315,6 +317,10 @@ export function buildSiteConfigFromSheet(
     managerName: site.managerName || undefined,
     notificationPhone: site.notifyPhone,
     stickyPromoText: resolveStickyPromoText(content, ext),
+    headerBrand: content.headerBrand?.trim() || undefined,
+    headerSubBrand: content.headerSubBrand?.trim() || undefined,
+    faviconUrl,
+    headerLogoUrl,
     settings: {
       popupEnabled: parseBool(site.popupEnabled, true),
       liveStatusEnabled: parseBool(site.liveStatusEnabled, true),
@@ -401,6 +407,7 @@ export function buildSiteConfigFromSheet(
         ext.seo?.ogImage?.trim() ||
         content.heroVisualImage ||
         content.heroImage,
+      faviconUrl,
     },
     customSections: ext.customSections ?? [],
     reservationForm: {

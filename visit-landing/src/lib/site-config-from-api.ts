@@ -6,6 +6,7 @@ import type { SiteConfigApiData } from "./site-config-api";
 import { buildSitePageTitle } from "@/lib/site-page-title";
 import { normalizeFooter } from "./footer-config";
 import { normalizeHeroCardIconKey } from "./hero-card-icons";
+import { resolveBrandingFromExtended } from "./branding-url";
 import { mergeSiteTheme } from "./site-theme";
 import type { CtaPromoImageSection } from "./types";
 
@@ -106,6 +107,7 @@ export function buildSiteConfigFromApi(
   const siteName = api.siteName?.trim() || fallback.siteName;
   const seoFromExt = ext.seo;
   const seoTitleSource = seoFromExt?.title ?? fallback.seo.title;
+  const { faviconUrl, headerLogoUrl } = resolveBrandingFromExtended(ext);
 
   return {
     siteCode: api.siteCode,
@@ -116,6 +118,8 @@ export function buildSiteConfigFromApi(
     stickyPromoText: api.stickyPromoText ?? undefined,
     headerBrand: api.headerBrand?.trim() || undefined,
     headerSubBrand: api.headerSubBrand?.trim() || undefined,
+    faviconUrl,
+    headerLogoUrl,
     settings: api.settings ?? fallback.settings,
     popup: {
       ...(ext.popup ?? fallback.popup),
@@ -184,6 +188,7 @@ export function buildSiteConfigFromApi(
         seoFromExt?.ogImage?.trim() ||
         heroVisualImage ||
         fallback.seo.ogImage,
+      faviconUrl,
     },
     customSections: ext.customSections ?? fallback.customSections ?? [],
     theme: mergeSiteTheme({

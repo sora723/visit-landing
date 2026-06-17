@@ -13,6 +13,10 @@ export interface SiteConfig {
   headerBrand?: string;
   /** 헤더 서브 브랜드 — 콘텐츠관리.headerSubBrand */
   headerSubBrand?: string;
+  /** 브라우저 탭 파비콘 — extendedData.seo.faviconUrl */
+  faviconUrl?: string;
+  /** 상단 헤더 로고 — extendedData.headerLogoUrl */
+  headerLogoUrl?: string;
   settings: {
     popupEnabled: boolean;
     liveStatusEnabled: boolean;
@@ -132,7 +136,7 @@ export interface SiteConfig {
     /** 하단 안내 문구 (개인정보 등) */
     bottomText?: string;
   };
-  seo: { title: string; description: string; ogImage: string };
+  seo: { title: string; description: string; ogImage: string; faviconUrl?: string };
   /** 현장별 추가 이미지 섹션 — 비어 있으면 미노출 */
   customSections?: CustomImageSection[];
   /** 브랜드 컬러 — site.json 기본값 + Sheet live 덮어쓰기 */

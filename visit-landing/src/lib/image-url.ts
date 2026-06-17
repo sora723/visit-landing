@@ -6,7 +6,9 @@ export type ImageSizePreset =
   | "popup-pc"
   | "popup-mobile"
   | "section"
-  | "lightbox";
+  | "lightbox"
+  | "favicon"
+  | "logo";
 
 const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   hero: 1920,
@@ -15,6 +17,8 @@ const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   "popup-mobile": 720,
   section: 1200,
   lightbox: 2560,
+  favicon: 96,
+  logo: 256,
 };
 
 const PLACEHOLDER_SVG =

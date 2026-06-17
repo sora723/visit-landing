@@ -19,11 +19,13 @@ export function buildSiteSeoMetadata(input: {
   siteName: string;
   seo: SiteSeoFields;
   ownership: OwnershipVerificationConfig;
+  faviconUrl?: string;
 }): Metadata {
-  const { origin, pathname, siteName, seo, ownership } = input;
+  const { origin, pathname, siteName, seo, ownership, faviconUrl } = input;
   const canonical = buildAbsoluteSiteUrl(pathname, origin);
   const pageTitle = buildSitePageTitle(siteName, seo.title);
   const ogImages = seo.ogImage ? [{ url: seo.ogImage }] : [];
+  const iconUrl = faviconUrl?.trim() || seo.faviconUrl?.trim();
 
   const other: Record<string, string> = {};
   if (ownership.metaOwnershipCode) {
@@ -40,6 +42,14 @@ export function buildSiteSeoMetadata(input: {
     metadataBase: new URL(`${origin.replace(/\/$/, "")}/`),
     title: pageTitle,
     description: seo.description,
+    ...(iconUrl
+      ? {
+          icons: {
+            icon: [{ url: iconUrl }],
+            apple: [{ url: iconUrl }],
+          },
+        }
+      : {}),
     alternates: {
       canonical,
     },
@@ -87,5 +97,6 @@ export async function generateSiteMetadata(
     siteName: siteConfig.siteName,
     seo,
     ownership: live.ownershipVerification,
+    faviconUrl: siteConfig.faviconUrl ?? seo.faviconUrl,
   });
 }
