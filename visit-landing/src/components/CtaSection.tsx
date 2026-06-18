@@ -27,7 +27,7 @@ export function CtaSection({
         className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-navy)] section-py-tight"
       >
         <div className="mx-auto max-w-md px-6">
-          <h2 className="mb-2 text-center text-lg font-bold text-white">{title}</h2>
+          <h2 className="mb-2 text-center text-lg font-bold text-[var(--color-cta-section-title)]">{title}</h2>
           <ReservationForm
             buttonText={config.cta.buttonText}
             redirect={false}
@@ -57,7 +57,7 @@ export function CtaSection({
           <span className="mb-2 block text-[11px] tracking-[0.3em] text-[var(--color-gold)]">
             VISIT RESERVATION
           </span>
-          <h2 className="text-[clamp(26px,4vw,42px)] font-bold tracking-wide text-white">
+          <h2 className="text-[clamp(26px,4vw,42px)] font-bold tracking-wide text-[var(--color-cta-section-title)]">
             {title}
           </h2>
           <div className="mx-auto mt-4 h-0.5 w-[60px] bg-[var(--color-gold)]" />
@@ -121,7 +121,9 @@ export function SiteFooter() {
           )}
         </div>
         {footer.bottomText && (
-          <p className="text-xs leading-relaxed">{footer.bottomText}</p>
+          <p className="whitespace-pre-line text-xs leading-relaxed">
+            {footer.bottomText}
+          </p>
         )}
         <p className="mt-2 pb-6 text-xs text-white/28">
           © {new Date().getFullYear()} All rights reserved. - 다비드 제작

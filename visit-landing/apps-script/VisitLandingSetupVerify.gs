@@ -30,7 +30,9 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText',
     'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
     'unitTypeEnabled', 'visitDateEnabled',
-    'mainColor', 'subColor', 'accentColor', 'footerData', 'extendedData'
+    'mainColor', 'subColor', 'accentColor',
+    'liveStatusTitleColor', 'ctaSectionTitleColor', 'sectionTitleColor',
+    'footerData', 'extendedData'
   ],
   '접수관리': [
     'id', 'siteCode', 'createdAt', 'name', 'phone',

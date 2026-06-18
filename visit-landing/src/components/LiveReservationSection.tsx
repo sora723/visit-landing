@@ -41,7 +41,7 @@ function LiveSectionHeader({ title }: { title: string }) {
       <span className="mb-2 block text-[11px] font-normal tracking-[0.3em] text-[var(--color-gold)]">
         REAL-TIME RESERVATION
       </span>
-      <h2 className="text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide text-white">
+      <h2 className="text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide text-[var(--color-live-status-title)]">
         {title}
       </h2>
       <div className="mx-auto mt-4 h-px w-10 bg-[var(--color-gold)]" />

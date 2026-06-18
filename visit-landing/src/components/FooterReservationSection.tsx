@@ -32,7 +32,7 @@ export function FooterReservationSection() {
           <span className="mb-2 block text-[11px] tracking-[0.3em] text-[var(--color-gold)]">
             VISIT RESERVATION
           </span>
-          <h2 className="text-[clamp(26px,4vw,42px)] font-extrabold tracking-wide text-white">
+          <h2 className="text-[clamp(26px,4vw,42px)] font-extrabold tracking-wide text-[var(--color-cta-section-title)]">
             {title}
           </h2>
           <div className="mx-auto mt-4 h-0.5 w-[60px] bg-[var(--color-gold)]" />

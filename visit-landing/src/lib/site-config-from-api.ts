@@ -195,9 +195,16 @@ export function buildSiteConfigFromApi(
     },
     customSections: ext.customSections ?? fallback.customSections ?? [],
     theme: mergeSiteTheme({
-      mainColor: api.mainColor,
-      subColor: api.subColor,
-      accentColor: api.accentColor,
+      ...fallback.theme,
+      ...ext.theme,
+      mainColor: api.mainColor ?? ext.theme?.mainColor,
+      subColor: api.subColor ?? ext.theme?.subColor,
+      accentColor: api.accentColor ?? ext.theme?.accentColor,
+      liveStatusTitleColor:
+        api.liveStatusTitleColor ?? ext.theme?.liveStatusTitleColor,
+      ctaSectionTitleColor:
+        api.ctaSectionTitleColor ?? ext.theme?.ctaSectionTitleColor,
+      sectionTitleColor: api.sectionTitleColor ?? ext.theme?.sectionTitleColor,
     }),
     reservationForm: {
       unitTypeOptions: api.unitTypeOptions.length

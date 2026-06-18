@@ -35,6 +35,9 @@ export type SiteConfigApiData = {
   mainColor?: string;
   subColor?: string;
   accentColor?: string;
+  liveStatusTitleColor?: string;
+  ctaSectionTitleColor?: string;
+  sectionTitleColor?: string;
   heroTitle?: string;
   heroSubTitle?: string;
   headerBrand?: string;
@@ -278,6 +281,9 @@ export function parseSiteConfigApiResponse(
     mainColor: optionalString(data.mainColor),
     subColor: optionalString(data.subColor),
     accentColor: optionalString(data.accentColor),
+    liveStatusTitleColor: optionalString(data.liveStatusTitleColor),
+    ctaSectionTitleColor: optionalString(data.ctaSectionTitleColor),
+    sectionTitleColor: optionalString(data.sectionTitleColor),
     heroTitle: optionalString(data.heroTitle),
     heroSubTitle: optionalString(data.heroSubTitle),
     headerBrand: optionalString(data.headerBrand),

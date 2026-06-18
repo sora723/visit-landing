@@ -9,12 +9,21 @@ export type SiteTheme = {
   subColor: string;
   /** 강조 (CTA·골드 포인트) */
   accentColor: string;
+  /** 실시간 방문예약 현황 섹션 제목 */
+  liveStatusTitleColor: string;
+  /** 홍보관 방문예약(CTA) 섹션 제목 */
+  ctaSectionTitleColor: string;
+  /** 사업개요·프리미엄 등 밝은 배경 섹션 제목 */
+  sectionTitleColor: string;
 };
 
 export const DEFAULT_SITE_THEME: SiteTheme = {
   mainColor: "#0f1d3a",
   subColor: "#d7b56d",
   accentColor: "#caa85c",
+  liveStatusTitleColor: "#ffffff",
+  ctaSectionTitleColor: "#ffffff",
+  sectionTitleColor: "#0f1d3a",
 };
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -36,13 +45,23 @@ export function normalizeHexColor(raw: string | undefined | null): string | null
 }
 
 export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
+  const mainColor =
+    normalizeHexColor(partial?.mainColor) ?? DEFAULT_SITE_THEME.mainColor;
+
   return {
-    mainColor:
-      normalizeHexColor(partial?.mainColor) ?? DEFAULT_SITE_THEME.mainColor,
+    mainColor,
     subColor:
       normalizeHexColor(partial?.subColor) ?? DEFAULT_SITE_THEME.subColor,
     accentColor:
       normalizeHexColor(partial?.accentColor) ?? DEFAULT_SITE_THEME.accentColor,
+    liveStatusTitleColor:
+      normalizeHexColor(partial?.liveStatusTitleColor) ??
+      DEFAULT_SITE_THEME.liveStatusTitleColor,
+    ctaSectionTitleColor:
+      normalizeHexColor(partial?.ctaSectionTitleColor) ??
+      DEFAULT_SITE_THEME.ctaSectionTitleColor,
+    sectionTitleColor:
+      normalizeHexColor(partial?.sectionTitleColor) ?? mainColor,
   };
 }
 
@@ -69,6 +88,9 @@ export function themeToCssProperties(theme: SiteTheme): Record<string, string> {
     "--color-accent": theme.accentColor,
     "--color-gold-light": theme.subColor,
     "--color-sub": theme.subColor,
+    "--color-live-status-title": theme.liveStatusTitleColor,
+    "--color-cta-section-title": theme.ctaSectionTitleColor,
+    "--color-section-title": theme.sectionTitleColor,
     ...(mainRgb ? { "--color-navy-rgb": mainRgb.join(", ") } : {}),
     ...(accentRgb ? { "--color-gold-rgb": accentRgb.join(", ") } : {}),
   };

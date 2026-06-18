@@ -187,4 +187,12 @@ export interface ContentExtendedData {
     unitTypeEnabled?: boolean;
     visitDateEnabled?: boolean;
   };
+  theme?: {
+    mainColor?: string;
+    subColor?: string;
+    accentColor?: string;
+    liveStatusTitleColor?: string;
+    ctaSectionTitleColor?: string;
+    sectionTitleColor?: string;
+  };
 }

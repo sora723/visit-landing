@@ -45,7 +45,7 @@ function CustomImageBlock({ section }: { section: CustomImageSection }) {
             {section.label}
           </p>
         )}
-        <h3 className="text-[clamp(20px,3.5vw,28px)] font-extrabold leading-snug text-[var(--color-navy)]">
+        <h3 className="text-[clamp(20px,3.5vw,28px)] font-extrabold leading-snug text-[var(--color-section-title)]">
           {section.title}
         </h3>
         {section.description && (

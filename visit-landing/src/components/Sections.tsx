@@ -22,7 +22,7 @@ function FigmaSectionTitle({
       <span className="mb-2 block text-[11px] tracking-[0.3em] text-[var(--color-gold)]">{en}</span>
       <h2
         className={`text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide ${
-          dark ? "text-white" : "text-[var(--color-navy)]"
+          dark ? "text-[var(--color-cta-section-title)]" : "text-[var(--color-section-title)]"
         }`}
       >
         {title}

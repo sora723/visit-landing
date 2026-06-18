@@ -17,6 +17,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** footerData.bottomText — 시트 JSON의 \\n 리터럴·실제 줄바꿈 유지 */
+export function formatFooterBottomText(raw: unknown): string | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const text = String(raw).replace(/\\n/g, "\n").trim();
+  return text || undefined;
+}
+
 function parseFooterItems(value: unknown): SiteFooterConfig["items"] {
   if (!Array.isArray(value)) return [];
 
@@ -39,7 +46,7 @@ function migrateLegacyFooter(legacy: LegacyFooter | undefined): SiteFooterConfig
     return {
       items: fromItems,
       bottomText:
-        String(legacy.bottomText ?? legacy.privacyPolicy ?? "").trim() || undefined,
+        formatFooterBottomText(legacy.bottomText ?? legacy.privacyPolicy),
     };
   }
 
@@ -60,7 +67,9 @@ function migrateLegacyFooter(legacy: LegacyFooter | undefined): SiteFooterConfig
 
   return {
     items,
-    bottomText: String(legacy.privacyPolicy ?? legacy.bottomText ?? "").trim() || undefined,
+    bottomText: formatFooterBottomText(
+      legacy.privacyPolicy ?? legacy.bottomText
+    ),
   };
 }
 
@@ -68,14 +77,14 @@ export function parseFooterData(value: unknown): SiteFooterConfig {
   if (!isRecord(value)) return { items: [] };
 
   const items = parseFooterItems(value.items);
-  const bottomText = String(
-    value.bottomText ?? value.privacyPolicy ?? value.note ?? ""
-  ).trim();
+  const bottomText = formatFooterBottomText(
+    value.bottomText ?? value.privacyPolicy ?? value.note
+  );
 
   if (items.length || bottomText) {
     return {
       items,
-      bottomText: bottomText || undefined,
+      bottomText,
     };
   }
 

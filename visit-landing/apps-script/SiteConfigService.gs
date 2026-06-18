@@ -72,6 +72,24 @@ var ACCENT_COLOR_ALIASES = [
   '포인트색'
 ];
 
+var LIVE_STATUS_TITLE_COLOR_ALIASES = [
+  'liveStatusTitleColor',
+  '실시간현황제목색',
+  '실시간방문예약제목색'
+];
+
+var CTA_SECTION_TITLE_COLOR_ALIASES = [
+  'ctaSectionTitleColor',
+  '방문예약섹션제목색',
+  '홍보관방문예약제목색'
+];
+
+var SECTION_TITLE_COLOR_ALIASES = [
+  'sectionTitleColor',
+  '섹션제목색',
+  '섹션타이틀색'
+];
+
 var HERO_IMAGE_PC_ALIASES = [
   'heroImagePc',
   '히어로이미지PC',
@@ -142,6 +160,9 @@ var FOOTER_DATA_ALIASES = [
 var DEFAULT_MAIN_COLOR = '#0f1d3a';
 var DEFAULT_SUB_COLOR = '#d7b56d';
 var DEFAULT_ACCENT_COLOR = '#caa85c';
+var DEFAULT_LIVE_STATUS_TITLE_COLOR = '#ffffff';
+var DEFAULT_CTA_SECTION_TITLE_COLOR = '#ffffff';
+var DEFAULT_SECTION_TITLE_COLOR = '';
 
 var META_PIXEL_ID_ALIASES = [
   'metaPixelId',
@@ -472,8 +493,22 @@ function ensureSiteThemeColumns() {
   var map = getHeaderIndexMap_(sheet);
   var added = [];
   // extendedData 앞에 넣을 때는 역순으로 삽입해야 main → sub → accent 순서가 됨
-  var themeHeaders = ['accentColor', 'subColor', 'mainColor'];
-  var themeAliases = [ACCENT_COLOR_ALIASES, SUB_COLOR_ALIASES, MAIN_COLOR_ALIASES];
+  var themeHeaders = [
+    'sectionTitleColor',
+    'ctaSectionTitleColor',
+    'liveStatusTitleColor',
+    'accentColor',
+    'subColor',
+    'mainColor'
+  ];
+  var themeAliases = [
+    SECTION_TITLE_COLOR_ALIASES,
+    CTA_SECTION_TITLE_COLOR_ALIASES,
+    LIVE_STATUS_TITLE_COLOR_ALIASES,
+    ACCENT_COLOR_ALIASES,
+    SUB_COLOR_ALIASES,
+    MAIN_COLOR_ALIASES
+  ];
 
   for (var t = 0; t < themeHeaders.length; t++) {
     if (hasAnyHeader_(map, themeAliases[t])) continue;
@@ -679,6 +714,10 @@ function normalizeFooterItem_(item) {
   return { title: title, content: content };
 }
 
+function formatFooterBottomText_(raw) {
+  return String(raw || '').replace(/\\n/g, '\n').trim();
+}
+
 function parseFooterFromContentRow_(contentRow, ext) {
   var raw = getSiteField_(contentRow, FOOTER_DATA_ALIASES);
   var parsed = parseJsonField_(raw, null);
@@ -691,9 +730,9 @@ function parseFooterFromContentRow_(contentRow, ext) {
     }
     return {
       items: items,
-      bottomText: String(
+      bottomText: formatFooterBottomText_(
         parsed.bottomText || parsed.privacyPolicy || parsed.note || ''
-      ).trim()
+      )
     };
   }
 
@@ -713,7 +752,9 @@ function parseFooterFromContentRow_(contentRow, ext) {
     if (legacyItems.length) {
       return {
         items: legacyItems,
-        bottomText: String(parsed.privacyPolicy || parsed.bottomText || '').trim()
+        bottomText: formatFooterBottomText_(
+          parsed.privacyPolicy || parsed.bottomText || ''
+        )
       };
     }
   }
@@ -727,7 +768,9 @@ function parseFooterFromContentRow_(contentRow, ext) {
     }
     return {
       items: extItems,
-      bottomText: String(legacy.bottomText || legacy.privacyPolicy || '').trim()
+      bottomText: formatFooterBottomText_(
+        legacy.bottomText || legacy.privacyPolicy || ''
+      )
     };
   }
 
@@ -747,7 +790,9 @@ function parseFooterFromContentRow_(contentRow, ext) {
     if (migrated.length) {
       return {
         items: migrated,
-        bottomText: String(legacy.privacyPolicy || legacy.bottomText || '').trim()
+        bottomText: formatFooterBottomText_(
+          legacy.privacyPolicy || legacy.bottomText || ''
+        )
       };
     }
   }
@@ -1090,6 +1135,27 @@ function getSiteLiveConfig(siteCode) {
   var accentColor = getThemeColorFromContentRow_(
     contentRow, ext, ACCENT_COLOR_ALIASES, 'accentColor', DEFAULT_ACCENT_COLOR
   );
+  var liveStatusTitleColor = getThemeColorFromContentRow_(
+    contentRow,
+    ext,
+    LIVE_STATUS_TITLE_COLOR_ALIASES,
+    'liveStatusTitleColor',
+    DEFAULT_LIVE_STATUS_TITLE_COLOR
+  );
+  var ctaSectionTitleColor = getThemeColorFromContentRow_(
+    contentRow,
+    ext,
+    CTA_SECTION_TITLE_COLOR_ALIASES,
+    'ctaSectionTitleColor',
+    DEFAULT_CTA_SECTION_TITLE_COLOR
+  );
+  var sectionTitleColor = getThemeColorFromContentRow_(
+    contentRow,
+    ext,
+    SECTION_TITLE_COLOR_ALIASES,
+    'sectionTitleColor',
+    mainColor
+  );
   var siteRow = findSiteByCode_(code);
   var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);
   var ownershipVerification = getOwnershipVerificationFromSiteRow_(siteRow);
@@ -1113,6 +1179,9 @@ function getSiteLiveConfig(siteCode) {
     mainColor: mainColor,
     subColor: subColor,
     accentColor: accentColor,
+    liveStatusTitleColor: liveStatusTitleColor,
+    ctaSectionTitleColor: ctaSectionTitleColor,
+    sectionTitleColor: sectionTitleColor,
     heroTitle: pageContent.heroTitle,
     heroSubTitle: pageContent.heroSubTitle,
     headerBrand: pageContent.headerBrand,
