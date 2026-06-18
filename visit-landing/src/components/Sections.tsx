@@ -11,17 +11,21 @@ function FigmaSectionTitle({
   en,
   title,
   subtitle,
-  dark = false,
+  titleVariant = "light",
 }: {
   en: string;
   title: string;
   subtitle?: string;
-  dark?: boolean;
+  /** light=밝은 배경 섹션, dark=네이비(CTA류), location=입지환경 전용 */
+  titleVariant?: "light" | "dark" | "location";
 }) {
   const theme = useSiteTheme();
-  const titleColor = dark
-    ? theme.ctaSectionTitleColor
-    : theme.sectionTitleColor;
+  const titleColor =
+    titleVariant === "location"
+      ? theme.locationTitleColor
+      : titleVariant === "dark"
+        ? theme.ctaSectionTitleColor
+        : theme.sectionTitleColor;
 
   return (
     <div className="mb-10 text-center md:mb-14">
@@ -34,7 +38,11 @@ function FigmaSectionTitle({
       </h2>
       <div className="mx-auto mt-4 h-px w-10 bg-[var(--color-gold)]" />
       {subtitle && (
-        <p className={`mt-3.5 text-sm ${dark ? "text-white/60" : "text-[#7a7060]"}`}>
+        <p
+          className={`mt-3.5 text-sm ${
+            titleVariant === "light" ? "text-[#7a7060]" : "text-white/60"
+          }`}
+        >
           {subtitle}
         </p>
       )}
@@ -167,7 +175,7 @@ export function LocationSection() {
   return (
     <section id="입지환경" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-navy)] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
-        <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} dark />
+        <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} titleVariant="location" />
         <div className="relative mb-10 h-[clamp(380px,50vw,540px)] overflow-hidden rounded-2xl bg-[#1a2e5a]">
           {hasMapImage && (
             <button

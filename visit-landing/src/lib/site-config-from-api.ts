@@ -56,6 +56,7 @@ function themeColorFromExt(
     | "liveStatusTitleColor"
     | "ctaSectionTitleColor"
     | "sectionTitleColor"
+    | "locationTitleColor"
 ): string | undefined {
   const fromTheme = ext.theme?.[key];
   if (typeof fromTheme === "string" && fromTheme.trim()) return fromTheme.trim();
@@ -222,6 +223,8 @@ export function buildSiteConfigFromApi(
         themeColorFromExt(ext, "ctaSectionTitleColor"),
       sectionTitleColor:
         api.sectionTitleColor ?? themeColorFromExt(ext, "sectionTitleColor"),
+      locationTitleColor:
+        api.locationTitleColor ?? themeColorFromExt(ext, "locationTitleColor"),
     }),
     reservationForm: {
       unitTypeOptions: api.unitTypeOptions.length

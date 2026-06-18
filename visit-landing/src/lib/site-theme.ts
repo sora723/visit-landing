@@ -15,6 +15,8 @@ export type SiteTheme = {
   ctaSectionTitleColor: string;
   /** 사업개요·프리미엄 등 밝은 배경 섹션 제목 */
   sectionTitleColor: string;
+  /** 입지환경 — 네이비 배경 섹션 제목 */
+  locationTitleColor: string;
 };
 
 export const DEFAULT_SITE_THEME: SiteTheme = {
@@ -24,6 +26,7 @@ export const DEFAULT_SITE_THEME: SiteTheme = {
   liveStatusTitleColor: "#ffffff",
   ctaSectionTitleColor: "#ffffff",
   sectionTitleColor: "#0f1d3a",
+  locationTitleColor: "#ffffff",
 };
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -62,6 +65,9 @@ export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
       DEFAULT_SITE_THEME.ctaSectionTitleColor,
     sectionTitleColor:
       normalizeHexColor(partial?.sectionTitleColor) ?? mainColor,
+    locationTitleColor:
+      normalizeHexColor(partial?.locationTitleColor) ??
+      DEFAULT_SITE_THEME.locationTitleColor,
   };
 }
 
@@ -91,6 +97,7 @@ export function themeToCssProperties(theme: SiteTheme): Record<string, string> {
     "--color-live-status-title": theme.liveStatusTitleColor,
     "--color-cta-section-title": theme.ctaSectionTitleColor,
     "--color-section-title": theme.sectionTitleColor,
+    "--color-location-title": theme.locationTitleColor,
     ...(mainRgb ? { "--color-navy-rgb": mainRgb.join(", ") } : {}),
     ...(accentRgb ? { "--color-gold-rgb": accentRgb.join(", ") } : {}),
   };

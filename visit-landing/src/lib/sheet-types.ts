@@ -174,6 +174,7 @@ export interface ContentExtendedData {
   liveStatusTitleColor?: string;
   ctaSectionTitleColor?: string;
   sectionTitleColor?: string;
+  locationTitleColor?: string;
   /** extendedData fallback — stickyPromoText 컬럼 우선 */
   stickyPromoText?: string;
   customSections?: import("./types").CustomImageSection[];
@@ -197,5 +198,6 @@ export interface ContentExtendedData {
     liveStatusTitleColor?: string;
     ctaSectionTitleColor?: string;
     sectionTitleColor?: string;
+    locationTitleColor?: string;
   };
 }

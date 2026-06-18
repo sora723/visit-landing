@@ -147,6 +147,7 @@ export interface SiteConfig {
     liveStatusTitleColor?: string;
     ctaSectionTitleColor?: string;
     sectionTitleColor?: string;
+    locationTitleColor?: string;
   };
   /** 관심평형·방문일자 — site.json 기본값 + Sheet live 덮어쓰기 */
   reservationForm?: {
