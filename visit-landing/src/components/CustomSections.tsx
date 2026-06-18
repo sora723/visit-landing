@@ -1,6 +1,7 @@
 "use client";
 
 import { useConfig } from "./ConfigProvider";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { ResponsiveImg } from "./ResponsiveImg";
 import type { CustomImageSection } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export function CustomSections() {
 }
 
 function CustomImageBlock({ section }: { section: CustomImageSection }) {
+  const theme = useSiteTheme();
   const content = (
     <>
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[var(--color-navy)]/5 sm:aspect-[21/9]">
@@ -45,7 +47,10 @@ function CustomImageBlock({ section }: { section: CustomImageSection }) {
             {section.label}
           </p>
         )}
-        <h3 className="text-[clamp(20px,3.5vw,28px)] font-extrabold leading-snug text-[var(--color-section-title)]">
+        <h3
+          className="text-[clamp(20px,3.5vw,28px)] font-extrabold leading-snug"
+          style={{ color: theme.sectionTitleColor }}
+        >
           {section.title}
         </h3>
         {section.description && (

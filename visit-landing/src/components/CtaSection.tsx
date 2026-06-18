@@ -3,6 +3,7 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { useConfig } from "./ConfigProvider";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { ReservationForm } from "./ReservationForm";
 
 export function CtaSection({
@@ -13,6 +14,7 @@ export function CtaSection({
   compact?: boolean;
 }) {
   const { config } = useConfig();
+  const theme = useSiteTheme();
   const title = config.cta.title ?? "방문예약 신청";
   const subtitle =
     config.cta.subtitle ??
@@ -27,7 +29,12 @@ export function CtaSection({
         className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-navy)] section-py-tight"
       >
         <div className="mx-auto max-w-md px-6">
-          <h2 className="mb-2 text-center text-lg font-bold text-[var(--color-cta-section-title)]">{title}</h2>
+          <h2
+            className="mb-2 text-center text-lg font-bold"
+            style={{ color: theme.ctaSectionTitleColor }}
+          >
+            {title}
+          </h2>
           <ReservationForm
             buttonText={config.cta.buttonText}
             redirect={false}
@@ -57,7 +64,10 @@ export function CtaSection({
           <span className="mb-2 block text-[11px] tracking-[0.3em] text-[var(--color-gold)]">
             VISIT RESERVATION
           </span>
-          <h2 className="text-[clamp(26px,4vw,42px)] font-bold tracking-wide text-[var(--color-cta-section-title)]">
+          <h2
+            className="text-[clamp(26px,4vw,42px)] font-bold tracking-wide"
+            style={{ color: theme.ctaSectionTitleColor }}
+          >
             {title}
           </h2>
           <div className="mx-auto mt-4 h-0.5 w-[60px] bg-[var(--color-gold)]" />

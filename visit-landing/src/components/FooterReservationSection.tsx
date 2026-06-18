@@ -3,10 +3,12 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { ReservationForm } from "./ReservationForm";
 
 export function FooterReservationSection() {
   const { config } = useConfig();
+  const theme = useSiteTheme();
   const title = config.cta.title ?? "홍보관 방문예약";
   const subtitle =
     config.cta.subtitle ?? "방문예약 후 전문 상담사의 안내를 받아보세요.";
@@ -32,7 +34,10 @@ export function FooterReservationSection() {
           <span className="mb-2 block text-[11px] tracking-[0.3em] text-[var(--color-gold)]">
             VISIT RESERVATION
           </span>
-          <h2 className="text-[clamp(26px,4vw,42px)] font-extrabold tracking-wide text-[var(--color-cta-section-title)]">
+          <h2
+            className="text-[clamp(26px,4vw,42px)] font-extrabold tracking-wide"
+            style={{ color: theme.ctaSectionTitleColor }}
+          >
             {title}
           </h2>
           <div className="mx-auto mt-4 h-0.5 w-[60px] bg-[var(--color-gold)]" />

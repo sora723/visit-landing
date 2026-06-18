@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import { ResponsiveImg } from "./ResponsiveImg";
@@ -17,13 +18,17 @@ function FigmaSectionTitle({
   subtitle?: string;
   dark?: boolean;
 }) {
+  const theme = useSiteTheme();
+  const titleColor = dark
+    ? theme.ctaSectionTitleColor
+    : theme.sectionTitleColor;
+
   return (
     <div className="mb-10 text-center md:mb-14">
       <span className="mb-2 block text-[11px] tracking-[0.3em] text-[var(--color-gold)]">{en}</span>
       <h2
-        className={`text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide ${
-          dark ? "text-[var(--color-cta-section-title)]" : "text-[var(--color-section-title)]"
-        }`}
+        className="text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide"
+        style={{ color: titleColor }}
       >
         {title}
       </h2>

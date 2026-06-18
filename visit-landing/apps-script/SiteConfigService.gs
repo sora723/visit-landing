@@ -891,12 +891,23 @@ function getThemeColorFromContentRow_(row, ext, aliases, extKey, defaultVal) {
   var fromColumn = normalizeHexColor_(getSiteField_(row, aliases));
   if (fromColumn) return fromColumn;
 
-  if (ext && ext.theme && ext.theme[extKey]) {
-    var fromExt = normalizeHexColor_(ext.theme[extKey]);
-    if (fromExt) return fromExt;
+  if (ext) {
+    if (ext.theme && ext.theme[extKey]) {
+      var fromExtTheme = normalizeHexColor_(ext.theme[extKey]);
+      if (fromExtTheme) return fromExtTheme;
+    }
+    if (ext[extKey]) {
+      var fromExtRoot = normalizeHexColor_(ext[extKey]);
+      if (fromExtRoot) return fromExtRoot;
+    }
   }
 
   return defaultVal;
+}
+
+/** 제목 색 — 미설정 시 빈 문자열 (프론트 mergeSiteTheme 기본값 사용) */
+function getOptionalThemeColorFromContentRow_(row, ext, aliases, extKey) {
+  return getThemeColorFromContentRow_(row, ext, aliases, extKey, '');
 }
 
 function getConversionTrackingFromSiteRow_(siteRow) {
@@ -1135,26 +1146,23 @@ function getSiteLiveConfig(siteCode) {
   var accentColor = getThemeColorFromContentRow_(
     contentRow, ext, ACCENT_COLOR_ALIASES, 'accentColor', DEFAULT_ACCENT_COLOR
   );
-  var liveStatusTitleColor = getThemeColorFromContentRow_(
+  var liveStatusTitleColor = getOptionalThemeColorFromContentRow_(
     contentRow,
     ext,
     LIVE_STATUS_TITLE_COLOR_ALIASES,
-    'liveStatusTitleColor',
-    DEFAULT_LIVE_STATUS_TITLE_COLOR
+    'liveStatusTitleColor'
   );
-  var ctaSectionTitleColor = getThemeColorFromContentRow_(
+  var ctaSectionTitleColor = getOptionalThemeColorFromContentRow_(
     contentRow,
     ext,
     CTA_SECTION_TITLE_COLOR_ALIASES,
-    'ctaSectionTitleColor',
-    DEFAULT_CTA_SECTION_TITLE_COLOR
+    'ctaSectionTitleColor'
   );
-  var sectionTitleColor = getThemeColorFromContentRow_(
+  var sectionTitleColor = getOptionalThemeColorFromContentRow_(
     contentRow,
     ext,
     SECTION_TITLE_COLOR_ALIASES,
-    'sectionTitleColor',
-    mainColor
+    'sectionTitleColor'
   );
   var siteRow = findSiteByCode_(code);
   var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);

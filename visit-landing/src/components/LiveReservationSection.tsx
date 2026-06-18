@@ -3,6 +3,7 @@
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { ReservationCard } from "./ReservationCard";
 import { fetchRecentReservations } from "@/lib/api";
 import {
@@ -36,12 +37,16 @@ const INSERT_ANIM_MS = 520;
 const REAL_PRIORITY_COOLDOWN_MS = 8_000;
 
 function LiveSectionHeader({ title }: { title: string }) {
+  const theme = useSiteTheme();
   return (
     <div className="mb-10 text-center md:mb-12">
       <span className="mb-2 block text-[11px] font-normal tracking-[0.3em] text-[var(--color-gold)]">
         REAL-TIME RESERVATION
       </span>
-      <h2 className="text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide text-[var(--color-live-status-title)]">
+      <h2
+        className="text-[clamp(22px,3.5vw,34px)] font-semibold tracking-wide"
+        style={{ color: theme.liveStatusTitleColor }}
+      >
         {title}
       </h2>
       <div className="mx-auto mt-4 h-px w-10 bg-[var(--color-gold)]" />

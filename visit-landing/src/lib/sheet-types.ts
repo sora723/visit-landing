@@ -171,6 +171,9 @@ export interface ContentExtendedData {
   seo?: { title: string; description: string; ogImage: string; faviconUrl?: string };
   /** extendedData — 상단 헤더 로고 URL */
   headerLogoUrl?: string;
+  liveStatusTitleColor?: string;
+  ctaSectionTitleColor?: string;
+  sectionTitleColor?: string;
   /** extendedData fallback — stickyPromoText 컬럼 우선 */
   stickyPromoText?: string;
   customSections?: import("./types").CustomImageSection[];

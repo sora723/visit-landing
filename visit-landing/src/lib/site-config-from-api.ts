@@ -50,6 +50,20 @@ function asExtendedData(raw: unknown): ContentExtendedData {
   return raw as ContentExtendedData;
 }
 
+function themeColorFromExt(
+  ext: ContentExtendedData,
+  key:
+    | "liveStatusTitleColor"
+    | "ctaSectionTitleColor"
+    | "sectionTitleColor"
+): string | undefined {
+  const fromTheme = ext.theme?.[key];
+  if (typeof fromTheme === "string" && fromTheme.trim()) return fromTheme.trim();
+  const fromRoot = (ext as Record<string, unknown>)[key];
+  if (typeof fromRoot === "string" && fromRoot.trim()) return fromRoot.trim();
+  return undefined;
+}
+
 function parseCtaPromoBg(raw?: string): CtaPromoImageSection["backgroundColor"] {
   const v = raw?.trim().toLowerCase() ?? "";
   if (
@@ -201,10 +215,13 @@ export function buildSiteConfigFromApi(
       subColor: api.subColor ?? ext.theme?.subColor,
       accentColor: api.accentColor ?? ext.theme?.accentColor,
       liveStatusTitleColor:
-        api.liveStatusTitleColor ?? ext.theme?.liveStatusTitleColor,
+        api.liveStatusTitleColor ??
+        themeColorFromExt(ext, "liveStatusTitleColor"),
       ctaSectionTitleColor:
-        api.ctaSectionTitleColor ?? ext.theme?.ctaSectionTitleColor,
-      sectionTitleColor: api.sectionTitleColor ?? ext.theme?.sectionTitleColor,
+        api.ctaSectionTitleColor ??
+        themeColorFromExt(ext, "ctaSectionTitleColor"),
+      sectionTitleColor:
+        api.sectionTitleColor ?? themeColorFromExt(ext, "sectionTitleColor"),
     }),
     reservationForm: {
       unitTypeOptions: api.unitTypeOptions.length
