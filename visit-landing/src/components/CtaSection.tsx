@@ -136,7 +136,9 @@ export function SiteFooter() {
           </p>
         )}
         <p className="mt-2 pb-6 text-xs text-white/28">
-          © {new Date().getFullYear()} All rights reserved. - 다비드 제작
+          © 2026 DAVID. All rights reserved.
+          <br />
+          Powered by DAVID
         </p>
       </div>
     </footer>
