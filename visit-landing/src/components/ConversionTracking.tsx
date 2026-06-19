@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { useEffect, useState } from "react";
 import { claimConversionFire } from "@/lib/conversion-once";
+import { ConversionRawHtmlScripts } from "@/components/ConversionRawHtmlScripts";
 import {
   hasAnyConversionTracking,
   normalizeGoogleAdsId,
@@ -82,9 +83,10 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
   return (
     <>
       {rawHtml && (
-        <Script id="conversion-raw-inline" strategy="afterInteractive">
-          {rawHtml.replace(/<\/?script[^>]*>/gi, "")}
-        </Script>
+        <ConversionRawHtmlScripts
+          html={rawHtml}
+          idPrefix={`conversion-raw-${submissionId ?? "x"}`}
+        />
       )}
       {hasMeta && (
         <>
