@@ -633,7 +633,7 @@ textarea {
   background-size: 60px 60px;
 }
 
-/* 클릭 확대 — 중앙→모서리 스와이프 (우상↗·좌하↙, 3회) */
+/* 클릭 확대 — 우상↗·좌하↙ 모서리 스와이프 (3회) */
 .zoom-lightbox-swipe-host {
   container-type: size;
 }
@@ -645,42 +645,42 @@ textarea {
 @keyframes zoom-swipe-tr {
   0% {
     opacity: 0;
-    -webkit-transform: translate(0, 0) scale(0.5);
-    transform: translate(0, 0) scale(0.5);
+    -webkit-transform: translate(-18px, 18px) scale(0.55);
+    transform: translate(-18px, 18px) scale(0.55);
   }
-  6% {
+  8% {
     opacity: 1;
-    -webkit-transform: translate(-6px, 6px) scale(0.82);
-    transform: translate(-6px, 6px) scale(0.82);
+    -webkit-transform: translate(-8px, 8px) scale(0.88);
+    transform: translate(-8px, 8px) scale(0.88);
   }
   55% {
     opacity: 0.95;
   }
   100% {
     opacity: 0;
-    -webkit-transform: translate(128px, -128px) scale(1.14);
-    transform: translate(128px, -128px) scale(1.14);
+    -webkit-transform: translate(14px, -14px) scale(1.12);
+    transform: translate(14px, -14px) scale(1.12);
   }
 }
 
 @keyframes zoom-swipe-bl {
   0% {
     opacity: 0;
-    -webkit-transform: translate(0, 0) scale(0.5);
-    transform: translate(0, 0) scale(0.5);
+    -webkit-transform: translate(18px, -18px) scale(0.55);
+    transform: translate(18px, -18px) scale(0.55);
   }
-  6% {
+  8% {
     opacity: 1;
-    -webkit-transform: translate(6px, -6px) scale(0.82);
-    transform: translate(6px, -6px) scale(0.82);
+    -webkit-transform: translate(8px, -8px) scale(0.88);
+    transform: translate(8px, -8px) scale(0.88);
   }
   55% {
     opacity: 0.95;
   }
   100% {
     opacity: 0;
-    -webkit-transform: translate(-128px, 128px) scale(1.14);
-    transform: translate(-128px, 128px) scale(1.14);
+    -webkit-transform: translate(-14px, 14px) scale(1.12);
+    transform: translate(-14px, 14px) scale(1.12);
   }
 }
 
@@ -688,46 +688,48 @@ textarea {
   @keyframes zoom-swipe-tr {
     0% {
       opacity: 0;
-      -webkit-transform: translate(0, 0) scale(0.5);
-      transform: translate(0, 0) scale(0.5);
+      -webkit-transform: translate(calc(-0.1 * 100cqmin), calc(0.1 * 100cqmin))
+        scale(0.55);
+      transform: translate(calc(-0.1 * 100cqmin), calc(0.1 * 100cqmin)) scale(0.55);
     }
-    6% {
+    8% {
       opacity: 1;
       -webkit-transform: translate(calc(-0.04 * 100cqmin), calc(0.04 * 100cqmin))
-        scale(0.82);
-      transform: translate(calc(-0.04 * 100cqmin), calc(0.04 * 100cqmin)) scale(0.82);
+        scale(0.88);
+      transform: translate(calc(-0.04 * 100cqmin), calc(0.04 * 100cqmin)) scale(0.88);
     }
     55% {
       opacity: 0.95;
     }
     100% {
       opacity: 0;
-      -webkit-transform: translate(calc(0.44 * 100cqmin), calc(-0.44 * 100cqmin))
-        scale(1.14);
-      transform: translate(calc(0.44 * 100cqmin), calc(-0.44 * 100cqmin)) scale(1.14);
+      -webkit-transform: translate(calc(0.08 * 100cqmin), calc(-0.08 * 100cqmin))
+        scale(1.12);
+      transform: translate(calc(0.08 * 100cqmin), calc(-0.08 * 100cqmin)) scale(1.12);
     }
   }
 
   @keyframes zoom-swipe-bl {
     0% {
       opacity: 0;
-      -webkit-transform: translate(0, 0) scale(0.5);
-      transform: translate(0, 0) scale(0.5);
+      -webkit-transform: translate(calc(0.1 * 100cqmin), calc(-0.1 * 100cqmin))
+        scale(0.55);
+      transform: translate(calc(0.1 * 100cqmin), calc(-0.1 * 100cqmin)) scale(0.55);
     }
-    6% {
+    8% {
       opacity: 1;
       -webkit-transform: translate(calc(0.04 * 100cqmin), calc(-0.04 * 100cqmin))
-        scale(0.82);
-      transform: translate(calc(0.04 * 100cqmin), calc(-0.04 * 100cqmin)) scale(0.82);
+        scale(0.88);
+      transform: translate(calc(0.04 * 100cqmin), calc(-0.04 * 100cqmin)) scale(0.88);
     }
     55% {
       opacity: 0.95;
     }
     100% {
       opacity: 0;
-      -webkit-transform: translate(calc(-0.44 * 100cqmin), calc(0.44 * 100cqmin))
-        scale(1.14);
-      transform: translate(calc(-0.44 * 100cqmin), calc(0.44 * 100cqmin)) scale(1.14);
+      -webkit-transform: translate(calc(-0.08 * 100cqmin), calc(0.08 * 100cqmin))
+        scale(1.12);
+      transform: translate(calc(-0.08 * 100cqmin), calc(0.08 * 100cqmin)) scale(1.12);
     }
   }
 }

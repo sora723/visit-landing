@@ -80,7 +80,7 @@ export function ZoomExpandHintLabel({
   );
 }
 
-/** 라이트박스 — 우상 ↗ · 좌하 ↙ 흰색 반투명 확대 화살표 3회 */
+/** 라이트박스 — 우상 ↗ · 좌하 ↙ (모서리 고정, 바깥 방향 스와이프) */
 function CornerExpandArrowSvg({ direction }: { direction: "tr" | "bl" }) {
   const common = {
     viewBox: "0 0 24 24",
@@ -97,20 +97,20 @@ function CornerExpandArrowSvg({ direction }: { direction: "tr" | "bl" }) {
   if (direction === "tr") {
     return (
       <svg {...common}>
-        {/* 우상 — 안쪽(대각)에서 모서리 끝으로 ↗ */}
-        <path d="M10 14L18 6" />
-        <path d="M18 6H22" />
-        <path d="M18 6V2" />
+        {/* ↗ 우측 상단 */}
+        <path d="M5 19L19 5" />
+        <path d="M19 5H13" />
+        <path d="M19 5V11" />
       </svg>
     );
   }
 
   return (
     <svg {...common}>
-      {/* 좌하 — 안쪽(대각)에서 모서리 끝으로 ↙ */}
-      <path d="M14 10L6 18" />
-      <path d="M6 18H2" />
-      <path d="M6 18V22" />
+      {/* ↙ 좌측 하단 */}
+      <path d="M19 5L5 19" />
+      <path d="M5 19H11" />
+      <path d="M5 19V13" />
     </svg>
   );
 }
@@ -125,7 +125,8 @@ export function ZoomLightboxCornerArrows({
   if (animationKey <= 0) return null;
 
   const icon = "h-10 w-10 sm:h-11 sm:w-11";
-  const anchor = `absolute left-1/2 top-1/2 ${icon} -translate-x-1/2 -translate-y-1/2`;
+  const trAnchor = `absolute right-2 top-2 sm:right-3 sm:top-3 ${icon}`;
+  const blAnchor = `absolute bottom-2 left-2 sm:bottom-3 sm:left-3 ${icon}`;
 
   return (
     <div
@@ -133,22 +134,22 @@ export function ZoomLightboxCornerArrows({
       className={`zoom-lightbox-swipe-layer pointer-events-none absolute inset-0 z-10 overflow-visible ${className}`}
       aria-hidden
     >
-      <span className={anchor}>
+      <span className={trAnchor}>
         <span className="zoom-swipe-tr-trail block h-full w-full text-white/35">
           <CornerExpandArrowSvg direction="tr" />
         </span>
       </span>
-      <span className={anchor}>
+      <span className={trAnchor}>
         <span className="zoom-swipe-tr block h-full w-full text-white/90">
           <CornerExpandArrowSvg direction="tr" />
         </span>
       </span>
-      <span className={anchor}>
+      <span className={blAnchor}>
         <span className="zoom-swipe-bl-trail block h-full w-full text-white/35">
           <CornerExpandArrowSvg direction="bl" />
         </span>
       </span>
-      <span className={anchor}>
+      <span className={blAnchor}>
         <span className="zoom-swipe-bl block h-full w-full text-white/90">
           <CornerExpandArrowSvg direction="bl" />
         </span>
