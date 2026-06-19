@@ -136,7 +136,14 @@ export function buildSiteConfigFromApi(
     headerSubBrand: api.headerSubBrand?.trim() || undefined,
     faviconUrl,
     headerLogoUrl,
-    settings: api.settings ?? fallback.settings,
+    settings: {
+      ...fallback.settings,
+      ...api.settings,
+      popupReservationEnabled:
+        api.settings?.popupReservationEnabled ??
+        fallback.settings.popupReservationEnabled ??
+        true,
+    },
     popup: {
       ...(ext.popup ?? fallback.popup),
       image1: api.popupImage1?.trim() || ext.popup?.image1?.trim() || undefined,

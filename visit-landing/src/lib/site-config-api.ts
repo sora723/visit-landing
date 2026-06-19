@@ -125,6 +125,7 @@ function parseSettings(value: unknown): SiteConfigApiSettings | undefined {
   if (!isRecord(value)) return undefined;
   return {
     popupEnabled: value.popupEnabled !== false,
+    popupReservationEnabled: value.popupReservationEnabled !== false,
     liveStatusEnabled: value.liveStatusEnabled !== false,
     virtualReservationsEnabled: value.virtualReservationsEnabled !== false,
     duplicateBlockMinutes:

@@ -143,6 +143,7 @@ export function ReservationPopup() {
   const { config, siteCode } = useConfig();
   const isMobile = useIsMobile();
   const resolvedSiteCode = siteCode || config.siteCode;
+  const reservationEnabled = config.settings.popupReservationEnabled !== false;
   const mobileImageSrc = resolvePopupImageUrl(config.popup, "image1", true);
   const pcImage1Src = resolvePopupImageUrl(config.popup, "image1", false);
   const pcImage2Src = resolvePopupImageUrl(config.popup, "image2", false);
@@ -150,11 +151,14 @@ export function ReservationPopup() {
     ? [pcImage1Src, pcImage2Src].filter(Boolean)
     : [];
   const showMobileImage = isMobile && !!mobileImageSrc;
+  const hasImages = showMobileImage || pcImages.length > 0;
+  const canShowPopup =
+    config.settings.popupEnabled && (reservationEnabled || hasImages);
   const popupPanelClass = "w-full max-w-md shrink-0";
 
   const [visible, setVisible] = useState(false);
   const [mobilePhase, setMobilePhase] = useState<"image" | "reservation">(
-    showMobileImage ? "image" : "reservation"
+    showMobileImage && reservationEnabled ? "image" : "reservation"
   );
   const [complete, setComplete] = useState(false);
   const [zoomSrc, setZoomSrc] = useState<string | null>(null);
@@ -175,18 +179,26 @@ export function ReservationPopup() {
   }, [finishPopup]);
 
   useEffect(() => {
-    if (!config.settings.popupEnabled) return;
+    if (!canShowPopup) return;
     if (!shouldShowPopup(resolvedSiteCode)) return;
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
-  }, [config.settings.popupEnabled, resolvedSiteCode]);
+  }, [canShowPopup, resolvedSiteCode]);
 
   useEffect(() => {
     if (!visible) return;
-    setMobilePhase(showMobileImage ? "image" : "reservation");
-  }, [visible, showMobileImage]);
+    setMobilePhase(showMobileImage && reservationEnabled ? "image" : "reservation");
+  }, [visible, showMobileImage, reservationEnabled]);
 
-  if (!config.settings.popupEnabled || !visible) return null;
+  if (!canShowPopup || !visible) return null;
+
+  const openReservationFromImage = () => {
+    if (reservationEnabled) {
+      setMobilePhase("reservation");
+      return;
+    }
+    finishPopup();
+  };
 
   const panelHeightClass = "h-[min(90dvh,560px)] min-h-[420px]";
 
@@ -200,7 +212,7 @@ export function ReservationPopup() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setMobilePhase("reservation")}
+            onClick={openReservationFromImage}
           >
             <motion.div
               className={`relative overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${popupPanelClass}`}
@@ -213,7 +225,7 @@ export function ReservationPopup() {
               <button
                 type="button"
                 className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-sm text-white"
-                onClick={() => setMobilePhase("reservation")}
+                onClick={openReservationFromImage}
                 aria-label="닫기"
               >
                 ✕
@@ -275,12 +287,14 @@ export function ReservationPopup() {
                 />
               ))}
 
-              <ReservationPopupPanel
-                complete={complete}
-                onComplete={handleReservationComplete}
-                onClose={finishPopup}
-                className={`${popupPanelClass} ${!isMobile && pcImages.length ? panelHeightClass : ""}`}
-              />
+              {reservationEnabled && (
+                <ReservationPopupPanel
+                  complete={complete}
+                  onComplete={handleReservationComplete}
+                  onClose={finishPopup}
+                  className={`${popupPanelClass} ${!isMobile && pcImages.length ? panelHeightClass : ""}`}
+                />
+              )}
             </motion.div>
           </motion.div>
         )}

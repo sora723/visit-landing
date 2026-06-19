@@ -23,6 +23,7 @@
   "topBannerText": "",
   "settings": {
     "popupEnabled": true,
+    "popupReservationEnabled": true,
     "liveStatusEnabled": true,
     "virtualReservationsEnabled": true,
     "duplicateBlockMinutes": 120

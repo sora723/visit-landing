@@ -50,6 +50,12 @@ var VISIT_DATE_ENABLED_ALIASES = [
   '방문예약일자노출'
 ];
 
+var POPUP_RESERVATION_ENABLED_ALIASES = [
+  'popupReservationEnabled',
+  '팝업방문예약노출',
+  '팝업예약노출'
+];
+
 var MAIN_COLOR_ALIASES = [
   'mainColor',
   '메인컬러',
@@ -373,6 +379,17 @@ function getVisitDateEnabledFromContentRow_(row, ext) {
   return true;
 }
 
+function getPopupReservationEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, POPUP_RESERVATION_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, true);
+  }
+  if (ext && ext.settings && ext.settings.popupReservationEnabled !== undefined) {
+    return parseBoolField_(ext.settings.popupReservationEnabled, true);
+  }
+  return true;
+}
+
 function insertColumnBeforeHeader_(sheet, beforeHeader, newHeader) {
   var map = getHeaderIndexMap_(sheet);
   var col = map[beforeHeader];
@@ -465,6 +482,7 @@ function ensureReservationFormColumns() {
   }
 
   if (!hasUnit) {
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'popupReservationEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateOptions');
@@ -472,16 +490,22 @@ function ensureReservationFormColumns() {
     insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeOptions');
     added.push(
       'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
-      'unitTypeEnabled', 'visitDateEnabled'
+      'unitTypeEnabled', 'visitDateEnabled', 'popupReservationEnabled'
     );
   } else {
     var hasUnitEnabled = false;
     var hasDateEnabled = false;
+    var hasPopupReservationEnabled = false;
     for (var i = 0; i < UNIT_TYPE_ENABLED_ALIASES.length; i++) {
       if (map[UNIT_TYPE_ENABLED_ALIASES[i]] !== undefined) hasUnitEnabled = true;
     }
     for (var j = 0; j < VISIT_DATE_ENABLED_ALIASES.length; j++) {
       if (map[VISIT_DATE_ENABLED_ALIASES[j]] !== undefined) hasDateEnabled = true;
+    }
+    for (var p = 0; p < POPUP_RESERVATION_ENABLED_ALIASES.length; p++) {
+      if (map[POPUP_RESERVATION_ENABLED_ALIASES[p]] !== undefined) {
+        hasPopupReservationEnabled = true;
+      }
     }
     if (!hasUnitEnabled) {
       insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeEnabled');
@@ -491,6 +515,11 @@ function ensureReservationFormColumns() {
     if (!hasDateEnabled) {
       insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
       added.push('visitDateEnabled');
+      map = getHeaderIndexMap_(sheet);
+    }
+    if (!hasPopupReservationEnabled) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'popupReservationEnabled');
+      added.push('popupReservationEnabled');
     }
   }
 
@@ -1046,6 +1075,7 @@ function buildSiteMetaFromSiteRow_(siteRow) {
       notificationPhone: '',
       settings: {
         popupEnabled: true,
+        popupReservationEnabled: true,
         liveStatusEnabled: true,
         virtualReservationsEnabled: true,
         duplicateBlockMinutes: 120
@@ -1164,6 +1194,7 @@ function getSiteLiveConfig(siteCode) {
   var visitDateOptions = buildVisitDateOptionsFromContent_(contentRow, ext);
   var unitTypeEnabled = getUnitTypeEnabledFromContentRow_(contentRow, ext);
   var visitDateEnabled = getVisitDateEnabledFromContentRow_(contentRow, ext);
+  var popupReservationEnabled = getPopupReservationEnabledFromContentRow_(contentRow, ext);
   var mainColor = getThemeColorFromContentRow_(
     contentRow, ext, MAIN_COLOR_ALIASES, 'mainColor', DEFAULT_MAIN_COLOR
   );
@@ -1210,7 +1241,13 @@ function getSiteLiveConfig(siteCode) {
     phone: siteMeta.phone,
     managerName: siteMeta.managerName,
     notificationPhone: siteMeta.notificationPhone,
-    settings: siteMeta.settings,
+    settings: {
+      popupEnabled: siteMeta.settings.popupEnabled,
+      popupReservationEnabled: popupReservationEnabled,
+      liveStatusEnabled: siteMeta.settings.liveStatusEnabled,
+      virtualReservationsEnabled: siteMeta.settings.virtualReservationsEnabled,
+      duplicateBlockMinutes: siteMeta.settings.duplicateBlockMinutes
+    },
     stickyPromoText: promo || null,
     unitTypeOptions: unitTypeOptions,
     visitDateDays: visitDateDays,

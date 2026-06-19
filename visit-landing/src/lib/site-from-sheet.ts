@@ -221,6 +221,27 @@ function resolveVisitDateEnabledFromSheet(
   return true;
 }
 
+function resolvePopupReservationEnabledFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): boolean {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const raw = [
+    row.popupReservationEnabled,
+    row["팝업방문예약노출"],
+    row["팝업예약노출"],
+  ]
+    .map((v) => (v === undefined || v === null ? "" : v))
+    .find((v) => String(v).trim() !== "");
+  if (raw !== undefined && String(raw).trim() !== "") {
+    return parseBool(raw as string | boolean, true);
+  }
+  if (ext.settings?.popupReservationEnabled !== undefined) {
+    return parseBool(ext.settings.popupReservationEnabled, true);
+  }
+  return true;
+}
+
 function resolveVisitDateDaysFromSheet(
   content: ContentManagementRow,
   ext: ContentExtendedData
@@ -330,6 +351,7 @@ export function buildSiteConfigFromSheet(
     headerLogoUrl,
     settings: {
       popupEnabled: parseBool(site.popupEnabled, true),
+      popupReservationEnabled: resolvePopupReservationEnabledFromSheet(content, ext),
       liveStatusEnabled: parseBool(site.liveStatusEnabled, true),
       virtualReservationsEnabled: parseBool(site.virtualReservationEnabled, true),
       duplicateBlockMinutes: parseNumber(site.duplicateBlockMinutes, 120),

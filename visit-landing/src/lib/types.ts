@@ -18,7 +18,10 @@ export interface SiteConfig {
   /** 상단 헤더 로고 — extendedData.headerLogoUrl */
   headerLogoUrl?: string;
   settings: {
+    /** 현장관리 popupEnabled — 팝업 오버레이 전체 */
     popupEnabled: boolean;
+    /** 콘텐츠관리 popupReservationEnabled — 팝업 내 방문예약 폼 (기본 Y) */
+    popupReservationEnabled?: boolean;
     liveStatusEnabled: boolean;
     virtualReservationsEnabled: boolean;
     duplicateBlockMinutes: number;

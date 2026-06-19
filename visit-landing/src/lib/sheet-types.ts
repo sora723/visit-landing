@@ -99,6 +99,8 @@ export interface ContentManagementRow {
   unitTypeEnabled?: boolean | string;
   /** Y/N — 방문예약 일자 필드 노출 (기본 Y) */
   visitDateEnabled?: boolean | string;
+  /** Y/N — 팝업 내 방문예약 폼 노출 (기본 Y, N이면 이벤트 이미지만) */
+  popupReservationEnabled?: boolean | string;
   /** CtaSection 아래 대형 홍보 이미지 URL */
   ctaPromoImage?: string;
   ctaPromoImagePc?: string;
@@ -192,6 +194,9 @@ export interface ContentExtendedData {
     visitDateOptions?: string[] | string;
     unitTypeEnabled?: boolean;
     visitDateEnabled?: boolean;
+  };
+  settings?: {
+    popupReservationEnabled?: boolean;
   };
   theme?: {
     mainColor?: string;

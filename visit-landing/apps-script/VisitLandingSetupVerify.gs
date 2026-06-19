@@ -29,7 +29,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'locationData', 'futureData', 'layoutData', 'communityData',
     'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText',
     'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
-    'unitTypeEnabled', 'visitDateEnabled',
+    'unitTypeEnabled', 'visitDateEnabled', 'popupReservationEnabled',
     'mainColor', 'subColor', 'accentColor',
     'liveStatusTitleColor', 'ctaSectionTitleColor', 'sectionTitleColor',
     'locationTitleColor',
