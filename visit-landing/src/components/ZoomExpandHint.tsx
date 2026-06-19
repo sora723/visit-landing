@@ -135,23 +135,23 @@ export function ZoomLightboxCornerArrows({
       aria-hidden
     >
       <span className={trAnchor}>
-        <span className="zoom-swipe-tr-trail block h-full w-full text-white/35">
-          <CornerExpandArrowSvg direction="tr" />
-        </span>
-      </span>
-      <span className={trAnchor}>
-        <span className="zoom-swipe-tr block h-full w-full text-white/90">
-          <CornerExpandArrowSvg direction="tr" />
-        </span>
-      </span>
-      <span className={blAnchor}>
         <span className="zoom-swipe-bl-trail block h-full w-full text-white/35">
           <CornerExpandArrowSvg direction="bl" />
         </span>
       </span>
-      <span className={blAnchor}>
+      <span className={trAnchor}>
         <span className="zoom-swipe-bl block h-full w-full text-white/90">
           <CornerExpandArrowSvg direction="bl" />
+        </span>
+      </span>
+      <span className={blAnchor}>
+        <span className="zoom-swipe-tr-trail block h-full w-full text-white/35">
+          <CornerExpandArrowSvg direction="tr" />
+        </span>
+      </span>
+      <span className={blAnchor}>
+        <span className="zoom-swipe-tr block h-full w-full text-white/90">
+          <CornerExpandArrowSvg direction="tr" />
         </span>
       </span>
     </div>
