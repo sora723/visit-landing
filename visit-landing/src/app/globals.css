@@ -633,35 +633,58 @@ textarea {
   background-size: 60px 60px;
 }
 
-/* 클릭 확대 — 4방향 확대 아이콘 펄스 (라이트박스 중앙, 3회) */
-@keyframes zoom-expand-icon-pulse {
+/* 클릭 확대 — 라이트박스 우상↗·좌하↙ 흰색 반투명 화살표 3회 (느린 속도) */
+@keyframes zoom-lightbox-arrow-tr {
   0% {
-    opacity: 0.75;
-    -webkit-transform: scale(0.5);
-    transform: scale(0.5);
+    opacity: 0;
+    -webkit-transform: translate(-10px, 10px) scale(0.78);
+    transform: translate(-10px, 10px) scale(0.78);
   }
-  45% {
-    opacity: 1;
-    -webkit-transform: scale(1);
-    transform: scale(1);
+  38% {
+    opacity: 0.72;
+    -webkit-transform: translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1);
   }
   100% {
     opacity: 0;
-    -webkit-transform: scale(1.45);
-    transform: scale(1.45);
+    -webkit-transform: translate(14px, -14px) scale(1.1);
+    transform: translate(14px, -14px) scale(1.1);
   }
 }
 
-.zoom-expand-icon-pulse {
-  -webkit-animation: zoom-expand-icon-pulse 480ms ease-out 3 forwards;
-  animation: zoom-expand-icon-pulse 480ms ease-out 3 forwards;
-  -webkit-transform-origin: center center;
-  transform-origin: center center;
+@keyframes zoom-lightbox-arrow-bl {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate(10px, -10px) scale(0.78);
+    transform: translate(10px, -10px) scale(0.78);
+  }
+  38% {
+    opacity: 0.72;
+    -webkit-transform: translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    -webkit-transform: translate(-14px, 14px) scale(1.1);
+    transform: translate(-14px, 14px) scale(1.1);
+  }
+}
+
+.zoom-lightbox-arrow-tr {
+  -webkit-animation: zoom-lightbox-arrow-tr 720ms ease-out 3 forwards;
+  animation: zoom-lightbox-arrow-tr 720ms ease-out 3 forwards;
+  will-change: transform, opacity;
+}
+
+.zoom-lightbox-arrow-bl {
+  -webkit-animation: zoom-lightbox-arrow-bl 720ms ease-out 3 forwards;
+  animation: zoom-lightbox-arrow-bl 720ms ease-out 3 forwards;
   will-change: transform, opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zoom-expand-icon-pulse {
+  .zoom-lightbox-arrow-tr,
+  .zoom-lightbox-arrow-bl {
     -webkit-animation: none !important;
     animation: none !important;
     opacity: 0 !important;
