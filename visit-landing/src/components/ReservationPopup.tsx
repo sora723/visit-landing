@@ -12,16 +12,18 @@ import {
   shouldShowPopup,
 } from "@/lib/utils";
 import {
-  ZoomExpandArrow,
-  ZoomExpandHintBadge,
+  ZoomExpandHintLabel,
+  ZoomLightboxImageFrame,
   useZoomExpandClick,
 } from "./ZoomExpandHint";
 
 function ImageZoomModal({
   src,
+  cornerArrowKey,
   onClose,
 }: {
   src: string | null;
+  cornerArrowKey: number;
   onClose: () => void;
 }) {
   if (!src) return null;
@@ -40,15 +42,17 @@ function ImageZoomModal({
       >
         닫기
       </button>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        className="max-h-[92vh] max-w-full object-contain"
-        loading="lazy"
-        decoding="async"
-        onClick={(e) => e.stopPropagation()}
-      />
+      <ZoomLightboxImageFrame animationKey={cornerArrowKey}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          className="max-h-[92vh] max-w-full object-contain"
+          loading="lazy"
+          decoding="async"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </ZoomLightboxImageFrame>
     </div>
   );
 }
@@ -59,11 +63,11 @@ function EventImagePanel({
   className,
 }: {
   src: string;
-  onZoom: () => void;
+  onZoom: (arrowKey: number) => void;
   className?: string;
 }) {
   const [currentSrc, setCurrentSrc] = useState(src);
-  const { arrowKey, handleZoomClick } = useZoomExpandClick(onZoom);
+  const { handleZoomClick } = useZoomExpandClick(onZoom);
 
   useEffect(() => {
     setCurrentSrc(src);
@@ -85,8 +89,7 @@ function EventImagePanel({
         className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
         onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
       />
-      <ZoomExpandHintBadge compact />
-      <ZoomExpandArrow animationKey={arrowKey} />
+      <ZoomExpandHintLabel compact />
     </button>
   );
 }
@@ -167,7 +170,13 @@ export function ReservationPopup() {
   );
   const [complete, setComplete] = useState(false);
   const [zoomSrc, setZoomSrc] = useState<string | null>(null);
+  const [zoomArrowKey, setZoomArrowKey] = useState(0);
   const [mobileImgSrc, setMobileImgSrc] = useState(mobileImageSrc);
+
+  const openZoom = useCallback((src: string, arrowKey: number) => {
+    setZoomArrowKey(arrowKey);
+    setZoomSrc(src);
+  }, []);
 
   useEffect(() => {
     setMobileImgSrc(mobileImageSrc);
@@ -279,13 +288,14 @@ export function ReservationPopup() {
                 <EventImagePanel
                   key={`${src}-${index}`}
                   src={src}
-                  onZoom={() =>
-                    setZoomSrc(
+                  onZoom={(arrowKey) =>
+                    openZoom(
                       resolvePopupZoomUrl(
                         config.popup,
                         index === 0 ? "image1" : "image2",
                         false
-                      )
+                      ),
+                      arrowKey
                     )
                   }
                   className={`hidden md:block ${popupPanelClass} ${panelHeightClass}`}
@@ -305,7 +315,11 @@ export function ReservationPopup() {
         ) : null}
       </AnimatePresence>
 
-      <ImageZoomModal src={zoomSrc} onClose={() => setZoomSrc(null)} />
+      <ImageZoomModal
+        src={zoomSrc}
+        cornerArrowKey={zoomArrowKey}
+        onClose={() => setZoomSrc(null)}
+      />
     </>
   );
 }

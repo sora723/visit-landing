@@ -633,33 +633,63 @@ textarea {
   background-size: 60px 60px;
 }
 
-/* 클릭 확대 — 대각선(↗) 화살표 1회 (transform 기반, 터치·구형 Safari 호환) */
-@keyframes zoom-diagonal-arrow-once {
+/* 클릭 확대 — 썸네일 ↙ 힌트 화살표 (멘트와 항상 함께) */
+.zoom-hint-arrow-bl {
+  opacity: 0.92;
+}
+
+/* 라이트박스 — 우상·좌하 모서리 확대 화살표 3회 */
+@keyframes zoom-lightbox-arrow-tr-once {
   0% {
     opacity: 0;
-    -webkit-transform: translate(-18px, 18px) scale(0.82);
-    transform: translate(-18px, 18px) scale(0.82);
+    -webkit-transform: translate(-10px, 10px) scale(0.75);
+    transform: translate(-10px, 10px) scale(0.75);
   }
-  28% {
+  32% {
     opacity: 1;
     -webkit-transform: translate(0, 0) scale(1);
     transform: translate(0, 0) scale(1);
   }
   100% {
     opacity: 0;
-    -webkit-transform: translate(22px, -22px) scale(1.12);
-    transform: translate(22px, -22px) scale(1.12);
+    -webkit-transform: translate(14px, -14px) scale(1.12);
+    transform: translate(14px, -14px) scale(1.12);
   }
 }
 
-.zoom-diagonal-arrow {
-  -webkit-animation: zoom-diagonal-arrow-once 520ms ease-out forwards;
-  animation: zoom-diagonal-arrow-once 520ms ease-out forwards;
+@keyframes zoom-lightbox-arrow-bl-once {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate(10px, -10px) scale(0.75);
+    transform: translate(10px, -10px) scale(0.75);
+  }
+  32% {
+    opacity: 1;
+    -webkit-transform: translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    -webkit-transform: translate(-14px, 14px) scale(1.12);
+    transform: translate(-14px, 14px) scale(1.12);
+  }
+}
+
+.zoom-lightbox-arrow-tr {
+  -webkit-animation: zoom-lightbox-arrow-tr-once 450ms ease-out 3 forwards;
+  animation: zoom-lightbox-arrow-tr-once 450ms ease-out 3 forwards;
+  will-change: transform, opacity;
+}
+
+.zoom-lightbox-arrow-bl {
+  -webkit-animation: zoom-lightbox-arrow-bl-once 450ms ease-out 3 forwards;
+  animation: zoom-lightbox-arrow-bl-once 450ms ease-out 3 forwards;
   will-change: transform, opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zoom-diagonal-arrow {
+  .zoom-lightbox-arrow-tr,
+  .zoom-lightbox-arrow-bl {
     -webkit-animation: none !important;
     animation: none !important;
     opacity: 0 !important;

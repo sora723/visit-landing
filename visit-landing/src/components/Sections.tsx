@@ -7,8 +7,8 @@ import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import { ResponsiveImg } from "./ResponsiveImg";
 import {
-  ZoomExpandArrow,
-  ZoomExpandHintBadge,
+  ZoomExpandHintLabel,
+  ZoomLightboxImageFrame,
   useZoomExpandClick,
 } from "./ZoomExpandHint";
 
@@ -150,7 +150,11 @@ export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
   const [lightbox, setLightbox] = useState(false);
-  const { arrowKey, handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
+  const [cornerArrowKey, setCornerArrowKey] = useState(0);
+  const { handleZoomClick } = useZoomExpandClick((key) => {
+    setCornerArrowKey(key);
+    setLightbox(true);
+  });
   const mapLightboxSrc = useResponsiveImage(
     {
       image: location.mapImage,
@@ -200,8 +204,7 @@ export function LocationSection() {
                 className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
-              <ZoomExpandHintBadge />
-              <ZoomExpandArrow animationKey={arrowKey} />
+              <ZoomExpandHintLabel />
             </button>
           )}
           {location.title && (
@@ -214,6 +217,7 @@ export function LocationSection() {
           src={mapLightboxSrc}
           alt={location.title || "입지 지도"}
           open={lightbox}
+          cornerArrowKey={cornerArrowKey}
           onClose={() => setLightbox(false)}
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -279,11 +283,13 @@ function ImageLightbox({
   alt,
   open,
   onClose,
+  cornerArrowKey = 0,
 }: {
   src: string;
   alt: string;
   open: boolean;
   onClose: () => void;
+  cornerArrowKey?: number;
 }) {
   const [zoomSrc, setZoomSrc] = useState(() =>
     src ? normalizeImageUrl(src, "lightbox") : ""
@@ -310,20 +316,22 @@ function ImageLightbox({
       >
         닫기
       </button>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={zoomSrc}
-        alt={alt}
-        className="max-h-[90vh] max-w-full object-contain"
-        decoding="async"
-        onClick={(e) => e.stopPropagation()}
-        onError={() => {
-          const fallback = getImageFallbackUrl(src, "lightbox");
-          if (zoomSrc.includes("sz=w2560") && fallback.includes("sz=w1200")) {
-            setZoomSrc(fallback);
-          }
-        }}
-      />
+      <ZoomLightboxImageFrame animationKey={cornerArrowKey}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={zoomSrc}
+          alt={alt}
+          className="max-h-[90vh] max-w-full object-contain"
+          decoding="async"
+          onClick={(e) => e.stopPropagation()}
+          onError={() => {
+            const fallback = getImageFallbackUrl(src, "lightbox");
+            if (zoomSrc.includes("sz=w2560") && fallback.includes("sz=w1200")) {
+              setZoomSrc(fallback);
+            }
+          }}
+        />
+      </ZoomLightboxImageFrame>
     </div>
   );
 }
@@ -336,7 +344,11 @@ export function UnitTypesSection() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const { arrowKey, handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
+  const [cornerArrowKey, setCornerArrowKey] = useState(0);
+  const { handleZoomClick } = useZoomExpandClick((key) => {
+    setCornerArrowKey(key);
+    setLightbox(true);
+  });
 
   const safeIndex =
     items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
@@ -396,8 +408,7 @@ export function UnitTypesSection() {
                 alt={current.title}
                 className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
-              <ZoomExpandHintBadge />
-              <ZoomExpandArrow animationKey={arrowKey} />
+              <ZoomExpandHintLabel />
             </button>
           )}
 
@@ -417,6 +428,7 @@ export function UnitTypesSection() {
           src={lightboxSrc}
           alt={current.title}
           open={lightbox}
+          cornerArrowKey={cornerArrowKey}
           onClose={() => setLightbox(false)}
         />
       </div>
