@@ -124,23 +124,36 @@ export function ZoomLightboxCornerArrows({
 }) {
   if (animationKey <= 0) return null;
 
+  const icon = "h-10 w-10 sm:h-11 sm:w-11";
+  const anchor = `absolute left-1/2 top-1/2 ${icon} -translate-x-1/2 -translate-y-1/2`;
+
   return (
-    <>
-      <span
-        key={`tr-${animationKey}`}
-        className={`zoom-lightbox-arrow-tr pointer-events-none absolute right-2 top-2 z-10 h-8 w-8 text-white/70 sm:right-3 sm:top-3 sm:h-9 sm:w-9 ${className}`}
-        aria-hidden
-      >
-        <CornerExpandArrowSvg direction="tr" />
+    <div
+      key={animationKey}
+      className={`zoom-lightbox-swipe-layer pointer-events-none absolute inset-0 z-10 overflow-visible ${className}`}
+      aria-hidden
+    >
+      <span className={anchor}>
+        <span className="zoom-swipe-tr-trail block h-full w-full text-white/35">
+          <CornerExpandArrowSvg direction="tr" />
+        </span>
       </span>
-      <span
-        key={`bl-${animationKey}`}
-        className={`zoom-lightbox-arrow-bl pointer-events-none absolute bottom-2 left-2 z-10 h-8 w-8 text-white/70 sm:bottom-3 sm:left-3 sm:h-9 sm:w-9 ${className}`}
-        aria-hidden
-      >
-        <CornerExpandArrowSvg direction="bl" />
+      <span className={anchor}>
+        <span className="zoom-swipe-tr block h-full w-full text-white/90">
+          <CornerExpandArrowSvg direction="tr" />
+        </span>
       </span>
-    </>
+      <span className={anchor}>
+        <span className="zoom-swipe-bl-trail block h-full w-full text-white/35">
+          <CornerExpandArrowSvg direction="bl" />
+        </span>
+      </span>
+      <span className={anchor}>
+        <span className="zoom-swipe-bl block h-full w-full text-white/90">
+          <CornerExpandArrowSvg direction="bl" />
+        </span>
+      </span>
+    </div>
   );
 }
 
@@ -157,7 +170,7 @@ export function ZoomLightboxImageFrame({
 
   return (
     <div
-      className={`relative inline-flex max-h-[92vh] max-w-full items-center justify-center ${className}`}
+      className={`zoom-lightbox-swipe-host relative inline-flex max-h-[92vh] max-w-full items-center justify-center ${className}`}
     >
       {children}
       <ZoomLightboxCornerArrows animationKey={playKey} />
