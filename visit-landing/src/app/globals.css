@@ -632,3 +632,36 @@ textarea {
     linear-gradient(90deg, rgba(var(--color-gold-rgb), 0.04) 1px, transparent 1px);
   background-size: 60px 60px;
 }
+
+/* 클릭 확대 — 대각선(↗) 화살표 1회 (transform 기반, 터치·구형 Safari 호환) */
+@keyframes zoom-diagonal-arrow-once {
+  0% {
+    opacity: 0;
+    -webkit-transform: translate(-18px, 18px) scale(0.82);
+    transform: translate(-18px, 18px) scale(0.82);
+  }
+  28% {
+    opacity: 1;
+    -webkit-transform: translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    -webkit-transform: translate(22px, -22px) scale(1.12);
+    transform: translate(22px, -22px) scale(1.12);
+  }
+}
+
+.zoom-diagonal-arrow {
+  -webkit-animation: zoom-diagonal-arrow-once 520ms ease-out forwards;
+  animation: zoom-diagonal-arrow-once 520ms ease-out forwards;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoom-diagonal-arrow {
+    -webkit-animation: none !important;
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}

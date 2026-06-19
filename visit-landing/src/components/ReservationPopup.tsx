@@ -11,6 +11,11 @@ import {
   markPopupDismissed,
   shouldShowPopup,
 } from "@/lib/utils";
+import {
+  ZoomExpandArrow,
+  ZoomExpandHintBadge,
+  useZoomExpandClick,
+} from "./ZoomExpandHint";
 
 function ImageZoomModal({
   src,
@@ -58,6 +63,7 @@ function EventImagePanel({
   className?: string;
 }) {
   const [currentSrc, setCurrentSrc] = useState(src);
+  const { arrowKey, handleZoomClick } = useZoomExpandClick(onZoom);
 
   useEffect(() => {
     setCurrentSrc(src);
@@ -66,8 +72,8 @@ function EventImagePanel({
   return (
     <button
       type="button"
-      onClick={onZoom}
-      className={`group relative overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
+      onClick={handleZoomClick}
+      className={`group relative touch-manipulation overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
       aria-label="이벤트 이미지 확대"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -79,9 +85,8 @@ function EventImagePanel({
         className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
         onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
       />
-      <span className="pointer-events-none absolute bottom-3 right-3 rounded bg-[var(--color-navy)]/75 px-2.5 py-1 text-[10px] tracking-wide text-white/90 backdrop-blur-sm">
-        클릭하여 확대
-      </span>
+      <ZoomExpandHintBadge compact />
+      <ZoomExpandArrow animationKey={arrowKey} />
     </button>
   );
 }
@@ -158,7 +163,7 @@ export function ReservationPopup() {
 
   const [visible, setVisible] = useState(false);
   const [mobilePhase, setMobilePhase] = useState<"image" | "reservation">(
-    showMobileImage && reservationEnabled ? "image" : "reservation"
+    showMobileImage ? "image" : "reservation"
   );
   const [complete, setComplete] = useState(false);
   const [zoomSrc, setZoomSrc] = useState<string | null>(null);
@@ -187,8 +192,8 @@ export function ReservationPopup() {
 
   useEffect(() => {
     if (!visible) return;
-    setMobilePhase(showMobileImage && reservationEnabled ? "image" : "reservation");
-  }, [visible, showMobileImage, reservationEnabled]);
+    setMobilePhase(showMobileImage ? "image" : "reservation");
+  }, [visible, showMobileImage]);
 
   if (!canShowPopup || !visible) return null;
 
@@ -251,7 +256,7 @@ export function ReservationPopup() {
               </button>
             </motion.div>
           </motion.div>
-        ) : (
+        ) : reservationEnabled || pcImages.length > 0 ? (
           <motion.div
             key="reservation-popup"
             className="fixed inset-0 z-[300] flex items-end justify-center bg-black/55 p-3 backdrop-blur-sm sm:items-center sm:p-4"
@@ -297,7 +302,7 @@ export function ReservationPopup() {
               )}
             </motion.div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
 
       <ImageZoomModal src={zoomSrc} onClose={() => setZoomSrc(null)} />

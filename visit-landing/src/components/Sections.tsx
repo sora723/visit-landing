@@ -6,6 +6,11 @@ import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import { ResponsiveImg } from "./ResponsiveImg";
+import {
+  ZoomExpandArrow,
+  ZoomExpandHintBadge,
+  useZoomExpandClick,
+} from "./ZoomExpandHint";
 
 function FigmaSectionTitle({
   en,
@@ -145,6 +150,7 @@ export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
   const [lightbox, setLightbox] = useState(false);
+  const { arrowKey, handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
   const mapLightboxSrc = useResponsiveImage(
     {
       image: location.mapImage,
@@ -180,8 +186,8 @@ export function LocationSection() {
           {hasMapImage && (
             <button
               type="button"
-              onClick={() => setLightbox(true)}
-              className="group relative block w-full"
+              onClick={handleZoomClick}
+              className="group relative block w-full touch-manipulation"
               aria-label="입지 지도 확대"
             >
               <ResponsiveImg
@@ -194,9 +200,8 @@ export function LocationSection() {
                 className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
-              <span className="pointer-events-none absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
-                클릭하여 확대
-              </span>
+              <ZoomExpandHintBadge />
+              <ZoomExpandArrow animationKey={arrowKey} />
             </button>
           )}
           {location.title && (
@@ -331,6 +336,7 @@ export function UnitTypesSection() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const { arrowKey, handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
 
   const safeIndex =
     items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
@@ -382,17 +388,16 @@ export function UnitTypesSection() {
           {current.image && (
             <button
               type="button"
-              onClick={() => setLightbox(true)}
-              className="group relative block w-full overflow-hidden rounded-xl bg-[#e8e4dc]"
+              onClick={handleZoomClick}
+              className="group relative block w-full touch-manipulation overflow-hidden rounded-xl bg-[#e8e4dc]"
             >
               <ResponsiveImg
                 source={current}
                 alt={current.title}
                 className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
-              <span className="absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
-                클릭하여 확대
-              </span>
+              <ZoomExpandHintBadge />
+              <ZoomExpandArrow animationKey={arrowKey} />
             </button>
           )}
 
