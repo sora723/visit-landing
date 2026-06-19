@@ -633,28 +633,3 @@ textarea {
   background-size: 60px 60px;
 }
 
-/* 클릭 확대 — 우하단 Expand 아이콘 펄스 (2초 주기) */
-@keyframes zoom-hint-pulse {
-  0%,
-  100% {
-    -webkit-transform: scale(1) translate(0, 0);
-    transform: scale(1) translate(0, 0);
-  }
-  50% {
-    -webkit-transform: scale(1.15) translate(3px, -3px);
-    transform: scale(1.15) translate(3px, -3px);
-  }
-}
-
-.zoom-expand-hint-icon--pulse {
-  -webkit-animation: zoom-hint-pulse 2s ease-in-out infinite;
-  animation: zoom-hint-pulse 2s ease-in-out infinite;
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .zoom-expand-hint-icon--pulse {
-    -webkit-animation: none !important;
-    animation: none !important;
-  }
-}

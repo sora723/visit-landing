@@ -10,7 +10,6 @@ import {
   ZoomExpandHint,
   ZoomLightboxImageFrame,
   useZoomExpandClick,
-  useZoomExpandHint,
 } from "./ZoomExpandHint";
 
 function FigmaSectionTitle({
@@ -151,8 +150,7 @@ export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
   const [lightbox, setLightbox] = useState(false);
-  const { hintVisible, hintFading, dismissHint } = useZoomExpandHint();
-  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true), dismissHint);
+  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
   const mapLightboxSrc = useResponsiveImage(
     {
       image: location.mapImage,
@@ -202,7 +200,7 @@ export function LocationSection() {
                 className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
-              <ZoomExpandHint visible={hintVisible} fading={hintFading} />
+              <ZoomExpandHint />
             </button>
           )}
           {location.title && (
@@ -339,8 +337,7 @@ export function UnitTypesSection() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const { hintVisible, hintFading, dismissHint } = useZoomExpandHint();
-  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true), dismissHint);
+  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
 
   const safeIndex =
     items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
@@ -400,7 +397,7 @@ export function UnitTypesSection() {
                 alt={current.title}
                 className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
-              <ZoomExpandHint visible={hintVisible} fading={hintFading} />
+              <ZoomExpandHint />
             </button>
           )}
 

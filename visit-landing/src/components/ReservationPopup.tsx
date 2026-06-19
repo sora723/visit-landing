@@ -15,7 +15,6 @@ import {
   ZoomExpandHint,
   ZoomLightboxImageFrame,
   useZoomExpandClick,
-  useZoomExpandHint,
 } from "./ZoomExpandHint";
 
 function ImageZoomModal({
@@ -66,8 +65,7 @@ function EventImagePanel({
   className?: string;
 }) {
   const [currentSrc, setCurrentSrc] = useState(src);
-  const { hintVisible, hintFading, dismissHint } = useZoomExpandHint();
-  const { handleZoomClick } = useZoomExpandClick(onZoom, dismissHint);
+  const { handleZoomClick } = useZoomExpandClick(onZoom);
 
   useEffect(() => {
     setCurrentSrc(src);
@@ -89,7 +87,7 @@ function EventImagePanel({
         className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
         onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
       />
-      <ZoomExpandHint visible={hintVisible} fading={hintFading} compact />
+      <ZoomExpandHint compact />
     </button>
   );
 }
