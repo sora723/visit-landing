@@ -633,63 +633,35 @@ textarea {
   background-size: 60px 60px;
 }
 
-/* 클릭 확대 — 썸네일 ↙ 힌트 화살표 (멘트와 항상 함께) */
-.zoom-hint-arrow-bl {
-  opacity: 0.92;
-}
-
-/* 라이트박스 — 우상·좌하 모서리 확대 화살표 3회 */
-@keyframes zoom-lightbox-arrow-tr-once {
+/* 클릭 확대 — 4방향 확대 아이콘 펄스 (라이트박스 중앙, 3회) */
+@keyframes zoom-expand-icon-pulse {
   0% {
-    opacity: 0;
-    -webkit-transform: translate(-10px, 10px) scale(0.75);
-    transform: translate(-10px, 10px) scale(0.75);
+    opacity: 0.75;
+    -webkit-transform: scale(0.5);
+    transform: scale(0.5);
   }
-  32% {
+  45% {
     opacity: 1;
-    -webkit-transform: translate(0, 0) scale(1);
-    transform: translate(0, 0) scale(1);
+    -webkit-transform: scale(1);
+    transform: scale(1);
   }
   100% {
     opacity: 0;
-    -webkit-transform: translate(14px, -14px) scale(1.12);
-    transform: translate(14px, -14px) scale(1.12);
+    -webkit-transform: scale(1.45);
+    transform: scale(1.45);
   }
 }
 
-@keyframes zoom-lightbox-arrow-bl-once {
-  0% {
-    opacity: 0;
-    -webkit-transform: translate(10px, -10px) scale(0.75);
-    transform: translate(10px, -10px) scale(0.75);
-  }
-  32% {
-    opacity: 1;
-    -webkit-transform: translate(0, 0) scale(1);
-    transform: translate(0, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    -webkit-transform: translate(-14px, 14px) scale(1.12);
-    transform: translate(-14px, 14px) scale(1.12);
-  }
-}
-
-.zoom-lightbox-arrow-tr {
-  -webkit-animation: zoom-lightbox-arrow-tr-once 450ms ease-out 3 forwards;
-  animation: zoom-lightbox-arrow-tr-once 450ms ease-out 3 forwards;
-  will-change: transform, opacity;
-}
-
-.zoom-lightbox-arrow-bl {
-  -webkit-animation: zoom-lightbox-arrow-bl-once 450ms ease-out 3 forwards;
-  animation: zoom-lightbox-arrow-bl-once 450ms ease-out 3 forwards;
+.zoom-expand-icon-pulse {
+  -webkit-animation: zoom-expand-icon-pulse 480ms ease-out 3 forwards;
+  animation: zoom-expand-icon-pulse 480ms ease-out 3 forwards;
+  -webkit-transform-origin: center center;
+  transform-origin: center center;
   will-change: transform, opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zoom-lightbox-arrow-tr,
-  .zoom-lightbox-arrow-bl {
+  .zoom-expand-icon-pulse {
     -webkit-animation: none !important;
     animation: none !important;
     opacity: 0 !important;
