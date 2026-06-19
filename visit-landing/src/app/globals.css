@@ -633,50 +633,54 @@ textarea {
   background-size: 60px 60px;
 }
 
-/* 클릭 확대 — 라이트박스 우상↗·좌하↙ 흰색 반투명 화살표 3회 (느린 속도) */
+/* 클릭 확대 — 라이트박스 우상↗·좌하↙ (안쪽→바깥, 3회) */
 @keyframes zoom-lightbox-arrow-tr {
   0% {
     opacity: 0;
-    -webkit-transform: translate(-10px, 10px) scale(0.78);
-    transform: translate(-10px, 10px) scale(0.78);
+    -webkit-transform: translate(-32px, 32px) scale(0.5);
+    transform: translate(-32px, 32px) scale(0.5);
   }
-  38% {
-    opacity: 0.72;
-    -webkit-transform: translate(0, 0) scale(1);
-    transform: translate(0, 0) scale(1);
+  42% {
+    opacity: 0.75;
+    -webkit-transform: translate(-4px, 4px) scale(1);
+    transform: translate(-4px, 4px) scale(1);
   }
   100% {
     opacity: 0;
-    -webkit-transform: translate(14px, -14px) scale(1.1);
-    transform: translate(14px, -14px) scale(1.1);
+    -webkit-transform: translate(12px, -12px) scale(1.18);
+    transform: translate(12px, -12px) scale(1.18);
   }
 }
 
 @keyframes zoom-lightbox-arrow-bl {
   0% {
     opacity: 0;
-    -webkit-transform: translate(10px, -10px) scale(0.78);
-    transform: translate(10px, -10px) scale(0.78);
+    -webkit-transform: translate(32px, -32px) scale(0.5);
+    transform: translate(32px, -32px) scale(0.5);
   }
-  38% {
-    opacity: 0.72;
-    -webkit-transform: translate(0, 0) scale(1);
-    transform: translate(0, 0) scale(1);
+  42% {
+    opacity: 0.75;
+    -webkit-transform: translate(4px, -4px) scale(1);
+    transform: translate(4px, -4px) scale(1);
   }
   100% {
     opacity: 0;
-    -webkit-transform: translate(-14px, 14px) scale(1.1);
-    transform: translate(-14px, 14px) scale(1.1);
+    -webkit-transform: translate(-12px, 12px) scale(1.18);
+    transform: translate(-12px, 12px) scale(1.18);
   }
 }
 
 .zoom-lightbox-arrow-tr {
+  -webkit-transform-origin: 0% 100%;
+  transform-origin: 0% 100%;
   -webkit-animation: zoom-lightbox-arrow-tr 720ms ease-out 3 forwards;
   animation: zoom-lightbox-arrow-tr 720ms ease-out 3 forwards;
   will-change: transform, opacity;
 }
 
 .zoom-lightbox-arrow-bl {
+  -webkit-transform-origin: 100% 0%;
+  transform-origin: 100% 0%;
   -webkit-animation: zoom-lightbox-arrow-bl 720ms ease-out 3 forwards;
   animation: zoom-lightbox-arrow-bl 720ms ease-out 3 forwards;
   will-change: transform, opacity;

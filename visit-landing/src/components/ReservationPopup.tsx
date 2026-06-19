@@ -19,11 +19,9 @@ import {
 
 function ImageZoomModal({
   src,
-  cornerArrowKey,
   onClose,
 }: {
   src: string | null;
-  cornerArrowKey: number;
   onClose: () => void;
 }) {
   if (!src) return null;
@@ -42,7 +40,7 @@ function ImageZoomModal({
       >
         닫기
       </button>
-      <ZoomLightboxImageFrame animationKey={cornerArrowKey}>
+      <ZoomLightboxImageFrame active>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
@@ -63,7 +61,7 @@ function EventImagePanel({
   className,
 }: {
   src: string;
-  onZoom: (arrowKey: number) => void;
+  onZoom: () => void;
   className?: string;
 }) {
   const [currentSrc, setCurrentSrc] = useState(src);
@@ -170,13 +168,7 @@ export function ReservationPopup() {
   );
   const [complete, setComplete] = useState(false);
   const [zoomSrc, setZoomSrc] = useState<string | null>(null);
-  const [zoomArrowKey, setZoomArrowKey] = useState(0);
   const [mobileImgSrc, setMobileImgSrc] = useState(mobileImageSrc);
-
-  const openZoom = useCallback((src: string, arrowKey: number) => {
-    setZoomArrowKey(arrowKey);
-    setZoomSrc(src);
-  }, []);
 
   useEffect(() => {
     setMobileImgSrc(mobileImageSrc);
@@ -288,14 +280,13 @@ export function ReservationPopup() {
                 <EventImagePanel
                   key={`${src}-${index}`}
                   src={src}
-                  onZoom={(arrowKey) =>
-                    openZoom(
+                  onZoom={() =>
+                    setZoomSrc(
                       resolvePopupZoomUrl(
                         config.popup,
                         index === 0 ? "image1" : "image2",
                         false
-                      ),
-                      arrowKey
+                      )
                     )
                   }
                   className={`hidden md:block ${popupPanelClass} ${panelHeightClass}`}
@@ -315,11 +306,7 @@ export function ReservationPopup() {
         ) : null}
       </AnimatePresence>
 
-      <ImageZoomModal
-        src={zoomSrc}
-        cornerArrowKey={zoomArrowKey}
-        onClose={() => setZoomSrc(null)}
-      />
+      <ImageZoomModal src={zoomSrc} onClose={() => setZoomSrc(null)} />
     </>
   );
 }

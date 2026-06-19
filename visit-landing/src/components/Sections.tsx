@@ -150,11 +150,7 @@ export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
   const [lightbox, setLightbox] = useState(false);
-  const [cornerArrowKey, setCornerArrowKey] = useState(0);
-  const { handleZoomClick } = useZoomExpandClick((key) => {
-    setCornerArrowKey(key);
-    setLightbox(true);
-  });
+  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
   const mapLightboxSrc = useResponsiveImage(
     {
       image: location.mapImage,
@@ -217,7 +213,6 @@ export function LocationSection() {
           src={mapLightboxSrc}
           alt={location.title || "입지 지도"}
           open={lightbox}
-          cornerArrowKey={cornerArrowKey}
           onClose={() => setLightbox(false)}
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -283,13 +278,11 @@ function ImageLightbox({
   alt,
   open,
   onClose,
-  cornerArrowKey = 0,
 }: {
   src: string;
   alt: string;
   open: boolean;
   onClose: () => void;
-  cornerArrowKey?: number;
 }) {
   const [zoomSrc, setZoomSrc] = useState(() =>
     src ? normalizeImageUrl(src, "lightbox") : ""
@@ -316,7 +309,7 @@ function ImageLightbox({
       >
         닫기
       </button>
-      <ZoomLightboxImageFrame animationKey={cornerArrowKey}>
+      <ZoomLightboxImageFrame active={open}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={zoomSrc}
@@ -344,11 +337,7 @@ export function UnitTypesSection() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const [cornerArrowKey, setCornerArrowKey] = useState(0);
-  const { handleZoomClick } = useZoomExpandClick((key) => {
-    setCornerArrowKey(key);
-    setLightbox(true);
-  });
+  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
 
   const safeIndex =
     items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
@@ -428,7 +417,6 @@ export function UnitTypesSection() {
           src={lightboxSrc}
           alt={current.title}
           open={lightbox}
-          cornerArrowKey={cornerArrowKey}
           onClose={() => setLightbox(false)}
         />
       </div>

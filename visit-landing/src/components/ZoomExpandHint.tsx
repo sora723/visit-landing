@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** 클릭 → 라이트박스 열림 + 확대 아이콘 펄스 3회 */
-export function useZoomExpandClick(onZoom: (arrowKey: number) => void) {
-  const arrowKeyRef = useRef(0);
+/** 클릭 → 라이트박스 열림 */
+export function useZoomExpandClick(onZoom: () => void) {
   const busyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -26,19 +25,39 @@ export function useZoomExpandClick(onZoom: (arrowKey: number) => void) {
       if (busyRef.current) return;
 
       busyRef.current = true;
-      const nextKey = arrowKeyRef.current + 1;
-      arrowKeyRef.current = nextKey;
-
       const delay = prefersReducedMotion() ? 0 : 80;
       timerRef.current = setTimeout(() => {
         busyRef.current = false;
-        onZoom(nextKey);
+        onZoom();
       }, delay);
     },
     [onZoom]
   );
 
   return { handleZoomClick };
+}
+
+let zoomLightboxArrowSeq = 0;
+
+/** 라이트박스가 열릴 때마다 고유 playKey — CSS 애니메이션 재실행 */
+function useZoomLightboxArrowKey(active: boolean) {
+  const [playKey, setPlayKey] = useState(0);
+
+  useEffect(() => {
+    if (!active) return;
+
+    zoomLightboxArrowSeq += 1;
+    const next = zoomLightboxArrowSeq;
+    setPlayKey(0);
+
+    const raf = requestAnimationFrame(() => {
+      setPlayKey(next);
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
+
+  return playKey;
 }
 
 /** 썸네일 — 클릭하여 확대 */
@@ -63,35 +82,35 @@ export function ZoomExpandHintLabel({
 
 /** 라이트박스 — 우상 ↗ · 좌하 ↙ 흰색 반투명 확대 화살표 3회 */
 function CornerExpandArrowSvg({ direction }: { direction: "tr" | "bl" }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    className: "block h-full w-full",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg",
+    stroke: "currentColor",
+    strokeWidth: 2.5,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
   if (direction === "tr") {
     return (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-full w-full"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M7 17 17 7" />
-        <path d="M9 7h8v8" />
+      <svg {...common}>
+        {/* 우상 — 안쪽(대각)에서 모서리 끝으로 ↗ */}
+        <path d="M10 14L18 6" />
+        <path d="M18 6H22" />
+        <path d="M18 6V2" />
       </svg>
     );
   }
 
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-full w-full"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M17 7 7 17" />
-      <path d="M7 17V7h10" />
+    <svg {...common}>
+      {/* 좌하 — 안쪽(대각)에서 모서리 끝으로 ↙ */}
+      <path d="M14 10L6 18" />
+      <path d="M6 18H2" />
+      <path d="M6 18V22" />
     </svg>
   );
 }
@@ -126,20 +145,22 @@ export function ZoomLightboxCornerArrows({
 }
 
 export function ZoomLightboxImageFrame({
-  animationKey,
+  active,
   children,
   className = "",
 }: {
-  animationKey: number;
+  active: boolean;
   children: ReactNode;
   className?: string;
 }) {
+  const playKey = useZoomLightboxArrowKey(active);
+
   return (
     <div
       className={`relative inline-flex max-h-[92vh] max-w-full items-center justify-center ${className}`}
     >
       {children}
-      <ZoomLightboxCornerArrows animationKey={animationKey} />
+      <ZoomLightboxCornerArrows animationKey={playKey} />
     </div>
   );
 }
