@@ -1,180 +1,194 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Expand } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useIsMobile } from "@/hooks/useResponsiveImage";
+
+const ZOOM_HINT_STORAGE_KEY = "visit-landing:image-zoom-hint-seen";
+const ZOOM_HINT_AUTO_DISMISS_MS = 3000;
+const ZOOM_HINT_FADE_MS = 500;
+
+type ZoomHintState = {
+  visible: boolean;
+  fading: boolean;
+};
+
+let zoomHintState: ZoomHintState = { visible: false, fading: false };
+let zoomHintDismissed = false;
+let zoomHintTimersStarted = false;
+const zoomHintListeners = new Set<(state: ZoomHintState) => void>();
+
+function emitZoomHintState() {
+  zoomHintListeners.forEach((listener) => listener(zoomHintState));
+}
+
+function markZoomHintSeen() {
+  try {
+    localStorage.setItem(ZOOM_HINT_STORAGE_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+function hasSeenZoomHint(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return localStorage.getItem(ZOOM_HINT_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function dismissZoomHintGlobal() {
+  if (zoomHintDismissed) return;
+  zoomHintDismissed = true;
+  markZoomHintSeen();
+  zoomHintState = { visible: false, fading: false };
+  emitZoomHintState();
+}
+
+function startZoomHintTimers() {
+  if (zoomHintTimersStarted || zoomHintDismissed || hasSeenZoomHint()) return;
+  zoomHintTimersStarted = true;
+  zoomHintState = { visible: true, fading: false };
+  emitZoomHintState();
+
+  window.setTimeout(() => {
+    if (zoomHintDismissed) return;
+    zoomHintState = { ...zoomHintState, fading: true };
+    emitZoomHintState();
+  }, ZOOM_HINT_AUTO_DISMISS_MS);
+
+  window.setTimeout(() => {
+    dismissZoomHintGlobal();
+  }, ZOOM_HINT_AUTO_DISMISS_MS + ZOOM_HINT_FADE_MS);
+}
 
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** 클릭 → 라이트박스 열림 */
-export function useZoomExpandClick(onZoom: () => void) {
-  const busyRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+/** 최초 방문 또는 3초 후 자동 fade out (모든 확대 이미지 공통) */
+export function useZoomExpandHint() {
+  const [state, setState] = useState<ZoomHintState>(zoomHintState);
 
   useEffect(() => {
+    const listener = (next: ZoomHintState) => setState(next);
+    zoomHintListeners.add(listener);
+    setState(zoomHintState);
+
+    if (!zoomHintDismissed && !hasSeenZoomHint()) {
+      startZoomHintTimers();
+    }
+
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      zoomHintListeners.delete(listener);
     };
   }, []);
 
+  const dismissHint = useCallback(() => {
+    dismissZoomHintGlobal();
+  }, []);
+
+  return {
+    hintVisible: state.visible,
+    hintFading: state.fading,
+    dismissHint,
+  };
+}
+
+/** 클릭 → 힌트 즉시 숨김 → 라이트박스 열림 */
+export function useZoomExpandClick(
+  onZoom: () => void,
+  dismissHint?: () => void
+) {
   const handleZoomClick = useCallback(
     (e?: React.SyntheticEvent) => {
       e?.preventDefault();
       e?.stopPropagation();
-      if (busyRef.current) return;
-
-      busyRef.current = true;
-      const delay = prefersReducedMotion() ? 0 : 80;
-      timerRef.current = setTimeout(() => {
-        busyRef.current = false;
-        onZoom();
-      }, delay);
+      dismissHint?.();
+      onZoom();
     },
-    [onZoom]
+    [dismissHint, onZoom]
   );
 
   return { handleZoomClick };
 }
 
-let zoomLightboxArrowSeq = 0;
-
-/** 라이트박스가 열릴 때마다 고유 playKey — CSS 애니메이션 재실행 */
-function useZoomLightboxArrowKey(active: boolean) {
-  const [playKey, setPlayKey] = useState(0);
-
-  useEffect(() => {
-    if (!active) return;
-
-    zoomLightboxArrowSeq += 1;
-    const next = zoomLightboxArrowSeq;
-    setPlayKey(0);
-
-    const raf = requestAnimationFrame(() => {
-      setPlayKey(next);
-    });
-
-    return () => cancelAnimationFrame(raf);
-  }, [active]);
-
-  return playKey;
-}
-
-/** 썸네일 — 클릭하여 확대 */
-export function ZoomExpandHintLabel({
-  className = "",
+/** 확대 가능 이미지 — 우하단 Expand 아이콘 + 모바일 텍스트 */
+export function ZoomExpandHint({
+  visible,
+  fading = false,
   compact = false,
 }: {
-  className?: string;
+  visible: boolean;
+  fading?: boolean;
   compact?: boolean;
 }) {
-  const pos = compact ? "bottom-3 right-3" : "bottom-4 right-4";
-  const textSize = compact ? "text-[10px] px-2.5 py-1" : "text-[11px] px-3 py-1";
+  const isMobile = useIsMobile();
+  const [reduceMotion, setReduceMotion] = useState(false);
 
-  return (
-    <span
-      className={`pointer-events-none absolute z-10 rounded bg-[var(--color-navy)]/75 tracking-wide text-white/90 backdrop-blur-sm ${pos} ${textSize} ${className}`}
-    >
-      클릭하여 확대
-    </span>
-  );
-}
+  useEffect(() => {
+    setReduceMotion(prefersReducedMotion());
+  }, []);
 
-/** 라이트박스 — 우상 ↗ · 좌하 ↙ (모서리 고정, 바깥 방향 스와이프) */
-function CornerExpandArrowSvg({ direction }: { direction: "tr" | "bl" }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    className: "block h-full w-full",
-    fill: "none",
-    xmlns: "http://www.w3.org/2000/svg",
-    stroke: "currentColor",
-    strokeWidth: 2.5,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
+  if (!visible) return null;
 
-  if (direction === "tr") {
-    return (
-      <svg {...common}>
-        {/* ↗ 우측 상단 */}
-        <path d="M5 19L19 5" />
-        <path d="M19 5H13" />
-        <path d="M19 5V11" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg {...common}>
-      {/* ↙ 좌측 하단 */}
-      <path d="M19 5L5 19" />
-      <path d="M5 19H11" />
-      <path d="M5 19V13" />
-    </svg>
-  );
-}
-
-export function ZoomLightboxCornerArrows({
-  animationKey,
-  className = "",
-}: {
-  animationKey: number;
-  className?: string;
-}) {
-  if (animationKey <= 0) return null;
-
-  const icon = "h-10 w-10 sm:h-11 sm:w-11";
-  const trAnchor = `absolute right-2 top-2 sm:right-3 sm:top-3 ${icon}`;
-  const blAnchor = `absolute bottom-2 left-2 sm:bottom-3 sm:left-3 ${icon}`;
+  const pos = compact ? "bottom-2 right-2" : "bottom-3 right-3 sm:bottom-4 sm:right-4";
+  const iconSize = compact ? "h-7 w-7" : "h-8 w-8 sm:h-9 sm:w-9";
+  const glyphSize = compact ? "h-3.5 w-3.5" : "h-4 w-4 sm:h-[18px] sm:w-[18px]";
 
   return (
     <div
-      key={animationKey}
-      className={`zoom-lightbox-swipe-layer pointer-events-none absolute inset-0 z-10 overflow-visible ${className}`}
+      className={`pointer-events-none absolute z-10 flex flex-col items-end gap-1 transition-opacity duration-500 ${pos} ${
+        fading ? "opacity-0" : "opacity-80"
+      }`}
       aria-hidden
     >
-      <span className={trAnchor}>
-        <span className="zoom-swipe-bl-trail block h-full w-full text-white/35">
-          <CornerExpandArrowSvg direction="bl" />
+      {isMobile && (
+        <span className="rounded bg-black/50 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white">
+          클릭하여 확대
         </span>
-      </span>
-      <span className={trAnchor}>
-        <span className="zoom-swipe-bl block h-full w-full text-white/90">
-          <CornerExpandArrowSvg direction="bl" />
-        </span>
-      </span>
-      <span className={blAnchor}>
-        <span className="zoom-swipe-tr-trail block h-full w-full text-white/35">
-          <CornerExpandArrowSvg direction="tr" />
-        </span>
-      </span>
-      <span className={blAnchor}>
-        <span className="zoom-swipe-tr block h-full w-full text-white/90">
-          <CornerExpandArrowSvg direction="tr" />
-        </span>
+      )}
+      <span
+        className={`zoom-expand-hint-icon flex items-center justify-center rounded-full bg-black/50 ${iconSize} ${
+          reduceMotion ? "" : "zoom-expand-hint-icon--pulse"
+        }`}
+      >
+        <Expand className={`${glyphSize} text-white`} strokeWidth={2.5} aria-hidden />
       </span>
     </div>
   );
 }
 
+/** @deprecated ZoomExpandHint 사용 */
+export function ZoomExpandHintLabel({
+  visible = true,
+  fading = false,
+  compact = false,
+}: {
+  visible?: boolean;
+  fading?: boolean;
+  compact?: boolean;
+  className?: string;
+}) {
+  return <ZoomExpandHint visible={visible} fading={fading} compact={compact} />;
+}
+
 export function ZoomLightboxImageFrame({
-  active,
   children,
   className = "",
 }: {
-  active: boolean;
+  active?: boolean;
   children: ReactNode;
   className?: string;
 }) {
-  const playKey = useZoomLightboxArrowKey(active);
-
   return (
     <div
-      className={`zoom-lightbox-swipe-host relative inline-flex max-h-[92vh] max-w-full items-center justify-center ${className}`}
+      className={`relative inline-flex max-h-[92vh] max-w-full items-center justify-center ${className}`}
     >
       {children}
-      <ZoomLightboxCornerArrows animationKey={playKey} />
     </div>
   );
 }

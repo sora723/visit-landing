@@ -7,9 +7,10 @@ import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import { ResponsiveImg } from "./ResponsiveImg";
 import {
-  ZoomExpandHintLabel,
+  ZoomExpandHint,
   ZoomLightboxImageFrame,
   useZoomExpandClick,
+  useZoomExpandHint,
 } from "./ZoomExpandHint";
 
 function FigmaSectionTitle({
@@ -150,7 +151,8 @@ export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
   const [lightbox, setLightbox] = useState(false);
-  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
+  const { hintVisible, hintFading, dismissHint } = useZoomExpandHint();
+  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true), dismissHint);
   const mapLightboxSrc = useResponsiveImage(
     {
       image: location.mapImage,
@@ -200,7 +202,7 @@ export function LocationSection() {
                 className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
-              <ZoomExpandHintLabel />
+              <ZoomExpandHint visible={hintVisible} fading={hintFading} />
             </button>
           )}
           {location.title && (
@@ -309,7 +311,7 @@ function ImageLightbox({
       >
         닫기
       </button>
-      <ZoomLightboxImageFrame active={open}>
+      <ZoomLightboxImageFrame>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={zoomSrc}
@@ -337,7 +339,8 @@ export function UnitTypesSection() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
+  const { hintVisible, hintFading, dismissHint } = useZoomExpandHint();
+  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true), dismissHint);
 
   const safeIndex =
     items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
@@ -397,7 +400,7 @@ export function UnitTypesSection() {
                 alt={current.title}
                 className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
-              <ZoomExpandHintLabel />
+              <ZoomExpandHint visible={hintVisible} fading={hintFading} />
             </button>
           )}
 

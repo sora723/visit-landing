@@ -12,9 +12,10 @@ import {
   shouldShowPopup,
 } from "@/lib/utils";
 import {
-  ZoomExpandHintLabel,
+  ZoomExpandHint,
   ZoomLightboxImageFrame,
   useZoomExpandClick,
+  useZoomExpandHint,
 } from "./ZoomExpandHint";
 
 function ImageZoomModal({
@@ -40,7 +41,7 @@ function ImageZoomModal({
       >
         닫기
       </button>
-      <ZoomLightboxImageFrame active>
+      <ZoomLightboxImageFrame>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
@@ -65,7 +66,8 @@ function EventImagePanel({
   className?: string;
 }) {
   const [currentSrc, setCurrentSrc] = useState(src);
-  const { handleZoomClick } = useZoomExpandClick(onZoom);
+  const { hintVisible, hintFading, dismissHint } = useZoomExpandHint();
+  const { handleZoomClick } = useZoomExpandClick(onZoom, dismissHint);
 
   useEffect(() => {
     setCurrentSrc(src);
@@ -87,7 +89,7 @@ function EventImagePanel({
         className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
         onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
       />
-      <ZoomExpandHintLabel compact />
+      <ZoomExpandHint visible={hintVisible} fading={hintFading} compact />
     </button>
   );
 }
