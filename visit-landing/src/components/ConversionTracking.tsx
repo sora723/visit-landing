@@ -1,7 +1,8 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { claimConversionFire } from "@/lib/conversion-once";
 import {
   hasAnyConversionTracking,
   normalizeGoogleAdsId,
@@ -28,14 +29,18 @@ declare global {
 
 type Props = {
   tracking: ConversionTrackingConfig;
+  /** 1접수=1전환 — 없으면 미실행, 새로고침 시 sessionStorage로 중복 차단 */
+  submissionId?: string | null;
 };
 
 /**
- * /complete — 현장별 전환 코드 (현장관리 시트)
- * 값이 비어 있으면 해당 채널 스크립트·이벤트 미실행
+ * 전환 코드 (현장관리 시트). submissionId당 최초 1회만 실행.
  */
-export function ConversionTracking({ tracking }: Props) {
-  const firedRef = useRef(false);
+export function ConversionTracking({ tracking, submissionId }: Props) {
+  const [armed] = useState(() => {
+    if (!submissionId || !hasAnyConversionTracking(tracking)) return false;
+    return claimConversionFire(submissionId);
+  });
 
   const metaId = tracking.metaPixelId;
   const metaEvent = tracking.metaConversionEvent || "Lead";
@@ -51,7 +56,7 @@ export function ConversionTracking({ tracking }: Props) {
   const rawHtml = tracking.conversionRawHtml?.trim();
 
   useEffect(() => {
-    if (firedRef.current || !hasAnyConversionTracking(tracking)) return;
+    if (!armed) return;
 
     if (hasNaver && typeof window.wcs_do === "function") {
       window.wcs_do();
@@ -64,19 +69,15 @@ export function ConversionTracking({ tracking }: Props) {
         /* pixel load race */
       }
     }
+  }, [armed, hasNaver, hasKakao, kakaoId]);
 
-    firedRef.current = true;
-  }, [tracking, hasNaver, hasKakao, kakaoId]);
-
-  if (!hasAnyConversionTracking(tracking)) return null;
+  if (!armed) return null;
 
   const googleAdsId = googleId ? normalizeGoogleAdsId(googleId) : "";
   const googleSendTo = hasGoogle ? `${googleAdsId}/${googleLabel}` : "";
 
   const naverWa =
-    naverScript && !naverScript.includes("<")
-      ? naverScript
-      : null;
+    naverScript && !naverScript.includes("<") ? naverScript : null;
 
   return (
     <>

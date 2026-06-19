@@ -191,8 +191,8 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
     'referer': referer,
     'device': device,
     'ip': clientIp,
-    'status': '접수완료',
-    'memo': '',
+    'status': opts.isDuplicate === true ? '동일 내용 중복' : '접수완료',
+    'memo': opts.isDuplicate === true ? '동일 내용 중복' : '',
     // 레거시 (한글)
     '접수ID': submissionId,
     '접수일시': submittedAt,

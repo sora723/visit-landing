@@ -8,7 +8,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import type { ConversionTrackingConfig } from "@/lib/conversion-tracking";
+import { runConversionAfterSubmit } from "@/lib/run-conversion-tracking";
 import type { ReservationSubmitInput, SiteConfig } from "@/lib/types";
 import {
   getTrackingContext,
@@ -34,7 +36,7 @@ interface ConfigContextValue {
   submit: (
     input: ReservationSubmitInput,
     options?: { redirect?: boolean }
-  ) => Promise<{ success: boolean; message?: string }>;
+  ) => Promise<{ success: boolean; message?: string; isDuplicate?: boolean }>;
 }
 
 const ConfigContext = createContext<ConfigContextValue | null>(null);
@@ -52,25 +54,26 @@ export function ConfigProvider({
   config: initialConfig,
   contentSource: initialSource,
   siteCode,
+  conversionTracking,
   children,
 }: {
   config: SiteConfig;
   contentSource: ContentSource;
   siteCode: string;
+  conversionTracking: ConversionTrackingConfig;
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState(initialConfig);
   const [contentSource, setContentSource] = useState(initialSource);
 
-  // SSR props (?siteCode= 변경·navigation) → 클라이언트 state 동기화
   useEffect(() => {
     setConfig(initialConfig);
     setContentSource(initialSource);
   }, [initialConfig, initialSource, siteCode]);
 
-  // Sheet 실시간 갱신 — SSR에 sheet 데이터가 있으면 첫 mount fetch 생략 (초기 로딩 경쟁 제거)
   useEffect(() => {
     let cancelled = false;
 
@@ -113,7 +116,7 @@ export function ConfigProvider({
     async (input: ReservationSubmitInput, options?: { redirect?: boolean }) => {
       setSubmitting(true);
       try {
-        await submitReservation(
+        const result = await submitReservation(
           {
             name: input.name.trim(),
             phone: input.phone.replace(/\D/g, ""),
@@ -126,15 +129,34 @@ export function ConfigProvider({
           siteCode
         );
 
+        const isDuplicate = result.isDuplicate === true;
+
         notifyReservationSubmitted(input.name.trim(), {
           unitType: input.unitType,
           visitDate: input.visitDate,
+          isDuplicate,
         });
 
-        if (options?.redirect !== false) {
-          router.push(appendSiteCodeQuery("/complete", siteCode));
+        if (!isDuplicate && result.submissionId) {
+          runConversionAfterSubmit({
+            siteCode,
+            submissionId: result.submissionId,
+            tracking: conversionTracking,
+            navigate: (url) => router.push(url),
+            returnPath: pathname || "/",
+          });
         }
-        return { success: true };
+
+        if (options?.redirect !== false) {
+          const completeUrl =
+            appendSiteCodeQuery("/complete", siteCode) +
+            (result.submissionId
+              ? `&submissionId=${encodeURIComponent(result.submissionId)}`
+              : "");
+          router.push(completeUrl);
+        }
+
+        return { success: true, isDuplicate };
       } catch (err) {
         return {
           success: false,
@@ -144,7 +166,7 @@ export function ConfigProvider({
         setSubmitting(false);
       }
     },
-    [router, siteCode]
+    [router, siteCode, conversionTracking, pathname]
   );
 
   return (

@@ -30,14 +30,17 @@ export async function fetchRecentReservations(
   }
 }
 
+export type SubmitReservationResult = {
+  submissionId: string;
+  isDuplicate?: boolean;
+  notificationSent?: boolean;
+  demo?: boolean;
+};
+
 export async function submitReservation(
   payload: SubmitPayload,
   siteCode: string
-): Promise<{
-  submissionId: string;
-  notificationSent?: boolean;
-  demo?: boolean;
-}> {
+): Promise<SubmitReservationResult> {
   const res = await fetch(appendSiteCodeQuery("/api/submit", siteCode), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -71,16 +74,27 @@ export function getTrackingContext(): Pick<
   };
 }
 
-/** 접수 성공 후 실시간 현황 즉시 갱신 (UI 전용, submit API와 분리) */
+/** 접수 성공 후 실시간 현황·토스트 (UI 전용) */
 export function notifyReservationSubmitted(
   name: string,
-  extra?: { unitType?: string; visitDate?: string }
+  extra?: {
+    unitType?: string;
+    visitDate?: string;
+    isDuplicate?: boolean;
+  }
 ) {
   if (typeof window === "undefined") return;
-  savePendingSubmission(name);
+  if (!extra?.isDuplicate) {
+    savePendingSubmission(name);
+  }
   window.dispatchEvent(
     new CustomEvent("reservation-submitted", {
-      detail: { name, unitType: extra?.unitType, visitDate: extra?.visitDate },
+      detail: {
+        name,
+        unitType: extra?.unitType,
+        visitDate: extra?.visitDate,
+        isDuplicate: extra?.isDuplicate === true,
+      },
     })
   );
 }

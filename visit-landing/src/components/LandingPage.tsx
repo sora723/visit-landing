@@ -5,6 +5,13 @@ import { HeroSection } from "./HeroSection";
 import { SiteChrome } from "./SiteHeader";
 import { BottomBar } from "./BottomBar";
 
+const ConversionTrackingHost = dynamic(
+  () =>
+    import("./ConversionTrackingHost").then((m) => ({
+      default: m.ConversionTrackingHost,
+    })),
+  { ssr: false }
+);
 const ReservationPopup = dynamic(
   () => import("./ReservationPopup").then((m) => ({ default: m.ReservationPopup })),
   { ssr: false }
@@ -84,6 +91,7 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
     <>
       <ReservationPopup />
       <ReservationToast />
+      <ConversionTrackingHost />
       <SiteChrome />
       <main>
         <HeroSection />

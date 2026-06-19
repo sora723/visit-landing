@@ -39,6 +39,7 @@ export default async function Home({ searchParams }: HomeProps) {
       config={config}
       contentSource={live.source}
       siteCode={siteCode}
+      conversionTracking={live.conversionTracking}
     >
       <LandingPage
         promoBar={
