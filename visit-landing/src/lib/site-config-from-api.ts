@@ -178,7 +178,7 @@ export function buildSiteConfigFromApi(
     location: api.location ?? { title: "입지환경", mapImage: "", items: [] },
     futureValue: api.futureValue ?? { title: "미래가치", items: [] },
     unitTypes: api.unitTypes ?? fallback.unitTypes ?? { title: "세대안내", items: [] },
-    community: api.community ?? { title: "커뮤니티", items: [] },
+    community: api.community ?? { title: "커뮤니티", galleryImages: [], items: [] },
     cta: {
       texts: ctaTexts.length
         ? ctaTexts

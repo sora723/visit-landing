@@ -176,12 +176,12 @@ export function LocationSection() {
     <section id="입지환경" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-navy)] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} titleVariant="location" />
-        <div className="relative mb-10 h-[clamp(380px,50vw,540px)] overflow-hidden rounded-2xl bg-[#1a2e5a]">
+        <div className="relative mb-10 overflow-hidden rounded-2xl bg-[#1a2e5a]">
           {hasMapImage && (
             <button
               type="button"
               onClick={() => setLightbox(true)}
-              className="group relative block h-full w-full"
+              className="group relative block w-full"
               aria-label="입지 지도 확대"
             >
               <ResponsiveImg
@@ -191,7 +191,7 @@ export function LocationSection() {
                   imageMobile: location.mapImageMobile,
                 }}
                 alt="입지 지도"
-                className="h-full w-full cursor-zoom-in object-cover object-center transition-transform duration-300 group-hover:scale-[1.01]"
+                className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
               <span className="pointer-events-none absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
@@ -388,7 +388,7 @@ export function UnitTypesSection() {
               <ResponsiveImg
                 source={current}
                 alt={current.title}
-                className="aspect-[4/3] w-full object-contain transition-transform duration-300 group-hover:scale-[1.01] sm:aspect-[16/10]"
+                className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
               <span className="absolute bottom-4 right-4 rounded bg-[var(--color-navy)]/75 px-3 py-1 text-[11px] tracking-wide text-white/90 backdrop-blur-sm">
                 클릭하여 확대
@@ -422,28 +422,52 @@ export function UnitTypesSection() {
 export function CommunitySection() {
   const { config } = useConfig();
   const section = config.community;
-  if (!section.items.length) return null;
+  const galleryImages = section.galleryImages ?? [];
+  const hasGallery = galleryImages.some((img) => img.image?.trim());
+  const hasItems = section.items.length > 0;
+
+  if (!hasGallery && !hasItems) return null;
 
   return (
     <section id="커뮤니티" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-bg)] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="COMMUNITY" title={section.title} />
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {section.items.map((item) => (
-            <article
-              key={item.title}
-              className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
-            >
-              <ResponsiveImg source={item} alt={item.title} className="aspect-square w-full object-cover" />
-              <div className="p-3 sm:p-4">
-                <h3 className="text-sm font-semibold text-[var(--color-navy)]">{item.title}</h3>
-                <p className="mt-1 text-[11px] leading-relaxed text-[#7a7060] sm:text-xs">
-                  {item.description}
-                </p>
+
+        {hasGallery && (
+          <div className="mb-10 flex flex-col gap-6 sm:gap-8">
+            {galleryImages.map((img, index) => (
+              <div
+                key={`gallery-${index}`}
+                className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
+              >
+                <ResponsiveImg
+                  source={img}
+                  alt={img.alt || section.title}
+                  className="h-auto w-full object-contain"
+                />
               </div>
-            </article>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {hasItems && (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {section.items.map((item) => (
+              <article
+                key={item.title}
+                className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
+              >
+                <ResponsiveImg source={item} alt={item.title} className="aspect-square w-full object-cover" />
+                <div className="p-3 sm:p-4">
+                  <h3 className="text-sm font-semibold text-[var(--color-navy)]">{item.title}</h3>
+                  <p className="mt-1 text-[11px] leading-relaxed text-[#7a7060] sm:text-xs">
+                    {item.description}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

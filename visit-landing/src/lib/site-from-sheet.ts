@@ -297,6 +297,12 @@ export function buildSiteConfigFromSheet(
   const unitTypes = resolveUnitTypesFromContent(content);
   const community = parseJson(content.communityData, {
     title: "커뮤니티",
+    galleryImages: [] as {
+      image: string;
+      imagePc?: string;
+      imageMobile?: string;
+      alt?: string;
+    }[],
     items: [] as { title: string; description: string; image: string }[],
   });
 

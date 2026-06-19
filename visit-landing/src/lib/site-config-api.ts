@@ -183,6 +183,35 @@ function parseImageItems(
   };
 }
 
+function parseCommunityGalleryImages(
+  value: unknown
+): NonNullable<SiteConfigApiCommunity>["galleryImages"] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!isRecord(item)) return null;
+      const image = String(item.image ?? "").trim();
+      if (!image) return null;
+      return {
+        image,
+        imagePc: optionalString(item.imagePc),
+        imageMobile: optionalString(item.imageMobile),
+        alt: optionalString(item.alt),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
+function parseCommunity(value: unknown): SiteConfigApiCommunity | undefined {
+  if (!isRecord(value)) return undefined;
+  const base = parseImageItems(value, "커뮤니티");
+  if (!base) return undefined;
+  return {
+    ...base,
+    galleryImages: parseCommunityGalleryImages(value.galleryImages),
+  };
+}
+
 function optionalNormalizedImage(value: unknown): string | undefined {
   const url = optionalString(value);
   return url ? normalizeImageUrl(url) : undefined;
@@ -322,7 +351,7 @@ export function parseSiteConfigApiResponse(
     location: parseLocation(data.location),
     futureValue: parseImageItems(data.futureValue, "미래가치"),
     unitTypes: parseUnitTypes(data.unitTypes),
-    community: parseImageItems(data.community, "커뮤니티"),
+    community: parseCommunity(data.community),
     footer: parseFooter(data.footer),
     extendedData: parseExtendedData(data.extendedData),
     conversionTracking: isRecord(data.conversionTracking)

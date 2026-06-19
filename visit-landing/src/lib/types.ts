@@ -113,6 +113,13 @@ export interface SiteConfig {
   };
   community: {
     title: string;
+    /** 큰 설명 이미지 — 1장 풀폭, 2장 이상 세로 스택 (items 그리드와 별도) */
+    galleryImages?: {
+      image: string;
+      imagePc?: string;
+      imageMobile?: string;
+      alt?: string;
+    }[];
     items: {
       title: string;
       description: string;
