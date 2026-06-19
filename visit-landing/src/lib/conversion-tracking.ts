@@ -3,8 +3,12 @@
 export type ConversionTrackingConfig = {
   metaPixelId?: string;
   metaConversionEvent?: string;
+  /** tel: 클릭 시 Meta 이벤트 (예: Contact) */
+  metaCallConversionEvent?: string;
   googleConversionId?: string;
   googleConversionLabel?: string;
+  /** tel: 클릭 시 Google Ads 전환 Label (ID는 googleConversionId 공유) */
+  googleCallConversionLabel?: string;
   /** 네이버 wcs wa 계정 또는 스크립트 본문 */
   naverConversionScript?: string;
   kakaoPixelId?: string;
@@ -27,16 +31,28 @@ export function parseConversionTracking(
   const config: ConversionTrackingConfig = {
     metaPixelId: pick(raw.metaPixelId),
     metaConversionEvent: pick(raw.metaConversionEvent),
+    metaCallConversionEvent: pick(raw.metaCallConversionEvent),
     googleConversionId: pick(raw.googleConversionId),
     googleConversionLabel: pick(raw.googleConversionLabel),
+    googleCallConversionLabel: pick(raw.googleCallConversionLabel),
     naverConversionScript: pick(raw.naverConversionScript),
     kakaoPixelId: pick(raw.kakaoPixelId),
     conversionRawHtml: pick(raw.conversionRawHtml),
   };
 
-  return hasAnyConversionTracking(config)
+  return hasAnyConversionTracking(config) || hasCallClickTracking(config)
     ? config
     : EMPTY_CONVERSION_TRACKING;
+}
+
+/** tel: 클릭 전환 설정 여부 */
+export function hasCallClickTracking(
+  config: ConversionTrackingConfig
+): boolean {
+  return Boolean(
+    (config.googleConversionId && config.googleCallConversionLabel) ||
+      (config.metaPixelId && config.metaCallConversionEvent)
+  );
 }
 
 export function hasAnyConversionTracking(

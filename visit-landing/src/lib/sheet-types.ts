@@ -27,8 +27,10 @@ export interface SiteManagementRow {
   metaConversionEvent?: string;
   googleConversionId?: string;
   googleConversionLabel?: string;
+  googleCallConversionLabel?: string;
   naverConversionScript?: string;
   kakaoPixelId?: string;
+  metaCallConversionEvent?: string;
   /** 소유 확인 — layout head meta (비우면 미실행) */
   metaOwnershipCode?: string;
   googleOwnershipCode?: string;

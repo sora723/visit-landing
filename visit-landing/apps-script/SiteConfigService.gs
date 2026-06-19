@@ -197,6 +197,20 @@ var GOOGLE_CONVERSION_LABEL_ALIASES = [
   '구글전환Label'
 ];
 
+var GOOGLE_CALL_CONVERSION_LABEL_ALIASES = [
+  'googleCallConversionLabel',
+  '구글전화전환라벨',
+  '구글콜투클릭라벨',
+  '구글전화클릭라벨'
+];
+
+var META_CALL_CONVERSION_EVENT_ALIASES = [
+  'metaCallConversionEvent',
+  '메타전화전환이벤트',
+  '메타콜투클릭',
+  '메타전화클릭'
+];
+
 var NAVER_CONVERSION_SCRIPT_ALIASES = [
   'naverConversionScript',
   '네이버전환스크립트',
@@ -924,8 +938,10 @@ function getConversionTrackingFromSiteRow_(siteRow) {
     return {
       metaPixelId: '',
       metaConversionEvent: '',
+      metaCallConversionEvent: '',
       googleConversionId: '',
       googleConversionLabel: '',
+      googleCallConversionLabel: '',
       naverConversionScript: '',
       kakaoPixelId: '',
       conversionRawHtml: ''
@@ -935,8 +951,10 @@ function getConversionTrackingFromSiteRow_(siteRow) {
   return {
     metaPixelId: getSiteField_(siteRow, META_PIXEL_ID_ALIASES),
     metaConversionEvent: getSiteField_(siteRow, META_CONVERSION_EVENT_ALIASES),
+    metaCallConversionEvent: getSiteField_(siteRow, META_CALL_CONVERSION_EVENT_ALIASES),
     googleConversionId: getSiteField_(siteRow, GOOGLE_CONVERSION_ID_ALIASES),
     googleConversionLabel: getSiteField_(siteRow, GOOGLE_CONVERSION_LABEL_ALIASES),
+    googleCallConversionLabel: getSiteField_(siteRow, GOOGLE_CALL_CONVERSION_LABEL_ALIASES),
     naverConversionScript: getSiteField_(siteRow, NAVER_CONVERSION_SCRIPT_ALIASES),
     kakaoPixelId: getSiteField_(siteRow, KAKAO_PIXEL_ID_ALIASES),
     conversionRawHtml: getSiteField_(siteRow, CONVERSION_RAW_ALIASES)

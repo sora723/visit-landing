@@ -15,8 +15,8 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'popupEnabled', 'liveStatusEnabled', 'virtualReservationEnabled',
     'duplicateBlockMinutes', 'isActive',
     'metaPixelId', 'metaConversionEvent',
-    'googleConversionId', 'googleConversionLabel',
-    'naverConversionScript', 'kakaoPixelId',
+    'googleConversionId', 'googleConversionLabel', 'googleCallConversionLabel',
+    'naverConversionScript', 'kakaoPixelId', 'metaCallConversionEvent',
     'metaOwnershipCode', 'googleOwnershipCode',
     'naverOwnershipCode', 'kakaoOwnershipCode',
     '전환코드', '소유확인코드'

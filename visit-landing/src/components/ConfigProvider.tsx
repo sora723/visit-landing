@@ -22,6 +22,7 @@ import { buildSitePageTitle } from "@/lib/site-page-title";
 import { pickCtaText } from "@/lib/utils";
 import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
+import { CallClickTracking } from "@/components/CallClickTracking";
 
 const POLL_MS = 15_000;
 
@@ -174,6 +175,7 @@ export function ConfigProvider({
       value={{ config, siteCode, contentSource, ctaText, submitting, submit }}
     >
       <SiteThemeProvider theme={mergeSiteTheme(config.theme)} />
+      <CallClickTracking siteCode={siteCode} tracking={conversionTracking} />
       {children}
     </ConfigContext.Provider>
   );
