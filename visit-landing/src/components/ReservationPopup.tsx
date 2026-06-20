@@ -58,10 +58,12 @@ function ImageZoomModal({
 function EventImagePanel({
   src,
   onZoom,
+  onClose,
   className,
 }: {
   src: string;
   onZoom: () => void;
+  onClose: () => void;
   className?: string;
 }) {
   const [currentSrc, setCurrentSrc] = useState(src);
@@ -72,23 +74,35 @@ function EventImagePanel({
   }, [src]);
 
   return (
-    <button
-      type="button"
-      onClick={handleZoomClick}
-      className={`group relative touch-manipulation overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
-      aria-label="이벤트 이미지 확대"
+    <div
+      className={`relative overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={currentSrc}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
-        onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
-      />
-      <ZoomExpandHint compact />
-    </button>
+      <button
+        type="button"
+        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-sm text-white hover:bg-black/60"
+        onClick={onClose}
+        aria-label="닫기"
+      >
+        ✕
+      </button>
+      <button
+        type="button"
+        onClick={handleZoomClick}
+        className="group relative block h-full w-full touch-manipulation"
+        aria-label="이벤트 이미지 확대"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={currentSrc}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
+          onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
+        />
+        <ZoomExpandHint compact />
+      </button>
+    </div>
   );
 }
 
@@ -280,6 +294,7 @@ export function ReservationPopup() {
                 <EventImagePanel
                   key={`${src}-${index}`}
                   src={src}
+                  onClose={finishPopup}
                   onZoom={() =>
                     setZoomSrc(
                       resolvePopupZoomUrl(
