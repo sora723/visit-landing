@@ -11,6 +11,7 @@ import {
   ZoomLightboxImageFrame,
   useZoomExpandClick,
 } from "./ZoomExpandHint";
+import { PinchZoomImage } from "./PinchZoomImage";
 
 function FigmaSectionTitle({
   en,
@@ -310,12 +311,9 @@ function ImageLightbox({
         닫기
       </button>
       <ZoomLightboxImageFrame>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <PinchZoomImage
           src={zoomSrc}
           alt={alt}
-          className="max-h-[90vh] max-w-full object-contain"
-          decoding="async"
           onClick={(e) => e.stopPropagation()}
           onError={() => {
             const fallback = getImageFallbackUrl(src, "lightbox");

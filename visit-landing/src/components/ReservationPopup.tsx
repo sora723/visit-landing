@@ -16,6 +16,7 @@ import {
   ZoomLightboxImageFrame,
   useZoomExpandClick,
 } from "./ZoomExpandHint";
+import { PinchZoomImage } from "./PinchZoomImage";
 
 function ImageZoomModal({
   src,
@@ -41,13 +42,10 @@ function ImageZoomModal({
         닫기
       </button>
       <ZoomLightboxImageFrame>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <PinchZoomImage
           src={src}
           alt=""
-          className="max-h-[92vh] max-w-full object-contain"
-          loading="lazy"
-          decoding="async"
+          imgClassName="max-h-[92vh] max-w-full object-contain"
           onClick={(e) => e.stopPropagation()}
         />
       </ZoomLightboxImageFrame>
