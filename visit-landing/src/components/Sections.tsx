@@ -426,10 +426,26 @@ export function CommunitySection() {
   const { config } = useConfig();
   const section = config.community;
   const galleryImages = section.galleryImages ?? [];
-  const hasGallery = galleryImages.some((img) => img.image?.trim());
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const activeGallery =
+    lightboxIndex !== null ? galleryImages[lightboxIndex] : undefined;
+  const lightboxSrc = useResponsiveImage(
+    activeGallery ?? { image: "" },
+    "lightbox"
+  );
+
+  const hasGallery = galleryImages.some(
+    (img) =>
+      !!img.image?.trim() || !!img.imagePc?.trim() || !!img.imageMobile?.trim()
+  );
   const hasItems = section.items.length > 0;
 
   if (!hasGallery && !hasItems) return null;
+
+  const openGalleryLightbox = (index: number) => {
+    setLightboxIndex(index);
+  };
 
   return (
     <section id="커뮤니티" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-bg)] px-6 py-20">
@@ -438,18 +454,39 @@ export function CommunitySection() {
 
         {hasGallery && (
           <div className="mb-10 flex flex-col gap-6 sm:gap-8">
-            {galleryImages.map((img, index) => (
-              <div
-                key={`gallery-${index}`}
-                className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
-              >
-                <ResponsiveImg
-                  source={img}
-                  alt={img.alt || section.title}
-                  className="h-auto w-full object-contain"
-                />
-              </div>
-            ))}
+            {galleryImages.map((img, index) => {
+              const hasImage =
+                !!img.image?.trim() ||
+                !!img.imagePc?.trim() ||
+                !!img.imageMobile?.trim();
+
+              if (!hasImage) return null;
+
+              return (
+                <div
+                  key={`gallery-${index}`}
+                  className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openGalleryLightbox(index);
+                    }}
+                    className="group relative block w-full touch-manipulation"
+                    aria-label={`${img.alt || section.title || "커뮤니티"} 이미지 확대`}
+                  >
+                    <ResponsiveImg
+                      source={img}
+                      alt={img.alt || section.title}
+                      className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+                    />
+                    <ZoomExpandHint />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -471,6 +508,13 @@ export function CommunitySection() {
             ))}
           </div>
         )}
+
+        <ImageLightbox
+          src={lightboxSrc}
+          alt={activeGallery?.alt || section.title || "커뮤니티"}
+          open={lightboxIndex !== null && !!lightboxSrc}
+          onClose={() => setLightboxIndex(null)}
+        />
       </div>
     </section>
   );
