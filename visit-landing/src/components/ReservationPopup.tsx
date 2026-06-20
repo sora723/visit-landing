@@ -253,7 +253,7 @@ export function ReservationPopup() {
                 onClick={() =>
                   setZoomSrc(resolvePopupZoomUrl(config.popup, "image1", true))
                 }
-                className="block w-full"
+                className="relative block w-full touch-manipulation"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -261,11 +261,12 @@ export function ReservationPopup() {
                   alt=""
                   loading="lazy"
                   decoding="async"
-                  className="max-h-[75dvh] w-full object-contain"
+                  className="max-h-[75dvh] w-full cursor-zoom-in object-contain"
                   onError={() =>
                     setMobileImgSrc(getImageFallbackUrl(mobileImageSrc, "popup-mobile"))
                   }
                 />
+                <ZoomExpandHint compact />
               </button>
             </motion.div>
           </motion.div>

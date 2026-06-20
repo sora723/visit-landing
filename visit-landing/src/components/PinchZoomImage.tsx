@@ -42,6 +42,7 @@ export function PinchZoomImage({
   onError?: () => void;
   onClick?: (e: React.MouseEvent) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState<Transform>({ scale: 1, x: 0, y: 0 });
   const transformRef = useRef<Transform>(transform);
   const pointers = useRef(new Map<number, Point>());
@@ -65,6 +66,28 @@ export function PinchZoomImage({
     pointers.current.clear();
   }, [src]);
 
+  /** PC: 휠 확대 (핀치 대체) */
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      setTransform((prev) => {
+        const nextScale = clampScale(prev.scale * factor);
+        if (nextScale <= 1) {
+          return { scale: 1, x: 0, y: 0 };
+        }
+        return { ...prev, scale: nextScale };
+      });
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [src]);
+
   const snapToRest = useCallback((current: Transform) => {
     if (current.scale <= 1.02) {
       setTransform({ scale: 1, x: 0, y: 0 });
@@ -77,7 +100,10 @@ export function PinchZoomImage({
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     gesture.current.moved = false;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    /* iOS·Galaxy: 터치 멀티핀치 시 capture가 두 번째 손가락 이벤트를 막을 수 있음 */
+    if (e.pointerType === "mouse") {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     const current = transformRef.current;
@@ -141,7 +167,10 @@ export function PinchZoomImage({
     pointers.current.delete(e.pointerId);
 
     try {
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      if (
+        e.pointerType === "mouse" &&
+        e.currentTarget.hasPointerCapture(e.pointerId)
+      ) {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
     } catch {
@@ -184,8 +213,9 @@ export function PinchZoomImage({
 
   return (
     <div
+      ref={containerRef}
       className={`touch-none select-none ${className}`}
-      style={{ touchAction: "none" }}
+      style={{ touchAction: "none", WebkitTouchCallout: "none" }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
