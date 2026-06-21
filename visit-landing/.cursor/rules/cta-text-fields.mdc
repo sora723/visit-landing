@@ -1,0 +1,49 @@
+---
+description: visit-landing CTA 텍스트 필드 — UI 영향·시트 컬럼 정리
+alwaysApply: true
+---
+
+# visit-landing — CTA 텍스트 필드
+
+## `ctaText` 컬럼 — 삭제 가능
+
+- 콘텐츠관리 **`ctaText` 플랫 컬럼은 시트에서 삭제해도 됨**
+- UI에 **연결되지 않음** (`config.cta.texts` 저장만, 화면 미표시)
+- 비어 있어도 Apps Script·프론트 에러 없음
+- fallback: `mobileHookText` → `site.json` `cta.texts`
+
+코드·문서·스크립트에 `ctaText` 참조는 남아 있어도 **운영 무관** (선택적 코드 정리 가능).
+
+---
+
+## 필드별 UI 영향
+
+| 설정 | 시트 위치 | UI 영향 |
+|------|-----------|---------|
+| `ctaText` | 플랫 컬럼 | **없음** — 삭제 OK |
+| `mobileHookText` | 플랫 컬럼 | Hero 방문예약 버튼 **아래** 보조 문구 (모바일·PC) |
+| `cta.buttonText` | extendedData | Hero CTA 버튼, CtaSection·FooterReservationSection 폼 제출 버튼 |
+| `cta.privacyText` | extendedData | config 저장만 — 폼은 **하드코딩** 문구 사용 |
+| `cta.title` / `cta.subtitle` | **site.json만** | CtaSection·FooterReservationSection 제목/부제 |
+
+## `cta.buttonText` 미적용 (하드코딩)
+
+| UI | 고정 문구 |
+|----|-----------|
+| ReservationPopup | `"방문예약하기"` |
+| BottomBar (PC/모바일) | `"신청하기"` |
+
+## CTA와 별도 (혼동 주의)
+
+| 설정 | UI |
+|------|-----|
+| `extendedData.popup.title` / `completeMessage` | 팝업 제목·접수 완료 |
+| `stickyPromoText` | 하단 고정 프로모 바 |
+
+## 운영 권장
+
+시트에서 CTA 문구 관리 시:
+
+- Hero 보조 문구 → **`mobileHookText`**
+- 예약 버튼 → **`extendedData.cta.buttonText`**
+- **`ctaText` 컬럼 불필요**

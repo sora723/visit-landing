@@ -1,0 +1,45 @@
+---
+description: visit-landing 푸터·제목 색상·저작권 표기
+alwaysApply: true
+---
+
+# visit-landing — 푸터·제목 색상·저작권
+
+## 푸터 저작권 (하드코딩)
+
+`SiteFooter` (`src/components/CtaSection.tsx`) — 시트 설정 없음:
+
+```
+© 2026 DAVID. All rights reserved.
+Powered by DAVID
+```
+
+배포 커밋: `d20047a`
+
+---
+
+## footerData.bottomText
+
+- `footerData` JSON `bottomText` — 줄바꿈 지원
+- 시트 `\n` 리터럴 → `formatFooterBottomText()` 변환
+- UI: `whitespace-pre-line` (`SiteFooter`)
+
+---
+
+## 제목 색상 컬럼 (콘텐츠관리)
+
+플랫 컬럼 또는 `extendedData.theme` / extendedData 루트.  
+미설정 시 API 빈 값 → `mergeSiteTheme` 기본값. 제목은 `style={{ color }}` 인라인 적용.
+
+| 컬럼 | 배경 | 섹션 | 기본값 |
+|------|------|------|--------|
+| `sectionTitleColor` | 밝은 배경 | 사업개요, 프리미엄, 미래가치 등 | `mainColor` |
+| `locationTitleColor` | 네이비 | **입지환경** | `#ffffff` |
+| `ctaSectionTitleColor` | 네이비 | 홍보관 방문예약, CTA | `#ffffff` |
+| `liveStatusTitleColor` | 네이비 | 실시간 방문예약 현황 | `#ffffff` |
+
+한글 별칭: 입지환경제목색, 섹션제목색, 방문예약섹션제목색, 실시간현황제목색 등.
+
+컬럼 없으면 시트 메뉴 **테마 컬럼 추가** (`ensureSiteThemeColumns`).
+
+관련 커밋: `fc1910f` (locationTitleColor), `725e0c2` (인라인 색상·ext fallback)

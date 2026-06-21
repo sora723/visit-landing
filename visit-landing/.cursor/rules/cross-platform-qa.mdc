@@ -1,0 +1,45 @@
+---
+description: PC·갤럭시·아이폰 교차 검수 — 기능 완료 기준 (무조건 적용)
+alwaysApply: true
+---
+
+# PC·갤럭시·아이폰 교차 검수 (필수)
+
+**한 기기에서만 되면 실패.** PC · 갤럭시(Android Chrome/Samsung Internet) · 아이폰(Safari) **모두** 동작해야 완료.
+
+## 작업 마무리 전 필수
+
+1. 구현 후 **교차 검수 체크리스트**를 응답 마지막에 제시한다.
+2. 터치·제스처·모달·폼 등 UI 변경은 **실기기 관점**으로 이유와 리스크를 짚는다.
+3. `npm run build` 통과를 확인한다 (배포 요청 시 commit/push).
+
+## 기기별 최소 확인
+
+| 영역 | PC | 갤럭시 | 아이폰 |
+|------|-----|--------|--------|
+| 클릭/탭 | 마우스 클릭 | 터치 탭 | 터치 탭 |
+| 이미지 확대 | 클릭→라이트박스, **휠** | 핀치·더블탭·팬 | 핀치·더블탭·팬 |
+| 모달 닫기 | 닫기·배경 클릭 | 동일 | 동일 |
+| 스크롤/팝업 | 레이아웃 깨짐 없음 | `touch-manipulation` 충돌 없음 | safe-area·viewport OK |
+
+## visit-landing 알려진 함정
+
+- **`layout.tsx` `maximumScale: 1`** → 페이지 전체 브라우저 핀치 차단. **갤럭시가 특히 엄격.** 라이트박스는 `PinchZoomImage`로 자체 제스처 처리.
+- **터치 멀티핀치** → `setPointerCapture`는 **mouse만** 사용. 터치에서 capture 시 두 번째 손가락 막힘.
+- **`touch-manipulation`** → 확대 가능 버튼에 사용. 라이트박스 내부는 `touch-action: none`.
+- **반응형 이미지** → `image` / `imagePc` / `imageMobile` 모두 고려.
+
+## 확대 UX 패턴 (재사용)
+
+- 썸네일: `ZoomExpandHint` + 클릭 → `ImageLightbox` + `PinchZoomImage`
+- 입지·세대·커뮤니티 gallery·팝업 이미지에 동일 패턴 유지
+
+## 완료 보고 형식
+
+```
+## 교차 검수
+| 기능 | PC | 갤럭시 | 아이폰 |
+| ... | ☐/✅ | ☐/✅ | ☐/✅ |
+```
+
+미검증 항목은 **미검증**으로 명시. 한쪽만 확인했으면 완료로 말하지 않는다.

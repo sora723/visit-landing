@@ -1,0 +1,46 @@
+---
+description: visit-landing 브랜딩·SEO(파비콘/OG/헤더로고) 완료 상태
+alwaysApply: true
+---
+
+# visit-landing — 브랜딩·SEO (완료)
+
+## 상태: 완료 (2026-06)
+
+파비콘, OG, 헤더 로고 연동 **완료·배포됨**. 재구현 불필요.
+
+## 설정 위치 (extendedData only)
+
+콘텐츠관리 `extendedData` JSON:
+
+- `seo.faviconUrl` — 탭 파비콘
+- `seo.ogImage` — OG/Twitter 미리보기 (Drive 링크 → 썸네일 변환)
+- `seo.title`, `seo.description`
+- `headerLogoUrl` — 상단 헤더 로고
+
+플랫 컬럼(`faviconUrl`, `headerLogoUrl` 등) **사용 안 함**.
+
+## 구현 요약
+
+| 기능 | 파일 |
+|------|------|
+| Drive URL 변환 | `src/lib/image-url.ts` (`resolveOgImageUrl`, `normalizeImageUrl`) |
+| 파비콘·로고 | `src/lib/branding-url.ts` |
+| `/favicon.ico` 프록시 | `src/middleware.ts` → `src/app/api/favicon/route.ts` |
+| metadata | `src/lib/site-seo-metadata.ts` |
+
+## 파비콘 주의
+
+Next.js 기본 `/favicon.ico`가 metadata icons보다 우선한다. **middleware rewrite 필수** — 제거하지 말 것.
+
+## 배포 커밋
+
+- `1695954` — extendedData favicon/headerLogo
+- `562ead0` — OG Drive 링크 정규화
+- `f8c802d` — favicon.ico middleware 프록시
+
+## 운영
+
+- 배포: `main` push → Netlify 자동
+- 사용자 확인: **「네」** 후 push
+- L001 시트 favicon/og/logo: Google Drive 링크 (공개 공유 필요)
