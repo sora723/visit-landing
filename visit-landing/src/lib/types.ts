@@ -90,7 +90,7 @@ export interface SiteConfig {
     mapImage: string;
     mapImagePc?: string;
     mapImageMobile?: string;
-    items: { category: string; title: string; description: string }[];
+    items: { category: string; title?: string; description?: string }[];
   };
   futureValue: {
     title: string;

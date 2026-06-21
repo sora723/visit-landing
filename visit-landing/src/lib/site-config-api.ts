@@ -231,11 +231,12 @@ function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
           if (!isRecord(item)) return null;
           const category = String(item.category ?? "").trim();
           const title = String(item.title ?? "").trim();
-          if (!category && !title) return null;
+          const description = String(item.description ?? "").trim();
+          if (!title && !description) return null;
           return {
             category,
             title,
-            description: String(item.description ?? "").trim(),
+            description,
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null)

@@ -147,6 +147,25 @@ export function PremiumSection() {
   );
 }
 
+function groupLocationItems(
+  items: { category: string; title?: string; description?: string }[]
+) {
+  return items.reduce<
+    { cat: string; lines: { title: string; description: string }[] }[]
+  >((acc, item) => {
+    const title = item.title?.trim() ?? "";
+    const description = item.description?.trim() ?? "";
+    if (!title && !description) return acc;
+
+    const cat = item.category?.trim() ?? "";
+    const line = { title, description };
+    const existing = acc.find((g) => g.cat === cat);
+    if (existing) existing.lines.push(line);
+    else acc.push({ cat, lines: [line] });
+    return acc;
+  }, []);
+}
+
 export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
@@ -165,19 +184,13 @@ export function LocationSection() {
     !!location.mapImagePc?.trim() ||
     !!location.mapImageMobile?.trim();
 
-  if (!hasMapImage && !location.items.length) return null;
+  const hasLocationItems = location.items.some(
+    (item) => !!(item.title?.trim() || item.description?.trim())
+  );
 
-  const groups = location.items.reduce<
-    { cat: string; items: string[] }[]
-  >((acc, item) => {
-    const existing = acc.find((g) => g.cat === item.category);
-    const line = item.description
-      ? `${item.title} — ${item.description}`
-      : item.title;
-    if (existing) existing.items.push(line);
-    else acc.push({ cat: item.category, items: [line] });
-    return acc;
-  }, []);
+  if (!hasMapImage && !hasLocationItems) return null;
+
+  const groups = groupLocationItems(location.items);
 
   return (
     <section id="입지환경" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-navy)] px-6 py-20">
@@ -219,20 +232,33 @@ export function LocationSection() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {groups.map((point) => (
             <div
-              key={point.cat}
-              className="rounded-xl border border-white/10 bg-white/[0.05] px-[18px] py-[22px]"
+              key={point.cat || "__uncategorized"}
+              className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-6 sm:px-[20px] sm:py-6"
             >
-              <div className="mb-3.5 border-b border-[var(--color-gold)]/25 pb-3 text-sm font-bold text-[var(--color-gold)]">
-                {point.cat}
-              </div>
-              <ul className="flex flex-col gap-2">
-                {point.items.map((item) => (
+              {point.cat ? (
+                <div className="mb-4 border-b border-[var(--color-gold)]/25 pb-3 text-[15px] font-bold text-[var(--color-gold)] sm:text-base">
+                  {point.cat}
+                </div>
+              ) : null}
+              <ul className="flex flex-col gap-2.5 sm:gap-3">
+                {point.lines.map((line, lineIndex) => (
                   <li
-                    key={item}
-                    className="flex items-start gap-2 text-[13px] leading-snug text-white/75"
+                    key={`${point.cat}-${lineIndex}`}
+                    className="flex items-start gap-2.5 text-[15px] leading-relaxed text-white/85 sm:text-base sm:leading-[1.65]"
                   >
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--color-gold)]" />
-                    {item}
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-gold)]" />
+                    <span>
+                      {line.title && line.description ? (
+                        <>
+                          <span className="font-semibold text-white/95">{line.title}</span>
+                          <span className="text-white/80"> — {line.description}</span>
+                        </>
+                      ) : line.title ? (
+                        <span className="font-semibold text-white/95">{line.title}</span>
+                      ) : (
+                        line.description
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
