@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useEffect, useState } from "react";
 import { claimConversionFire } from "@/lib/conversion-once";
 import { ConversionRawHtmlScripts } from "@/components/ConversionRawHtmlScripts";
+import { NaverConversionScripts } from "@/components/NaverConversionScripts";
 import {
   hasAnyConversionTracking,
   normalizeGoogleAdsId,
@@ -17,7 +18,11 @@ declare global {
     gtag?: (...args: unknown[]) => void;
     dataLayer?: unknown[];
     wcs_add?: Record<string, string>;
-    wcs?: { inflow: () => void; do: () => void };
+    wcs?: {
+      inflow?: () => void;
+      do?: () => void;
+      trans?: (payload: Record<string, unknown>) => void;
+    };
     wcs_do?: () => void;
     wcs_inflow?: () => void;
     kakaoPixel?: (id: string) => {
@@ -59,10 +64,6 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
   useEffect(() => {
     if (!armed) return;
 
-    if (hasNaver && typeof window.wcs_do === "function") {
-      window.wcs_do();
-    }
-
     if (hasKakao && typeof window.kakaoPixel === "function") {
       try {
         window.kakaoPixel(kakaoId!).completeRegistration();
@@ -70,15 +71,12 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
         /* pixel load race */
       }
     }
-  }, [armed, hasNaver, hasKakao, kakaoId]);
+  }, [armed, hasKakao, kakaoId]);
 
   if (!armed) return null;
 
   const googleAdsId = googleId ? normalizeGoogleAdsId(googleId) : "";
   const googleSendTo = hasGoogle ? `${googleAdsId}/${googleLabel}` : "";
-
-  const naverWa =
-    naverScript && !naverScript.includes("<") ? naverScript : null;
 
   return (
     <>
@@ -135,27 +133,12 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
         </>
       )}
 
-      {hasNaver && naverWa && (
-        <>
-          <Script
-            id="naver-wcslog"
-            strategy="afterInteractive"
-            src="//wcs.naver.net/wcslog.js"
-          />
-          <Script id="naver-conversion" strategy="afterInteractive">
-            {`
-              if (!window.wcs_add) window.wcs_add = {};
-              window.wcs_add["wa"] = "${naverWa}";
-              if (typeof window.wcs_inflow === "function") window.wcs_inflow();
-            `}
-          </Script>
-        </>
-      )}
-
-      {hasNaver && !naverWa && naverScript && (
-        <Script id="naver-conversion-custom" strategy="afterInteractive">
-          {naverScript.replace(/<\/?script[^>]*>/gi, "")}
-        </Script>
+      {hasNaver && naverScript && (
+        <NaverConversionScripts
+          script={naverScript}
+          idPrefix={`naver-${submissionId ?? "x"}`}
+          active
+        />
       )}
 
       {hasKakao && (
