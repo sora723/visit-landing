@@ -10,6 +10,8 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { ConversionTrackingConfig } from "@/lib/conversion-tracking";
+import { hasAnyConversionTracking } from "@/lib/conversion-tracking";
+import { prefersCompletePageConversion } from "@/lib/conversion-once";
 import { runConversionAfterSubmit } from "@/lib/run-conversion-tracking";
 import type { ReservationSubmitInput, SiteConfig } from "@/lib/types";
 import {
@@ -139,6 +141,10 @@ export function ConfigProvider({
         });
 
         if (!isDuplicate && result.submissionId) {
+          const conversionOnComplete =
+            hasAnyConversionTracking(conversionTracking) &&
+            prefersCompletePageConversion(conversionTracking);
+
           runConversionAfterSubmit({
             siteCode,
             submissionId: result.submissionId,
@@ -146,9 +152,14 @@ export function ConfigProvider({
             navigate: (url) => router.push(url),
             returnPath: pathname || "/",
           });
-        }
 
-        if (options?.redirect !== false) {
+          if (options?.redirect !== false && !conversionOnComplete) {
+            const completeUrl =
+              appendSiteCodeQuery("/complete", siteCode) +
+              `&submissionId=${encodeURIComponent(result.submissionId)}`;
+            router.push(completeUrl);
+          }
+        } else if (options?.redirect !== false) {
           const completeUrl =
             appendSiteCodeQuery("/complete", siteCode) +
             (result.submissionId

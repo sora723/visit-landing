@@ -43,10 +43,12 @@ type Props = {
  * 전환 코드 (현장관리 시트). submissionId당 최초 1회만 실행.
  */
 export function ConversionTracking({ tracking, submissionId }: Props) {
-  const [armed] = useState(() => {
-    if (!submissionId || !hasAnyConversionTracking(tracking)) return false;
-    return claimConversionFire(submissionId);
-  });
+  const shouldTrack = Boolean(
+    submissionId && hasAnyConversionTracking(tracking)
+  );
+  const [canFire] = useState(() =>
+    submissionId ? claimConversionFire(submissionId) : false
+  );
 
   const metaId = tracking.metaPixelId;
   const metaEvent = tracking.metaConversionEvent || "Lead";
@@ -62,7 +64,7 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
   const rawHtml = tracking.conversionRawHtml?.trim();
 
   useEffect(() => {
-    if (!armed) return;
+    if (!canFire) return;
 
     if (hasKakao && typeof window.kakaoPixel === "function") {
       try {
@@ -71,22 +73,22 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
         /* pixel load race */
       }
     }
-  }, [armed, hasKakao, kakaoId]);
+  }, [canFire, hasKakao, kakaoId]);
 
-  if (!armed) return null;
+  if (!shouldTrack) return null;
 
   const googleAdsId = googleId ? normalizeGoogleAdsId(googleId) : "";
   const googleSendTo = hasGoogle ? `${googleAdsId}/${googleLabel}` : "";
 
   return (
     <>
-      {rawHtml && (
+      {canFire && rawHtml && (
         <ConversionRawHtmlScripts
           html={rawHtml}
           idPrefix={`conversion-raw-${submissionId ?? "x"}`}
         />
       )}
-      {hasMeta && (
+      {canFire && hasMeta && (
         <>
           <Script
             id="meta-pixel-base"
@@ -112,7 +114,7 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
         </>
       )}
 
-      {hasGoogle && (
+      {canFire && hasGoogle && (
         <>
           <Script
             id="google-ads-gtag"
@@ -137,11 +139,11 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
         <NaverConversionScripts
           script={naverScript}
           idPrefix={`naver-${submissionId ?? "x"}`}
-          active
+          active={canFire}
         />
       )}
 
-      {hasKakao && (
+      {canFire && hasKakao && (
         <>
           <Script
             id="kakao-pixel"

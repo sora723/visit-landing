@@ -22,9 +22,18 @@ export function claimConversionFire(submissionId: string): boolean {
   return true;
 }
 
-/** complete 폴백 등 — raw HTML 전환은 전용 페이지가 안정적 */
+/** complete 페이지에서 전환 실행 (랜딩 inline 대신 — 네이버 wcslog 등 로드 시간 확보) */
+export function prefersCompletePageConversion(
+  tracking: import("@/lib/conversion-tracking").ConversionTrackingConfig
+): boolean {
+  return Boolean(
+    tracking.conversionRawHtml?.trim() || tracking.naverConversionScript?.trim()
+  );
+}
+
+/** @deprecated prefersCompletePageConversion 사용 */
 export function prefersCompletePageFallback(
   tracking: import("@/lib/conversion-tracking").ConversionTrackingConfig
 ): boolean {
-  return Boolean(tracking.conversionRawHtml?.trim());
+  return prefersCompletePageConversion(tracking);
 }

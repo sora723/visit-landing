@@ -3,7 +3,7 @@ import {
   hasAnyConversionTracking,
   type ConversionTrackingConfig,
 } from "@/lib/conversion-tracking";
-import { prefersCompletePageFallback } from "@/lib/conversion-once";
+import { prefersCompletePageConversion } from "@/lib/conversion-once";
 
 export type RunConversionOptions = {
   siteCode: string;
@@ -17,7 +17,7 @@ export const COMPLETE_DWELL_MS = 2500;
 
 /**
  * 접수 1건당 전환 1회.
- * raw HTML(전환코드) → /complete 잠시 방문 후 autoReturn
+ * raw HTML(전환코드)·네이버 전환 → /complete 잠시 방문 후 autoReturn
  * 그 외 → 랜딩 inline (ConversionTrackingHost)
  */
 export function runConversionAfterSubmit({
@@ -35,7 +35,7 @@ export function runConversionAfterSubmit({
     `&submissionId=${encodeURIComponent(submissionId)}` +
     `&autoReturn=1&returnTo=${encodeURIComponent(returnTo)}`;
 
-  if (prefersCompletePageFallback(tracking)) {
+  if (prefersCompletePageConversion(tracking)) {
     navigate(completeUrl);
     return;
   }
