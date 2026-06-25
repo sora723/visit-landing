@@ -26,12 +26,23 @@ export function NaverConversionScripts({ script, idPrefix, active }: Props) {
     return parseRawHtmlScripts(trimmed, idPrefix);
   }, [trimmed, idPrefix]);
 
+  /** 시트 HTML 인라인에 wcs.trans가 있으면 그 스크립트가 전환 담당 — fireNaverConversion 중복 방지 */
+  const inlineExecutesConversion = useMemo(
+    () =>
+      htmlParts.some(
+        (part) =>
+          part.kind === "inline" &&
+          /\bwcs\s*\.\s*trans\s*\(|\bwcs_do\s*\(/.test(part.content)
+      ),
+    [htmlParts]
+  );
+
   const tryFire = useCallback(() => {
-    if (!active || firedRef.current) return;
+    if (!active || firedRef.current || inlineExecutesConversion) return;
     if (fireNaverConversion()) {
       firedRef.current = true;
     }
-  }, [active]);
+  }, [active, inlineExecutesConversion]);
 
   useEffect(() => {
     if (!active) return;
