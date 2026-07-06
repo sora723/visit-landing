@@ -35,6 +35,11 @@ export type SubmitReservationResult = {
   isDuplicate?: boolean;
   notificationSent?: boolean;
   demo?: boolean;
+  /** 내부용 — UI 미노출 */
+  allowConversion?: boolean;
+  savedToSubmissions?: boolean;
+  includeInLiveFeed?: boolean;
+  validationStatus?: string;
 };
 
 export async function submitReservation(
@@ -74,17 +79,19 @@ export function getTrackingContext(): Pick<
   };
 }
 
-/** 접수 성공 후 실시간 현황·토스트 (UI 전용) */
+/** 접수 성공 후 실시간 현황·토스트 — includeInLiveFeed=false면 피드 제외 */
 export function notifyReservationSubmitted(
   name: string,
   extra?: {
     unitType?: string;
     visitDate?: string;
     isDuplicate?: boolean;
+    includeInLiveFeed?: boolean;
   }
 ) {
   if (typeof window === "undefined") return;
-  if (!extra?.isDuplicate) {
+  const showInFeed = extra?.includeInLiveFeed !== false && !extra?.isDuplicate;
+  if (showInFeed) {
     savePendingSubmission(name);
   }
   window.dispatchEvent(

@@ -6,6 +6,7 @@ import { isMobileUserAgent } from "@/lib/is-mobile-user-agent";
 import { resolveHeroImageSources } from "@/lib/responsive-image";
 import { getServerSiteCode } from "@/lib/server-site-code";
 import { ConfigProvider } from "@/components/ConfigProvider";
+import { FormSubmitSecurityProvider } from "@/components/FormSubmitSecurityProvider";
 import { LandingPage } from "@/components/LandingPage";
 import { PromoStickyBar } from "@/components/PromoStickyBar";
 
@@ -41,15 +42,17 @@ export default async function Home({ searchParams }: HomeProps) {
       siteCode={siteCode}
       conversionTracking={live.conversionTracking}
     >
-      <LandingPage
-        promoBar={
-          <PromoStickyBar
-            siteCode={siteCode}
-            initialText={config.stickyPromoText ?? null}
-            serverMobile={serverMobile}
-          />
-        }
-      />
+      <FormSubmitSecurityProvider siteCode={siteCode}>
+        <LandingPage
+          promoBar={
+            <PromoStickyBar
+              siteCode={siteCode}
+              initialText={config.stickyPromoText ?? null}
+              serverMobile={serverMobile}
+            />
+          }
+        />
+      </FormSubmitSecurityProvider>
     </ConfigProvider>
   );
 }

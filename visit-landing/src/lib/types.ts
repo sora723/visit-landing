@@ -220,6 +220,23 @@ export interface SubmitPayload {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
+  utmContent?: string;
+  landingUrl?: string;
+  napm?: string;
+  formToken?: string;
+  pageLoadedAt?: number;
+  company?: string;
+  inputFocusCount?: number;
+  inputChangeCount?: number;
+  clickCount?: number;
+  scrollDepth?: number;
+  firstInputAt?: number | null;
+  lastInputAt?: number | null;
+  userAgent?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  timezone?: string;
+  language?: string;
 }
 
 export interface ReservationSubmitInput {
@@ -228,4 +245,21 @@ export interface ReservationSubmitInput {
   unitType?: string;
   visitDate?: string;
   source?: string;
+  company?: string;
+  formToken?: string;
+  pageLoadedAt?: number;
+  napm?: string;
+  utmContent?: string;
+  landingUrl?: string;
+  inputFocusCount?: number;
+  inputChangeCount?: number;
+  clickCount?: number;
+  scrollDepth?: number;
+  firstInputAt?: number | null;
+  lastInputAt?: number | null;
+  userAgent?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  timezone?: string;
+  language?: string;
 }

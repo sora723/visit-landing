@@ -12,6 +12,7 @@ type Props = {
   homeHref: string;
   tracking: ConversionTrackingConfig;
   submissionId: string | null;
+  conversionAllowed: boolean;
   autoReturn: boolean;
   returnTo: string;
 };
@@ -21,6 +22,7 @@ export function CompletePageClient({
   homeHref,
   tracking,
   submissionId,
+  conversionAllowed,
   autoReturn,
   returnTo,
 }: Props) {
@@ -36,7 +38,7 @@ export function CompletePageClient({
 
   return (
     <>
-      {submissionId ? (
+      {submissionId && conversionAllowed ? (
         <ConversionTracking
           submissionId={submissionId}
           tracking={tracking}

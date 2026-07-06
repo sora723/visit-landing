@@ -7,6 +7,7 @@ var DUPLICATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 기본 120분, 현장별 설정
 
 /**
  * POST action=submit
+ * 의심 접수도 접수관리에 저장 — 알림톡·전환만 제외 (접수자 UI는 항상 성공)
  */
 function handleSubmit(params) {
   var siteCode = String(params.siteCode || '').trim();
@@ -32,55 +33,76 @@ function handleSubmit(params) {
 
   var formType = getField_(siteRow, '폼타입') || 'simple';
   var validated = validateSubmitParams_(params, formType);
-
-  var blockMinutes = getDuplicateBlockMinutes_(siteRow);
-  var blockMs = blockMinutes * 60 * 1000;
-
-  if (checkFullDuplicateSubmission_(siteCode, validated, blockMs)) {
-    var dupSubmissionId = Utilities.getUuid();
-    var dupSubmittedAt = new Date();
-
-    appendSubmissionRow_(
-      siteRow,
-      validated,
-      dupSubmissionId,
-      dupSubmittedAt,
-      params,
-      { isDuplicate: true }
-    );
-
-    writeLog_(
-      'SUBMIT_DUPLICATE',
-      siteCode,
-      '접수ID=' + dupSubmissionId + ', 알림=SKIP (2시간 내 동일 접수)'
-    );
-
-    return {
-      submissionId: dupSubmissionId,
-      isDuplicate: true,
-      redirectUrl: buildCompleteRedirectUrl_(siteCode, validated),
-      notificationSent: false
-    };
-  }
-
   var submissionId = Utilities.getUuid();
   var submittedAt = new Date();
 
-  appendSubmissionRow_(siteRow, validated, submissionId, submittedAt, params);
+  var validation = classifySubmission_(params, validated, siteCode);
 
-  var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
-
-  writeLog_(
-    'SUBMIT',
-    siteCode,
-    '접수ID=' + submissionId + ', 알림=' + (notificationResult.success ? 'OK' : 'FAIL')
+  appendVerificationLogRow_(
+    buildVerificationLogRow_({
+      submissionId: submissionId,
+      siteCode: siteCode,
+      submittedAt: submittedAt,
+      validated: validated,
+      rawParams: params,
+      validationStatus: validation.validationStatus,
+      suspicionReasons: validation.suspicionReasons,
+      allowConversion: validation.allowConversion,
+      elapsedSeconds: validation.elapsedSeconds
+    })
   );
+
+  var notificationSent = false;
+
+  if (validation.shouldSaveToSubmissions) {
+    appendSubmissionRow_(
+      siteRow,
+      validated,
+      submissionId,
+      submittedAt,
+      params,
+      {
+        validationStatus: validation.validationStatus,
+        suspicionReasons: validation.suspicionReasons
+      }
+    );
+
+    if (validation.shouldNotify) {
+      var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
+      notificationSent = notificationResult.success === true;
+    }
+
+    writeLog_(
+      validation.shouldNotify ? 'SUBMIT' : 'SUBMIT_SUSPECT',
+      siteCode,
+      '접수ID=' +
+        submissionId +
+        ', 상태=' +
+        validation.validationStatus +
+        ', 알림=' +
+        (notificationSent ? 'OK' : 'SKIP')
+    );
+  } else {
+    writeLog_(
+      'SUBMIT_BLOCKED',
+      siteCode,
+      '접수ID=' +
+        submissionId +
+        ', 상태=' +
+        validation.validationStatus +
+        ', 사유=' +
+        validation.suspicionReasons
+    );
+  }
 
   return {
     submissionId: submissionId,
-    isDuplicate: false,
-    redirectUrl: buildCompleteRedirectUrl_(siteCode, validated),
-    notificationSent: notificationResult.success === true
+    isDuplicate: validation.validationStatus === '중복접수',
+    validationStatus: validation.validationStatus,
+    allowConversion: validation.allowConversion === true,
+    savedToSubmissions: validation.shouldSaveToSubmissions === true,
+    includeInLiveFeed: validation.shouldNotify === true,
+    notificationSent: notificationSent
   };
 }
 
@@ -177,6 +199,9 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
   var device = String(params.device || '').trim();
   var clientIp = String(params.clientIp || '').trim();
   var consultType = data.consultType || '방문예약';
+  var validationStatus = String(opts.validationStatus || '정상접수').trim();
+  var accepted = isAcceptedSubmissionStatus_(validationStatus);
+  var suspicionReasons = String(opts.suspicionReasons || '').trim();
 
   return {
     // VisitLanding_Master (영문)
@@ -191,8 +216,9 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
     'referer': referer,
     'device': device,
     'ip': clientIp,
-    'status': opts.isDuplicate === true ? '동일 내용 중복' : '접수완료',
-    'memo': opts.isDuplicate === true ? '동일 내용 중복' : '',
+    'status': accepted ? '접수완료' : validationStatus,
+    'memo': suspicionReasons,
+    'validationStatus': validationStatus,
     // 레거시 (한글)
     '접수ID': submissionId,
     '접수일시': submittedAt,
@@ -214,7 +240,8 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
     'IP': clientIp,
     '담당자명': managerName,
     '담당자번호': managerPhone,
-    '중복여부': opts.isDuplicate === true ? 'Y' : 'N'
+    '중복여부': validationStatus === '중복접수' ? 'Y' : 'N',
+    '검증상태': validationStatus
   };
 }
 
@@ -322,34 +349,6 @@ function buildTrafficSourceLabel_(submission, params) {
     }
   }
   return '직접유입';
-}
-
-/**
- * 중복 접수 검사 — 설정 시간(기본 2시간) 내 모든 접수 필드 일치
- * @returns {boolean} true = 완전 중복 (알림톡 생략, 시트 저장)
- */
-function checkFullDuplicateSubmission_(siteCode, validated, blockMs) {
-  var rows = sheetToObjects_(SHEET_NAMES.SUBMISSION);
-  var now = new Date();
-  var windowMs = blockMs || DUPLICATE_WINDOW_MS;
-
-  for (var i = rows.length - 1; i >= 0; i--) {
-    var row = rows[i];
-    var rowSiteCode = getSiteField_(row, ['siteCode', '현장코드']);
-    if (rowSiteCode !== siteCode) continue;
-
-    var submittedAt = row['createdAt'] || row['접수일시'];
-    if (!submittedAt) continue;
-
-    var submittedDate = submittedAt instanceof Date ? submittedAt : new Date(submittedAt);
-    if (isNaN(submittedDate.getTime())) continue;
-    if (now.getTime() - submittedDate.getTime() > windowMs) continue;
-
-    if (isSameSubmissionContent_(row, validated)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function normalizeSubmissionField_(value) {

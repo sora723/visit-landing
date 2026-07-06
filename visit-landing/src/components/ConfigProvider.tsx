@@ -127,48 +127,63 @@ export function ConfigProvider({
             unitType: input.unitType,
             visitDate: input.visitDate,
             source: input.source,
+            company: input.company,
+            formToken: input.formToken,
+            pageLoadedAt: input.pageLoadedAt,
+            napm: input.napm,
+            utmContent: input.utmContent,
+            landingUrl: input.landingUrl,
+            inputFocusCount: input.inputFocusCount,
+            inputChangeCount: input.inputChangeCount,
+            clickCount: input.clickCount,
+            scrollDepth: input.scrollDepth,
+            firstInputAt: input.firstInputAt,
+            lastInputAt: input.lastInputAt,
+            userAgent: input.userAgent,
+            screenWidth: input.screenWidth,
+            screenHeight: input.screenHeight,
+            timezone: input.timezone,
+            language: input.language,
             ...getTrackingContext(),
           },
           siteCode
         );
 
-        const isDuplicate = result.isDuplicate === true;
-
+        const allowConversion = result.allowConversion !== false;
         notifyReservationSubmitted(input.name.trim(), {
           unitType: input.unitType,
           visitDate: input.visitDate,
-          isDuplicate,
+          isDuplicate: result.isDuplicate,
+          includeInLiveFeed: result.includeInLiveFeed !== false,
         });
 
-        if (!isDuplicate && result.submissionId) {
+        if (result.submissionId) {
           const conversionOnComplete =
+            allowConversion &&
             hasAnyConversionTracking(conversionTracking) &&
             prefersCompletePageConversion(conversionTracking);
 
-          runConversionAfterSubmit({
-            siteCode,
-            submissionId: result.submissionId,
-            tracking: conversionTracking,
-            navigate: (url) => router.push(url),
-            returnPath: pathname || "/",
-          });
+          if (allowConversion) {
+            runConversionAfterSubmit({
+              siteCode,
+              submissionId: result.submissionId,
+              tracking: conversionTracking,
+              navigate: (url) => router.push(url),
+              returnPath: pathname || "/",
+            });
+          }
 
           if (options?.redirect !== false && !conversionOnComplete) {
+            const verified = allowConversion ? "1" : "0";
             const completeUrl =
               appendSiteCodeQuery("/complete", siteCode) +
-              `&submissionId=${encodeURIComponent(result.submissionId)}`;
+              `&submissionId=${encodeURIComponent(result.submissionId)}` +
+              `&verified=${verified}`;
             router.push(completeUrl);
           }
-        } else if (options?.redirect !== false) {
-          const completeUrl =
-            appendSiteCodeQuery("/complete", siteCode) +
-            (result.submissionId
-              ? `&submissionId=${encodeURIComponent(result.submissionId)}`
-              : "");
-          router.push(completeUrl);
         }
 
-        return { success: true, isDuplicate };
+        return { success: true, isDuplicate: result.isDuplicate === true };
       } catch (err) {
         return {
           success: false,

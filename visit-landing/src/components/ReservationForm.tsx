@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { useFormSubmitSecurity } from "./FormSubmitSecurityProvider";
 import { PrivacyModal } from "./PrivacyModal";
 import { ScrollableSelect } from "./ScrollableSelect";
 import {
@@ -35,6 +36,8 @@ export function ReservationForm({
   className?: string;
 }) {
   const { submit, submitting, config } = useConfig();
+  const security = useFormSubmitSecurity();
+  const [company, setCompany] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [unitType, setUnitType] = useState("");
@@ -65,6 +68,8 @@ export function ReservationForm({
         unitType: showUnitType ? unitType || undefined : undefined,
         visitDate: showVisitDate ? visitDate || undefined : undefined,
         source,
+        company,
+        ...(security?.buildSubmitExtras() ?? {}),
       },
       { redirect }
     );
@@ -83,9 +88,11 @@ export function ReservationForm({
   if (variant === "inline") {
     return (
       <form
+        ref={(el) => security?.registerFormRoot(el)}
         onSubmit={handleSubmit}
         className={`flex flex-wrap items-center gap-2.5 ${className ?? ""}`}
       >
+        <HoneypotField value={company} onChange={setCompany} />
         <input
           type="text"
           placeholder="성함"
@@ -154,7 +161,12 @@ export function ReservationForm({
   const isCompact = variant === "compact";
 
   return (
-    <form onSubmit={handleSubmit} className={`space-y-4 text-left ${className ?? ""}`}>
+    <form
+      ref={(el) => security?.registerFormRoot(el)}
+      onSubmit={handleSubmit}
+      className={`space-y-4 text-left ${className ?? ""}`}
+    >
+      <HoneypotField value={company} onChange={setCompany} />
       <div className={isCompact ? "space-y-4" : "grid gap-5 sm:grid-cols-2"}>
         <div>
           <label className={labelBase}>
@@ -240,6 +252,27 @@ export function ReservationForm({
         {submitting ? "처리 중..." : buttonText}
       </button>
     </form>
+  );
+}
+
+function HoneypotField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <input
+      type="text"
+      name="company"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      autoComplete="off"
+      tabIndex={-1}
+      aria-hidden
+      className="absolute left-[-9999px] h-px w-px opacity-0"
+    />
   );
 }
 

@@ -7,6 +7,8 @@ var SHEET_NAMES = {
   SITE: '현장관리',
   CONTENT: '콘텐츠관리',
   SUBMISSION: '접수관리',
+  VERIFICATION_LOG: '_검증로그',
+  IP_BLOCK: '_IP차단',
   LOG: '시스템로그',
   LOG_LEGACY: '_시스템로그'
 };

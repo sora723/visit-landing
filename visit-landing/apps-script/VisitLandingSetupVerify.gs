@@ -38,8 +38,10 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
   '접수관리': [
     'id', 'siteCode', 'createdAt', 'name', 'phone',
     'utmSource', 'utmMedium', 'utmCampaign',
-    'referer', 'device', 'ip', 'status', 'memo'
+    'referer', 'device', 'ip', 'status', 'memo', 'validationStatus', '검증상태'
   ],
+  '_검증로그': VERIFICATION_LOG_HEADERS,
+  '_IP차단': IP_BLOCK_HEADERS,
   '시스템로그': [
     'occurredAt', 'action', 'siteCode', 'provider',
     'recipientPhone', 'errorMessage', 'payload', 'message'

@@ -33,6 +33,7 @@ export function runConversionAfterSubmit({
   const completeUrl =
     appendSiteCodeQuery("/complete", siteCode) +
     `&submissionId=${encodeURIComponent(submissionId)}` +
+    `&verified=1` +
     `&autoReturn=1&returnTo=${encodeURIComponent(returnTo)}`;
 
   if (prefersCompletePageConversion(tracking)) {

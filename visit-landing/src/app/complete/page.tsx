@@ -12,6 +12,7 @@ type CompletePageProps = {
     submissionId?: string;
     autoReturn?: string;
     returnTo?: string;
+    verified?: string;
   }>;
 };
 
@@ -26,6 +27,7 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
       : fallback.siteName;
 
   const submissionId = String(params.submissionId ?? "").trim() || null;
+  const verified = params.verified === "1" || params.verified === "true";
   const autoReturn = params.autoReturn === "1" || params.autoReturn === "true";
   const returnTo = String(params.returnTo ?? "").trim();
   const homeHref = appendSiteCodeQuery("/", siteCode);
@@ -36,6 +38,7 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
       homeHref={homeHref}
       tracking={live.conversionTracking}
       submissionId={submissionId}
+      conversionAllowed={verified}
       autoReturn={autoReturn}
       returnTo={returnTo || homeHref}
     />
