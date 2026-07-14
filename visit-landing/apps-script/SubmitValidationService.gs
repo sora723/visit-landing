@@ -1,10 +1,21 @@
 /**
  * 접수 검증 — 시트에서만 분류, 접수자에게는 항상 정상 UI
+ *
+ * 의심표시(접수관리 O, 알림톡 O, 네이버전환 X): 허수의심, 광고신호없음, 중복접수
+ * 확정 차단(접수관리 X, _검증로그만): IP차단, 허니팟차단, 토큰차단
  */
 
 function normalizePhoneStrict_(phone) {
   var digits = normalizePhone_(phone);
   if (/^010\d{8}$/.test(digits)) return digits;
+  return '';
+}
+
+/** 시트 숫자형(앞 0 누락) 연락처 보정 */
+function normalizePhoneStrictFromSheet_(phone) {
+  var digits = normalizePhone_(phone);
+  if (/^010\d{8}$/.test(digits)) return digits;
+  if (/^10\d{8}$/.test(digits)) return '0' + digits;
   return '';
 }
 
@@ -47,7 +58,7 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
     var rowSite = getSiteField_(row, ['siteCode', '현장코드']);
     if (rowSite !== siteCode) continue;
 
-    var rowPhone = normalizePhoneStrict_(getSiteField_(row, ['phone', '연락처']));
+    var rowPhone = normalizePhoneStrictFromSheet_(getSiteField_(row, ['phone', '연락처']));
     if (rowPhone !== normalizedPhone) continue;
 
     var status = String(getSiteField_(row, ['validationStatus', '검증상태']) || '').trim();
@@ -75,11 +86,7 @@ function classifySubmission_(params, validated, siteCode) {
   }
 
   if (clientIp && isIpBlocked_(clientIp, siteCode)) {
-    return buildIpSuspicionResult_('ip_blocked', elapsed);
-  }
-
-  if (clientIp && hasPriorIpSubmission_(clientIp, siteCode)) {
-    return buildIpSuspicionResult_('ip_repeat', elapsed);
+    return buildIpBlockResult_('ip_blocked', elapsed);
   }
 
   if (!consumeFormToken_(params.formToken, siteCode)) {
@@ -93,7 +100,7 @@ function classifySubmission_(params, validated, siteCode) {
   validated.phone = strictPhone;
 
   if (hasPhoneDuplicateWithin_(siteCode, strictPhone, cfg.DUPLICATE_PHONE_TTL_SECONDS)) {
-    return buildValidationResult_('중복접수', 'phone_24h', false, true, elapsed);
+    return buildSuspicionResult_('중복접수', 'phone_24h', elapsed);
   }
 
   if (!adSignal) {
@@ -109,7 +116,7 @@ function classifySubmission_(params, validated, siteCode) {
       return buildValidationResult_('정상접수', reasons.join(','), true, true, elapsed);
     }
     var noAdStatus = behaviorSuspicious ? '허수의심' : '광고신호없음';
-    return buildValidationResult_(noAdStatus, reasons.join(','), false, true, elapsed);
+    return buildSuspicionResult_(noAdStatus, reasons.join(','), elapsed);
   }
 
   reasons.push('ad_signal');
@@ -119,7 +126,7 @@ function classifySubmission_(params, validated, siteCode) {
   ) {
     if (elapsed != null && elapsed <= cfg.VERY_FAST_SUBMIT_SECONDS) reasons.push('very_fast');
     if (behaviorSuspicious) reasons.push('behavior');
-    return buildValidationResult_('허수의심', reasons.join(','), false, true, elapsed);
+    return buildSuspicionResult_('허수의심', reasons.join(','), elapsed);
   }
 
   if (elapsed != null && elapsed < cfg.FAST_SUBMIT_SECONDS) {
@@ -130,6 +137,12 @@ function classifySubmission_(params, validated, siteCode) {
 
   reasons.push('normal_timing');
   return buildValidationResult_('정상접수', reasons.join(','), true, true, elapsed);
+}
+
+function buildSuspicionResult_(status, reasons, elapsed) {
+  return buildValidationResult_(status, reasons, false, true, elapsed, {
+    shouldNotify: true
+  });
 }
 
 function buildValidationResult_(status, reasons, allowConversion, shouldSave, elapsed, options) {

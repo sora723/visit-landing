@@ -109,6 +109,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('popupImages', ensurePopupImageColumns);
   runEnsureStep_('footer', ensureFooterDataColumn);
   runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);
+  runEnsureStep_('ipBlockSheet', ensureIpBlockSheet_);
   return runVisitLandingSetupVerify();
 }
 

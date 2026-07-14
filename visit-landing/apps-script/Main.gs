@@ -65,6 +65,9 @@ function routeAction_(action, params) {
     case 'site.resolve':
       return resolveSiteByDomain(params.domain || params.hostname || params.host);
 
+    case 'setup.ipBlockSheet':
+      return handleSetupIpBlockSheet();
+
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
   }
