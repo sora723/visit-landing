@@ -193,3 +193,41 @@ function runEnsureConversionTrackingColumns() {
     throw err;
   }
 }
+
+/**
+ * POST action=setup.siteConversion
+ * 현장관리 전환 컬럼 업데이트 (관심등록용 — 콜 라벨은 명시적으로 넘긴 경우만)
+ */
+function handleSetupSiteConversion(params) {
+  var siteCode = String(params.siteCode || '').trim();
+  if (!siteCode) {
+    throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
+  }
+  ensureConversionTrackingColumns();
+
+  var updates = {};
+  if (params.googleConversionId !== undefined) {
+    updates.googleConversionId = String(params.googleConversionId || '').trim();
+  }
+  if (params.googleConversionLabel !== undefined) {
+    updates.googleConversionLabel = String(params.googleConversionLabel || '').trim();
+  }
+  if (params.googleCallConversionLabel !== undefined) {
+    updates.googleCallConversionLabel = String(params.googleCallConversionLabel || '').trim();
+  }
+  if (params.clearCallLabel === true || params.clearCallLabel === 'true') {
+    updates.googleCallConversionLabel = '';
+  }
+
+  if (!Object.keys(updates).length) {
+    throw createAppError_('VALIDATION_ERROR', '업데이트할 전환 필드가 없습니다');
+  }
+
+  updateSiteFieldsByCode_(siteCode, updates);
+  var tracking = getConversionTrackingFromSiteRow_(findSiteByCode_(siteCode));
+  return {
+    siteCode: siteCode,
+    updated: updates,
+    conversionTracking: tracking
+  };
+}

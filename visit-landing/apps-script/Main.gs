@@ -68,6 +68,9 @@ function routeAction_(action, params) {
     case 'setup.ipBlockSheet':
       return handleSetupIpBlockSheet();
 
+    case 'setup.siteConversion':
+      return handleSetupSiteConversion(params);
+
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
   }

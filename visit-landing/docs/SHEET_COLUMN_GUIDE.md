@@ -151,18 +151,44 @@
 
 ### communityData — 커뮤니티
 
+큰 설명 이미지(`galleryImages`)와 카드(`items`)를 **함께** 쓸 수 있습니다. 이미지는 **배열에 여러 개** 넣으면 세로로 쌓여 표시됩니다.
+
 ```json
 {
   "title": "커뮤니티",
+  "galleryImages": [
+    {
+      "image": "https://example.com/community-1.jpg",
+      "alt": "커뮤니티 전경"
+    },
+    {
+      "image": "https://example.com/community-2.jpg",
+      "imagePc": "https://example.com/community-2-pc.jpg",
+      "imageMobile": "https://example.com/community-2-m.jpg",
+      "alt": "커뮤니티 실내"
+    }
+  ],
   "items": [
     {
       "title": "피트니스",
       "description": "최신 운동기구를 갖춘 프리미엄 피트니스",
       "image": "https://example.com/gym.jpg"
+    },
+    {
+      "title": "골프연습장",
+      "description": "실내 골프 연습 공간",
+      "image": "https://example.com/golf.jpg"
     }
   ]
 }
 ```
+
+| 필드 | 용도 |
+|------|------|
+| **galleryImages** | 풀폭 큰 이미지. **여러 장** OK (세로 스택 + 클릭 확대) |
+| **items** | 제목·설명 있는 카드 그리드. 여러 개 OK |
+
+카드 없이 이미지만 쓰려면 `galleryImages`만 넣으면 됩니다. `image` 단일 필드는 없고, 반드시 `galleryImages: [ {...}, {...} ]` 배열로 넣습니다.
 
 ---
 
