@@ -95,13 +95,13 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
       <SiteChrome />
       <main>
         <HeroSection />
+        <FutureValueSection />
         <LiveReservationSection />
         <CtaSection sectionId="방문예약" />
         <CtaPromoImageSection />
         <PremiumSection />
         <OverviewSection />
         <LocationSection />
-        <FutureValueSection />
         <UnitTypesSection />
         <CommunitySection />
         <CustomSections />
