@@ -20,12 +20,18 @@ export function buildSiteSeoMetadata(input: {
   seo: SiteSeoFields;
   ownership: OwnershipVerificationConfig;
   faviconUrl?: string;
+  /** 멀티테넌트 — /favicon.ico?siteCode= 로 캐시·현장 분리 */
+  siteCode?: string;
 }): Metadata {
-  const { origin, pathname, siteName, seo, ownership, faviconUrl } = input;
+  const { origin, pathname, siteName, seo, ownership, faviconUrl, siteCode } =
+    input;
   const canonical = buildAbsoluteSiteUrl(pathname, origin);
   const pageTitle = buildSitePageTitle(siteName, seo.title);
   const ogImages = seo.ogImage ? [{ url: seo.ogImage }] : [];
   const hasFavicon = Boolean(faviconUrl?.trim() || seo.faviconUrl?.trim());
+  const faviconHref = siteCode?.trim()
+    ? `/favicon.ico?siteCode=${encodeURIComponent(siteCode.trim())}`
+    : "/favicon.ico";
 
   const other: Record<string, string> = {};
   if (ownership.metaOwnershipCode) {
@@ -42,12 +48,14 @@ export function buildSiteSeoMetadata(input: {
     metadataBase: new URL(`${origin.replace(/\/$/, "")}/`),
     title: pageTitle,
     description: seo.description,
-    /** 외부 URL 중복 link 방지 — /favicon.ico rewrite가 시트 이미지를 서빙 */
+    /** 외부 URL 중복 방지 — /favicon.ico?siteCode= 프록시가 시트 이미지 서빙 */
     ...(hasFavicon
       ? {
           icons: {
-            icon: [{ url: "/favicon.ico", type: "image/png", sizes: "32x32" }],
-            apple: [{ url: "/favicon.ico" }],
+            icon: [
+              { url: faviconHref, type: "image/png", sizes: "32x32" },
+            ],
+            apple: [{ url: faviconHref }],
           },
         }
       : {}),
@@ -99,5 +107,6 @@ export async function generateSiteMetadata(
     seo,
     ownership: live.ownershipVerification,
     faviconUrl: siteConfig.faviconUrl ?? seo.faviconUrl,
+    siteCode,
   });
 }

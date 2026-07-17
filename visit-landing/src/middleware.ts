@@ -11,12 +11,13 @@ import {
 
 export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/favicon.ico") {
+    const fromQuery = request.nextUrl.searchParams.get("siteCode");
     const fromCookie = request.cookies.get("siteCode")?.value;
     const hostname = getRequestHostname(request);
     const domainMap = await fetchDomainSiteCodeMap();
     const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
     const siteCode = resolveSiteCodeInput({
-      querySiteCode: request.nextUrl.searchParams.get("siteCode"),
+      querySiteCode: fromQuery,
       domainSiteCode,
       cookieSiteCode: fromCookie,
     });
@@ -26,6 +27,10 @@ export async function middleware(request: NextRequest) {
 
     const url = request.nextUrl.clone();
     url.pathname = "/api/favicon";
+    // siteCode 쿼리 유지 — 브라우저가 현장별로 파비콘 캐시
+    if (!url.searchParams.get("siteCode") && siteCode) {
+      url.searchParams.set("siteCode", siteCode);
+    }
     return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }
 
