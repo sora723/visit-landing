@@ -27,7 +27,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'benefit3Title', 'benefit3Value', 'cardIcon1', 'cardIcon2', 'cardIcon3', 'ctaText', 'mobileHookText',
     'heroImage', 'heroVisualImage', 'heroImagePc', 'heroImageMobile', 'overviewData', 'premiumData',
     'locationData', 'futureData', 'layoutData', 'communityData',
-    'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText',
+    'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText', 'noticeText',
     'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
     'unitTypeEnabled', 'visitDateEnabled', 'popupReservationEnabled',
     'mainColor', 'subColor', 'accentColor',
@@ -101,6 +101,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('domain', ensureDomainColumn);
   runEnsureStep_('submissionSpreadsheetName', ensureSubmissionSpreadsheetNameColumn);
   runEnsureStep_('stickyPromoText', ensureStickyPromoTextColumn);
+  runEnsureStep_('noticeText', ensureNoticeTextColumn);
   runEnsureStep_('reservationForm', ensureReservationFormColumns);
   runEnsureStep_('siteTheme', ensureSiteThemeColumns);
   runEnsureStep_('heroImage', ensureHeroImageColumns);

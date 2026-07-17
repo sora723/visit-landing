@@ -345,6 +345,7 @@ export function buildSiteConfigFromSheet(
     managerName: site.managerName || undefined,
     notificationPhone: site.notifyPhone,
     stickyPromoText: resolveStickyPromoText(content, ext),
+    noticeText: content.noticeText?.trim() || undefined,
     headerBrand: content.headerBrand?.trim() || undefined,
     headerSubBrand: content.headerSubBrand?.trim() || undefined,
     faviconUrl,

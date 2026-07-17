@@ -27,6 +27,7 @@ export type SiteConfigApiData = {
   notificationPhone?: string;
   settings?: SiteConfigApiSettings;
   stickyPromoText: string | null;
+  noticeText?: string;
   unitTypeOptions: string[];
   visitDateDays: number;
   visitDateOptions: VisitDateOption[] | null;
@@ -332,6 +333,7 @@ export function parseSiteConfigApiResponse(
     cardIcon3: optionalString(data.cardIcon3),
     ctaText: optionalString(data.ctaText),
     mobileHookText: optionalString(data.mobileHookText),
+    noticeText: optionalString(data.noticeText),
     popupImage1: optionalString(data.popupImage1),
     popupImage2: optionalString(data.popupImage2),
     heroImage: optionalString(data.heroImage),

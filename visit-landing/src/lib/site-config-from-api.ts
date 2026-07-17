@@ -180,6 +180,7 @@ export function buildSiteConfigFromApi(
     liveReservation: ext.liveReservation ?? fallback.liveReservation,
     liveStatus: ext.liveStatus ?? fallback.liveStatus,
     reservationGuide: ext.reservationGuide ?? fallback.reservationGuide,
+    noticeText: api.noticeText?.trim() || fallback.noticeText,
     overview: api.overview ?? { title: "사업개요", image: "", specs: [] },
     premium: api.premium ?? { title: "프리미엄", items: [] },
     location: api.location ?? { title: "입지환경", mapImage: "", items: [] },

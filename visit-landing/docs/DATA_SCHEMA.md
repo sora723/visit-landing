@@ -64,6 +64,7 @@ UI 타입: `src/lib/types.ts` → `SiteConfig`
 | `hero.floatingStats.today/active` | floatingTodayReservations / floatingActiveConsultations |
 | `cta.texts` | 콘텐츠관리.ctaText (JSON array) |
 | `mobileBar.hookText` | 콘텐츠관리.mobileHookText |
+| `noticeText` | 콘텐츠관리.noticeText (Hero 바로 아래 작은 공지) |
 | `overview` | 콘텐츠관리.overviewData (JSON) |
 | `premium` | premiumData |
 | `location` | locationData |

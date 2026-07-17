@@ -59,6 +59,11 @@ const FutureValueSection = dynamic(
     import("./Sections").then((m) => ({ default: m.FutureValueSection })),
   { ssr: true }
 );
+const NoticeSection = dynamic(
+  () =>
+    import("./Sections").then((m) => ({ default: m.NoticeSection })),
+  { ssr: true }
+);
 const UnitTypesSection = dynamic(
   () =>
     import("./Sections").then((m) => ({ default: m.UnitTypesSection })),
@@ -95,13 +100,14 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
       <SiteChrome />
       <main>
         <HeroSection />
-        <FutureValueSection />
+        <NoticeSection />
         <LiveReservationSection />
         <CtaSection sectionId="방문예약" />
         <CtaPromoImageSection />
         <PremiumSection />
         <OverviewSection />
         <LocationSection />
+        <FutureValueSection />
         <UnitTypesSection />
         <CommunitySection />
         <CustomSections />

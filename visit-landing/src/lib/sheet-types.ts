@@ -89,6 +89,8 @@ export interface ContentManagementRow {
   floatingActiveConsultations: number | string;
   /** 하단 고정 프로모 — stickyPromoText / 스티키프로모텍스트 / 하단프로모문구 */
   stickyPromoText?: string;
+  /** Hero 바로 아래 작은 공지 문구 */
+  noticeText?: string;
   /** 관심평형 드롭다운 — 84A|84B|84C 또는 쉼표 구분 */
   unitTypeOptions?: string;
   /** 방문일자 자동 생성 일수 (기본 30) */

@@ -9,6 +9,8 @@ export interface SiteConfig {
   topBannerText?: string;
   /** 하단 고정바 프로모 — site.json / 콘텐츠관리.stickyPromoText (비우면 미표시) */
   stickyPromoText?: string;
+  /** Hero 바로 아래 공지 — 콘텐츠관리.noticeText (비우면 미표시) */
+  noticeText?: string;
   /** 헤더 상단 브랜드 — 콘텐츠관리.headerBrand */
   headerBrand?: string;
   /** 헤더 서브 브랜드 — 콘텐츠관리.headerSubBrand */

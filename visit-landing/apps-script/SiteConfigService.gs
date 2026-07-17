@@ -20,6 +20,12 @@ var STICKY_PROMO_HEADER_ALIASES = [
   '하단프로모문구'
 ];
 
+var NOTICE_TEXT_HEADER_ALIASES = [
+  'noticeText',
+  '안내문구',
+  '공지문구'
+];
+
 var UNIT_TYPE_OPTIONS_ALIASES = [
   'unitTypeOptions',
   '관심평형옵션',
@@ -467,6 +473,24 @@ function ensureStickyPromoTextColumn() {
   };
 }
 
+/** 콘텐츠관리에 noticeText 컬럼 없으면 extendedData 앞에 추가 */
+function ensureNoticeTextColumn() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+
+  if (hasAnyHeader_(map, NOTICE_TEXT_HEADER_ALIASES)) {
+    return { ok: true, added: false, message: '안내문구 컬럼이 이미 존재합니다' };
+  }
+
+  insertColumnBeforeHeader_(sheet, 'extendedData', 'noticeText');
+  writeLog_('COLUMN_ADD', '', '콘텐츠관리.noticeText 컬럼 추가');
+  return {
+    ok: true,
+    added: true,
+    message: 'noticeText 컬럼이 extendedData 앞에 추가되었습니다'
+  };
+}
+
 /** 예약 폼 컬럼 — 옵션 + 노출 on/off */
 function ensureReservationFormColumns() {
   var sheet = getSheet_(CONTENT_SHEET_NAME);
@@ -725,6 +749,11 @@ function ensureFooterDataColumn() {
  */
 function ensureContentSchemaColumns_() {
   var results = [];
+  try {
+    results.push(ensureNoticeTextColumn());
+  } catch (err) {
+    Logger.log('[ensureContentSchemaColumns_] noticeText FAIL: ' + (err.message || err));
+  }
   try {
     results.push(ensureFooterDataColumn());
   } catch (err) {
@@ -1124,6 +1153,7 @@ function buildPageContentFromContentRow_(contentRow, ext) {
     cardIcon3: getContentTextField_(contentRow, ['cardIcon3', '카드아이콘3', '혜택3아이콘']),
     ctaText: getContentTextField_(contentRow, ['ctaText', 'CTA문구']),
     mobileHookText: getContentTextField_(contentRow, ['mobileHookText', '모바일훅문구']),
+    noticeText: getContentTextField_(contentRow, NOTICE_TEXT_HEADER_ALIASES),
     popupImage1: getContentTextField_(contentRow, POPUP_IMAGE1_ALIASES),
     popupImage2: getContentTextField_(contentRow, POPUP_IMAGE2_ALIASES),
     heroImage: heroImage,
@@ -1276,6 +1306,7 @@ function getSiteLiveConfig(siteCode) {
     cardIcon3: pageContent.cardIcon3,
     ctaText: pageContent.ctaText,
     mobileHookText: pageContent.mobileHookText,
+    noticeText: pageContent.noticeText,
     popupImage1: pageContent.popupImage1,
     popupImage2: pageContent.popupImage2,
     heroImage: pageContent.heroImage,

@@ -300,6 +300,28 @@ export function FutureValueSection() {
   );
 }
 
+export function NoticeSection() {
+  const { config } = useConfig();
+  const noticeText = config.noticeText?.trim();
+  if (!noticeText) return null;
+
+  return (
+    <aside
+      aria-label="안내 공지"
+      className="border-y border-[var(--color-navy)]/8 bg-white px-6 py-3.5"
+    >
+      <div className="mx-auto flex max-w-[1100px] items-start gap-3">
+        <span className="mt-0.5 shrink-0 rounded-full bg-[var(--color-navy)]/7 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[var(--color-navy)]">
+          안내
+        </span>
+        <p className="whitespace-pre-line text-[12px] leading-6 text-[#7a7060] sm:text-[13px]">
+          {noticeText}
+        </p>
+      </div>
+    </aside>
+  );
+}
+
 function ImageLightbox({
   src,
   alt,
