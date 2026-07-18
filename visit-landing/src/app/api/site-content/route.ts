@@ -60,12 +60,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.error(`${LOG} 200 OK siteCode=${live.siteConfig.siteCode}`);
+    const resolvedSiteCode = String(live.siteConfig.siteCode ?? siteCode).trim();
+    if (resolvedSiteCode && resolvedSiteCode !== siteCode) {
+      console.error(
+        `${LOG} 409 SITE_CODE_MISMATCH requested=${siteCode} resolved=${resolvedSiteCode}`
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          data: {
+            source: live.source,
+            siteCode: resolvedSiteCode,
+            _requestedSiteCode: siteCode,
+            _requestedHost: requestedHost,
+          },
+          error: {
+            code: "SITE_CODE_MISMATCH",
+            message: "요청 현장과 응답 현장이 일치하지 않습니다",
+          },
+        },
+        {
+          status: 409,
+          headers: { "Cache-Control": API_NO_STORE_CACHE_CONTROL },
+        }
+      );
+    }
+
+    console.error(`${LOG} 200 OK siteCode=${resolvedSiteCode}`);
     return NextResponse.json(
       {
         success: true,
         data: {
           ...live.siteConfig,
+          siteCode: resolvedSiteCode || siteCode,
           source: "sheet" as const,
           updatedAt: live.updatedAt,
           _apiVersion: 2 as const,
@@ -74,7 +101,15 @@ export async function GET(request: NextRequest) {
         },
         error: null,
       },
-      { headers: { "Cache-Control": SITE_CONTENT_CACHE_CONTROL } }
+      {
+        headers: {
+          "Cache-Control": SITE_CONTENT_CACHE_CONTROL,
+          // Netlify CDN이 siteCode 쿼리로 캐시를 분리하도록 힌트
+          "Netlify-Vary": "query=siteCode",
+          Vary: "Cookie",
+          "CDN-Cache-Control": "no-store",
+        },
+      }
     );
   } catch (err) {
     console.error(`${LOG} 503 unhandled error:`, err);

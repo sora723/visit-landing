@@ -107,11 +107,17 @@ export function PromoStickyBar({
 
   const fetchLivePromo = useCallback(async () => {
     try {
-      const res = await fetch(appendSiteCodeQuery("/api/site-content", siteCode));
+      const res = await fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
+        cache: "no-store",
+      });
       const json = await res.json();
-      if (json.success && json.data?.source === "sheet") {
-        setText(sanitizePromoText(json.data.stickyPromoText));
-      }
+      if (!json.success || json.data?.source !== "sheet") return;
+      // CDN/중간 캐시가 다른 현장 응답을 주면 stickyPromo 가 교차 오염됨
+      const returnedSiteCode = String(
+        json.data?.siteCode ?? json.data?._requestedSiteCode ?? ""
+      ).trim();
+      if (returnedSiteCode && returnedSiteCode !== siteCode) return;
+      setText(sanitizePromoText(json.data.stickyPromoText));
     } catch {
       /* 현재 표시 유지 */
     }

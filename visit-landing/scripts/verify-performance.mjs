@@ -47,9 +47,9 @@ async function main() {
   console.log(`   Cache-Control: ${submit.cacheControl}`);
 
   console.log("\n--- Expected ---");
-  console.log("site-content: public, s-maxage=60, stale-while-revalidate=300");
+  console.log("site-content: private, no-store (현장별 CDN 교차오염 방지)");
   console.log("submit:       no-store");
-  console.log("2nd site-content should be faster with warm server cache\n");
+  console.log("2nd site-content may still be faster via server memory cache (60s)\n");
 }
 
 main().catch((err) => {

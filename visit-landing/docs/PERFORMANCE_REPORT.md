@@ -3,11 +3,11 @@
 ## 적용 변경
 
 ### 1. `/api/site-content` 캐싱
-- **HTTP:** `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`
-- **서버 메모리:** `site-live-config-cache.ts` — siteCode별 60초 TTL
-- **Apps Script fetch:** `next: { revalidate: 60 }` (uncached path)
+- **HTTP:** `Cache-Control: private, no-store` — Netlify Durable/Edge가 `siteCode` 쿼리를 vary에 넣지 않아 현장별 stickyPromo/콘텐츠가 교차 오염되던 문제 방지
+- **헤더:** `CDN-Cache-Control: no-store`, `Netlify-Vary: query=siteCode`
+- **서버 메모리:** `site-live-config-cache.ts` — siteCode별 60초 TTL (유지)
+- **클라이언트:** `ConfigProvider`, `PromoStickyBar` — `cache: "no-store"` + 응답 `siteCode` 일치 검증
 - **503/에러:** `no-store` 유지
-- **클라이언트:** `ConfigProvider`, `PromoStickyBar` — `cache: "no-store"` 제거 → CDN/브라우저 캐시 활용
 
 ### 2. `/api/submit` 캐싱 금지
 - 모든 응답에 `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`

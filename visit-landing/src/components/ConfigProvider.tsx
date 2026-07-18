@@ -81,10 +81,19 @@ export function ConfigProvider({
     let cancelled = false;
 
     const refresh = () => {
-      fetch(appendSiteCodeQuery("/api/site-content", siteCode))
+      fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
+        cache: "no-store",
+      })
         .then((res) => res.json())
         .then((json) => {
           if (cancelled || !json.success || !json.data) return;
+          const returnedSiteCode = String(
+            (json.data as { siteCode?: string; _requestedSiteCode?: string })
+              .siteCode ??
+              (json.data as { _requestedSiteCode?: string })._requestedSiteCode ??
+              ""
+          ).trim();
+          if (returnedSiteCode && returnedSiteCode !== siteCode) return;
           const liveConfig = parseLiveSiteConfig(
             json.data as Record<string, unknown>
           );
