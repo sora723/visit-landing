@@ -2,7 +2,7 @@
  * 접수 검증 — 시트에서만 분류, 접수자에게는 항상 정상 UI
  *
  * 의심표시(접수관리 O, 알림톡 O, 네이버전환 X): 허수의심, 광고신호없음, 중복접수
- * 확정 차단(접수관리 X, _검증로그만): IP차단, 허니팟차단, 토큰차단
+ * 확정 차단(접수관리 X, _검증로그만): IP차단, IP대량차단, 허니팟차단, 토큰차단
  */
 
 function normalizePhoneStrict_(phone) {
@@ -73,6 +73,57 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
   return false;
 }
 
+function parseSheetDateMs_(value) {
+  if (!value) return NaN;
+  if (value instanceof Date) return value.getTime();
+  var parsed = new Date(value);
+  return parsed.getTime();
+}
+
+/**
+ * _검증로그 기준 — 동일 siteCode + IP 의 최근 시도 건수 (차단 건 포함)
+ * 현재 접수는 아직 로그에 없으므로, MAX=3 이면 기존 3건 이후(4건째)부터 차단
+ */
+function countIpAttemptsWithin_(siteCode, clientIp, windowSeconds) {
+  var normalized = normalizeClientIp_(clientIp);
+  if (!normalized) return 0;
+
+  var sheet = getSheetOptional_(SHEET_NAMES.VERIFICATION_LOG);
+  if (!sheet) return 0;
+
+  var rows = sheetToObjects_(SHEET_NAMES.VERIFICATION_LOG);
+  var now = Date.now();
+  var windowMs = Math.max(1, Number(windowSeconds) || 600) * 1000;
+  var count = 0;
+
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var row = rows[i];
+    var rowSite = String(row.siteCode || row['현장코드'] || '').trim();
+    if (rowSite !== siteCode) continue;
+
+    var rowIp = normalizeClientIp_(row.ip || row['IP'] || '');
+    if (!rowIp || rowIp !== normalized) continue;
+
+    var recordedAt = row['기록시간'] || row.createdAt || row['접수일시'];
+    var recordedMs = parseSheetDateMs_(recordedAt);
+    if (isNaN(recordedMs)) continue;
+    if (now - recordedMs > windowMs) break;
+    count += 1;
+  }
+  return count;
+}
+
+function buildBulkIpBlockResult_(elapsed, count, maxCount, windowSeconds) {
+  return buildValidationResult_(
+    'IP대량차단',
+    'bulk_ip:' + count + '>=' + maxCount + '/' + windowSeconds + 's',
+    false,
+    false,
+    elapsed,
+    { shouldNotify: false }
+  );
+}
+
 function classifySubmission_(params, validated, siteCode) {
   var cfg = SUBMIT_VALIDATION_CONFIG;
   var reasons = [];
@@ -98,6 +149,22 @@ function classifySubmission_(params, validated, siteCode) {
     return buildValidationResult_('오류', 'invalid_phone', false, false, elapsed);
   }
   validated.phone = strictPhone;
+
+  var bulkWindow = Number(cfg.BULK_IP_WINDOW_SECONDS) || 600;
+  var bulkMax = Number(cfg.BULK_IP_MAX_COUNT) || 3;
+  if (clientIp && bulkMax > 0) {
+    var recentIpCount = countIpAttemptsWithin_(siteCode, clientIp, bulkWindow);
+    if (recentIpCount >= bulkMax) {
+      registerTemporaryIpBlockFromBulk_(
+        clientIp,
+        siteCode,
+        recentIpCount,
+        bulkMax,
+        bulkWindow
+      );
+      return buildBulkIpBlockResult_(elapsed, recentIpCount, bulkMax, bulkWindow);
+    }
+  }
 
   if (hasPhoneDuplicateWithin_(siteCode, strictPhone, cfg.DUPLICATE_PHONE_TTL_SECONDS)) {
     return buildSuspicionResult_('중복접수', 'phone_24h', elapsed);

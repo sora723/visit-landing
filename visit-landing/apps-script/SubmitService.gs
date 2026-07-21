@@ -8,7 +8,7 @@ var DUPLICATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 기본 120분, 현장별 설정
 /**
  * POST action=submit
  * 의심 접수는 접수관리에 저장(검증상태 표시) — 알림톡 O, 네이버 전환 X
- * IP차단·허니팟·토큰차단만 접수관리 미저장
+ * IP차단·IP대량차단·허니팟·토큰차단만 접수관리 미저장
  */
 function handleSubmit(params) {
   var siteCode = String(params.siteCode || '').trim();
