@@ -28,10 +28,12 @@ export function buildSiteSeoMetadata(input: {
   const canonical = buildAbsoluteSiteUrl(pathname, origin);
   const pageTitle = buildSitePageTitle(siteName, seo.title);
   const ogImages = seo.ogImage ? [{ url: seo.ogImage }] : [];
-  const hasFavicon = Boolean(faviconUrl?.trim() || seo.faviconUrl?.trim());
-  const faviconHref = siteCode?.trim()
-    ? `/api/favicon?siteCode=${encodeURIComponent(siteCode.trim())}`
-    : "/api/favicon";
+  const hasFavicon = Boolean(faviconUrl?.trim());
+  const code = siteCode?.trim() || "";
+  /** siteCode 없는 공용 /api/favicon·/favicon.ico 금지 — 다른 현장 아이콘 섞임 방지 */
+  const faviconHref = code
+    ? `/api/favicon?siteCode=${encodeURIComponent(code)}`
+    : "";
 
   const other: Record<string, string> = {};
   if (ownership.metaOwnershipCode) {
@@ -48,17 +50,23 @@ export function buildSiteSeoMetadata(input: {
     metadataBase: new URL(`${origin.replace(/\/$/, "")}/`),
     title: pageTitle,
     description: seo.description,
-    /** rewrite 캐시 간섭 방지 — /api/favicon?siteCode= 로 시트 이미지 서빙 */
-    ...(hasFavicon
+    /**
+     * 시트에 파비콘 있을 때만 현장별 API 링크.
+     * 없으면 icons 비움 + Next 기본 /favicon.ico 억제(빈 아이콘) — 다른 현장으로 대체하지 않음.
+     */
+    icons: hasFavicon && faviconHref
       ? {
-          icons: {
-            icon: [
-              { url: faviconHref, type: "image/png", sizes: "32x32" },
-            ],
-            apple: [{ url: faviconHref }],
-          },
+          icon: [{ url: faviconHref, type: "image/png", sizes: "32x32" }],
+          apple: [{ url: faviconHref }],
         }
-      : {}),
+      : {
+          icon: [
+            {
+              url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E",
+              type: "image/svg+xml",
+            },
+          ],
+        },
     alternates: {
       canonical,
     },
@@ -96,9 +104,15 @@ export async function generateSiteMetadata(
   const siteCode = await getServerSiteCode(searchParamsSiteCode);
   const fileConfig = getSiteConfigFromFile();
   const live = await fetchSiteLiveConfigFromSheet(siteCode);
-  const siteConfig =
-    live.source === "sheet" && live.siteConfig ? live.siteConfig : fileConfig;
+  const sheetConfig =
+    live.source === "sheet" && live.siteConfig ? live.siteConfig : null;
+  const siteConfig = sheetConfig ?? fileConfig;
   const seo = siteConfig.seo;
+  /** 파비콘만 시트 값 — fileConfig로 다른 아이콘 대체 금지 */
+  const faviconUrl =
+    sheetConfig?.faviconUrl?.trim() ||
+    sheetConfig?.seo.faviconUrl?.trim() ||
+    undefined;
 
   return buildSiteSeoMetadata({
     origin,
@@ -106,7 +120,7 @@ export async function generateSiteMetadata(
     siteName: siteConfig.siteName,
     seo,
     ownership: live.ownershipVerification,
-    faviconUrl: siteConfig.faviconUrl ?? seo.faviconUrl,
+    faviconUrl,
     siteCode,
   });
 }

@@ -1,34 +1,50 @@
-import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
-import { getServerSiteCode } from "@/lib/server-site-code";
 
-/** 시트 extendedData.seo.faviconUrl → 프록시용 절대 URL */
+/**
+ * 해당 siteCode 시트 파비콘만 사용.
+ * 없으면 undefined — fileConfig·다른 현장·기본값으로 대체하지 않음.
+ */
 export async function resolveFaviconProxyUrl(
-  siteCodeOverride?: string | null
+  siteCode?: string | null
 ): Promise<string | undefined> {
-  const siteCode = await getServerSiteCode(siteCodeOverride);
-  const live = await fetchSiteLiveConfigFromSheet(siteCode);
-  const fileConfig = getSiteConfigFromFile();
-  const config =
-    live.source === "sheet" && live.siteConfig ? live.siteConfig : fileConfig;
-  return config.faviconUrl ?? config.seo.faviconUrl;
+  const code = String(siteCode ?? "").trim();
+  if (!code) return undefined;
+
+  const live = await fetchSiteLiveConfigFromSheet(code);
+  if (live.source !== "sheet" || !live.siteConfig) return undefined;
+
+  const url =
+    live.siteConfig.faviconUrl?.trim() ||
+    live.siteConfig.seo.faviconUrl?.trim() ||
+    "";
+  return url || undefined;
+}
+
+function isImageContentType(contentType: string): boolean {
+  const type = contentType.toLowerCase().split(";")[0]?.trim() || "";
+  return type.startsWith("image/");
 }
 
 export async function fetchFaviconBytes(
-  siteCodeOverride?: string | null
+  siteCode?: string | null
 ): Promise<{ body: ArrayBuffer; contentType: string } | null> {
-  const faviconUrl = await resolveFaviconProxyUrl(siteCodeOverride);
-  if (!faviconUrl?.trim()) return null;
+  const faviconUrl = await resolveFaviconProxyUrl(siteCode);
+  if (!faviconUrl) return null;
 
-  const upstream = await fetch(faviconUrl.trim(), {
-    next: { revalidate: 300 },
+  const upstream = await fetch(faviconUrl, {
+    cache: "no-store",
     redirect: "follow",
     signal: AbortSignal.timeout(10_000),
   });
   if (!upstream.ok) return null;
 
+  const contentType =
+    upstream.headers.get("content-type")?.split(";")[0]?.trim() || "";
+  /** Drive 로그인 HTML 등 이미지가 아니면 없음으로 처리 (다른 아이콘 대체 없음) */
+  if (!isImageContentType(contentType)) return null;
+
   return {
     body: await upstream.arrayBuffer(),
-    contentType: upstream.headers.get("content-type")?.split(";")[0] || "image/png",
+    contentType,
   };
 }
