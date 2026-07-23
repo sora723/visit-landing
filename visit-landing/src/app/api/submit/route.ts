@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import { API_NO_STORE_CACHE_CONTROL } from "@/lib/api-cache-headers";
 import { isDemoDuplicate, recordDemoSubmission } from "@/lib/demo-store";
@@ -5,6 +6,9 @@ import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
 const NO_STORE = { "Cache-Control": API_NO_STORE_CACHE_CONTROL };
+/** Apps Script 저장+검증 상한 — 알림톡은 defer 후 after()에서 flush */
+const APPS_SCRIPT_SUBMIT_TIMEOUT_MS = 20_000;
+const APPS_SCRIPT_NOTIFY_FLUSH_TIMEOUT_MS = 25_000;
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
@@ -68,6 +72,22 @@ function handleDemoSubmit(
   );
 }
 
+function scheduleNotifyFlush(appsScriptUrl: string) {
+  after(async () => {
+    try {
+      await fetch(appsScriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "notify.flush", limit: 10 }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(APPS_SCRIPT_NOTIFY_FLUSH_TIMEOUT_MS),
+      });
+    } catch (err) {
+      console.error("[api/submit] notify.flush after() failed", err);
+    }
+  });
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const siteCode = await resolveRequestSiteCode(
@@ -99,6 +119,8 @@ export async function POST(request: NextRequest) {
   const payload = {
     action: "submit",
     siteCode,
+    /** 알림톡은 큐에 넣고 응답 먼저 — after()에서 notify.flush */
+    deferNotify: true,
     name: body.name,
     phone: body.phone,
     privacyAgreed: true,
@@ -138,18 +160,36 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
       cache: "no-store",
+      signal: AbortSignal.timeout(APPS_SCRIPT_SUBMIT_TIMEOUT_MS),
     });
     const json = await res.json();
+
+    if (
+      json?.success === true &&
+      (json?.data?.notificationQueued === true ||
+        json?.data?.savedToSubmissions === true)
+    ) {
+      scheduleNotifyFlush(appsScriptUrl);
+    }
+
     return NextResponse.json(
       { ...json, _debug: { clientIp, mode: "live", siteCode } },
       { status: json.success ? 200 : 400, headers: NO_STORE }
     );
-  } catch {
+  } catch (err) {
+    const timedOut =
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError");
     return NextResponse.json(
       {
         success: false,
         data: null,
-        error: { code: "NETWORK_ERROR", message: "API 서버에 연결할 수 없습니다" },
+        error: {
+          code: timedOut ? "TIMEOUT" : "NETWORK_ERROR",
+          message: timedOut
+            ? "접수 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
+            : "API 서버에 연결할 수 없습니다",
+        },
         _debug: { clientIp, mode: "live", siteCode },
       },
       { status: 502, headers: NO_STORE }

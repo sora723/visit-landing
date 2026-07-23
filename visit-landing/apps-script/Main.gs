@@ -71,6 +71,13 @@ function routeAction_(action, params) {
     case 'setup.siteConversion':
       return handleSetupSiteConversion(params);
 
+    case 'notify.flush':
+      return handleNotifyFlush(params);
+
+    case 'setup.notifyQueueSheet':
+      ensureNotifyQueueSheet_();
+      return { sheetName: SHEET_NAMES.NOTIFY_QUEUE };
+
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
   }
@@ -103,6 +110,8 @@ function onOpen() {
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
     .addItem('IP 차단 시트 추가 (_IP차단)', 'runEnsureIpBlockSheet')
+    .addItem('알림 큐 시트 추가 (_알림큐)', 'runEnsureNotifyQueueSheet')
+    .addItem('알림 큐 지금 발송 (notify.flush)', 'runFlushNotificationQueue')
     .addToUi();
 }
 

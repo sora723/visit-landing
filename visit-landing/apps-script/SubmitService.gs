@@ -54,6 +54,11 @@ function handleSubmit(params) {
   );
 
   var notificationSent = false;
+  var notificationQueued = false;
+  var deferNotify =
+    params.deferNotify === true ||
+    params.deferNotify === 'true' ||
+    params.deferNotify === '1';
 
   if (validation.shouldSaveToSubmissions) {
     appendSubmissionRow_(
@@ -69,8 +74,14 @@ function handleSubmit(params) {
     );
 
     if (validation.shouldNotify) {
-      var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
-      notificationSent = notificationResult.success === true;
+      if (deferNotify) {
+        /** 알림톡은 응답 후 큐 처리 — 「처리 중」 대기·탭 종료 시 유실 완화 */
+        enqueueSubmissionNotification_(siteCode, submissionId, validated, params);
+        notificationQueued = true;
+      } else {
+        var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
+        notificationSent = notificationResult.success === true;
+      }
     }
 
     writeLog_(
@@ -81,7 +92,7 @@ function handleSubmit(params) {
         ', 상태=' +
         validation.validationStatus +
         ', 알림=' +
-        (notificationSent ? 'OK' : 'SKIP')
+        (notificationQueued ? 'QUEUED' : notificationSent ? 'OK' : 'SKIP')
     );
   } else {
     writeLog_(
@@ -103,7 +114,8 @@ function handleSubmit(params) {
     allowConversion: validation.allowConversion === true,
     savedToSubmissions: validation.shouldSaveToSubmissions === true,
     includeInLiveFeed: validation.shouldNotify === true,
-    notificationSent: notificationSent
+    notificationSent: notificationSent,
+    notificationQueued: notificationQueued
   };
 }
 

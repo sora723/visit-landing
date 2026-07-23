@@ -9,6 +9,7 @@ var SHEET_NAMES = {
   SUBMISSION: '접수관리',
   VERIFICATION_LOG: '_검증로그',
   IP_BLOCK: '_IP차단',
+  NOTIFY_QUEUE: '_알림큐',
   LOG: '시스템로그',
   LOG_LEGACY: '_시스템로그'
 };

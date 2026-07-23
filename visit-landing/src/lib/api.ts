@@ -46,10 +46,13 @@ export async function submitReservation(
   payload: SubmitPayload,
   siteCode: string
 ): Promise<SubmitReservationResult> {
+  const body = JSON.stringify({ ...payload, siteCode });
   const res = await fetch(appendSiteCodeQuery("/api/submit", siteCode), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, siteCode }),
+    body,
+    /** 페이지 이탈 직후에도 가능하면 요청 유지 (소용량 POST) */
+    keepalive: true,
   });
 
   const json = await res.json();
