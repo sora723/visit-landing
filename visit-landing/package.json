@@ -14,6 +14,7 @@
     "verify:surnames": "npx --yes tsx scripts/verify-surname-policy.ts",
     "verify:site-code": "node --experimental-strip-types scripts/verify-site-code.ts",
     "verify:renderer-version": "node --experimental-strip-types scripts/verify-renderer-version.ts",
+    "verify:v2-schema": "npx --yes tsx scripts/verify-v2-schema.ts",
     "verify:notification": "node scripts/verify-notification.mjs",
     "verify:tracking": "node scripts/verify-site-tracking.mjs",
     "capture:mobile": "node scripts/capture-mobile-screenshots.mjs",
