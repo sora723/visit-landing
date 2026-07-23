@@ -152,7 +152,7 @@ function handleSubmit(params) {
  */
 function validateSubmitParams_(params, formType) {
   var name = String(params.name || '').trim();
-  var phone = normalizePhone_(params.phone);
+  var phone = normalizeMobilePhone_(params.phone);
   var privacyAgreed = (
     params.privacyAgreed === true ||
     params.privacyAgreed === 'true' ||
@@ -162,7 +162,7 @@ function validateSubmitParams_(params, formType) {
   if (!name) {
     throw createAppError_('VALIDATION_ERROR', '성함은 필수입니다');
   }
-  if (!phone || phone.length < 10 || phone.length > 11) {
+  if (!phone) {
     throw createAppError_('VALIDATION_ERROR', '올바른 연락처를 입력해주세요');
   }
   if (!privacyAgreed) {

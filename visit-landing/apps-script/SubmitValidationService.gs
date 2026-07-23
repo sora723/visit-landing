@@ -6,17 +6,12 @@
  */
 
 function normalizePhoneStrict_(phone) {
-  var digits = normalizePhone_(phone);
-  if (/^010\d{8}$/.test(digits)) return digits;
-  return '';
+  return normalizeMobilePhone_(phone);
 }
 
 /** 시트 숫자형(앞 0 누락) 연락처 보정 */
 function normalizePhoneStrictFromSheet_(phone) {
-  var digits = normalizePhone_(phone);
-  if (/^010\d{8}$/.test(digits)) return digits;
-  if (/^10\d{8}$/.test(digits)) return '0' + digits;
-  return '';
+  return normalizeMobilePhone_(phone);
 }
 
 function computeElapsedSeconds_(params) {

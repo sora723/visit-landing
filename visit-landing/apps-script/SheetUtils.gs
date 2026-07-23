@@ -208,13 +208,23 @@ function getSiteNameFromRow_(row) {
 }
 
 function getNotifyPhoneFromRow_(row) {
-  return getSiteField_(row, [
-    'notifyPhone',
-    'notificationPhone',
-    '알림수신번호',
-    '담당자번호',
-    'managerPhone'
-  ]);
+  return normalizeMobilePhone_(
+    getSiteField_(row, [
+      'notifyPhone',
+      'notificationPhone',
+      '알림수신번호',
+      '담당자번호',
+      'managerPhone'
+    ])
+  ) || normalizePhone_(
+    getSiteField_(row, [
+      'notifyPhone',
+      'notificationPhone',
+      '알림수신번호',
+      '담당자번호',
+      'managerPhone'
+    ])
+  );
 }
 
 function getSubmissionSpreadsheetId_(row) {
@@ -334,10 +344,53 @@ function appendRowToSheet_(sheet, rowData) {
       continue;
     }
     var value = rowData[header];
-    newRow.push(value !== undefined && value !== null ? value : '');
+    if (value === undefined || value === null) {
+      newRow.push('');
+      continue;
+    }
+    /** 연락처 열은 텍스트로 강제 — Sheets 숫자 변환으로 앞자리 0 유실 방지 */
+    if (isPhoneHeader_(header)) {
+      newRow.push(toSheetPhoneText_(value));
+    } else {
+      newRow.push(value);
+    }
   }
 
   sheet.appendRow(newRow);
+}
+
+/** 휴대폰 정규화: 10xxxxxxxx → 010xxxxxxxx, 이미 010이면 유지 */
+function normalizeMobilePhone_(phone) {
+  var digits = String(phone || '').replace(/\D/g, '');
+  if (/^010\d{8}$/.test(digits)) return digits;
+  if (/^10\d{8}$/.test(digits)) return '0' + digits;
+  return '';
+}
+
+function normalizePhone_(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+function isPhoneHeader_(header) {
+  var h = String(header || '').trim();
+  return (
+    h === 'phone' ||
+    h === '연락처' ||
+    h === '정규화연락처' ||
+    h === 'notifyPhone' ||
+    h === 'notificationPhone' ||
+    h === 'managerPhone' ||
+    h === '담당자번호' ||
+    h === '알림수신번호' ||
+    h === 'recipientPhone'
+  );
+}
+
+/** Sheets에 숫자로 들어가지 않도록 텍스트 강제 (' 접두) */
+function toSheetPhoneText_(phone) {
+  var normalized = normalizeMobilePhone_(phone) || normalizePhone_(phone);
+  if (!normalized) return '';
+  return "'" + normalized;
 }
 
 function writeLog_(action, siteCode, message) {
@@ -392,10 +445,6 @@ function sanitizeNotificationPayloadForLog_(payload) {
 function ynToBool_(value, defaultVal) {
   if (value === '' || value === null || value === undefined) return defaultVal === true;
   return String(value).trim().toUpperCase() === 'Y';
-}
-
-function normalizePhone_(phone) {
-  return String(phone || '').replace(/\D/g, '');
 }
 
 function createAppError_(code, message) {

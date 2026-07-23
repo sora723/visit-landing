@@ -45,7 +45,7 @@ var SolapiNotificationProvider_ = {
 };
 
 function formatPhoneDisplay_(phone) {
-  var digits = String(phone || '').replace(/\D/g, '');
+  var digits = normalizeMobilePhone_(phone) || String(phone || '').replace(/\D/g, '');
   if (digits.length === 11) {
     return digits.slice(0, 3) + '-' + digits.slice(3, 7) + '-' + digits.slice(7);
   }

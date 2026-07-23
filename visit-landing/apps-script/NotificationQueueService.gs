@@ -241,7 +241,7 @@ function handleNotifyFlush(params) {
             siteRow,
             {
               name: job.name,
-              phone: job.phone,
+              phone: normalizeMobilePhone_(job.phone) || job.phone,
               inquiry: job.inquiry,
               consultType: job.consultType,
               reserveDate: job.reserveDate,

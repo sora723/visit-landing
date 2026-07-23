@@ -70,7 +70,7 @@ function buildSubmissionNotificationPayload_(params) {
     siteCode: getSiteCodeFromRow_(siteRow),
     siteName: getSiteNameFromRow_(siteRow),
     customerName: sub.name || '',
-    customerPhone: sub.phone || '',
+    customerPhone: normalizeMobilePhone_(sub.phone) || String(sub.phone || ''),
     inquiry: sub.inquiry != null ? String(sub.inquiry).trim() : '',
     consultType: sub.consultType || '관심등록',
     reserveDisplay: sub.reserveDisplay || '미정',

@@ -20,6 +20,7 @@ import {
   submitReservation,
 } from "@/lib/api";
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { normalizeMobilePhone } from "@/lib/phone";
 import { buildSitePageTitle } from "@/lib/site-page-title";
 import { pickCtaText } from "@/lib/utils";
 import { mergeSiteTheme } from "@/lib/site-theme";
@@ -131,7 +132,7 @@ export function ConfigProvider({
         const result = await submitReservation(
           {
             name: input.name.trim(),
-            phone: input.phone.replace(/\D/g, ""),
+            phone: normalizeMobilePhone(input.phone),
             privacyAgreed: true,
             unitType: input.unitType,
             visitDate: input.visitDate,
