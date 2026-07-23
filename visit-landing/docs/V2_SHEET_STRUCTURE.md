@@ -245,57 +245,38 @@ pageStatus=published && publishedRevisionId 있음 → 스냅샷 렌더
 
 ---
 
-## 4-3. siteCode 해석 보안 정책 (확정 · 코드 미반영)
+## 4-3. siteCode 라우팅 (V1 운영 방식 유지 · 변경하지 않음)
 
-> 이전 점검의 「우선순위 변경이 없으면 `resolve-site-code.ts` / `middleware.ts` 수정 불필요」 판단은 **폐기**.  
-> **V2 기능 구현 전에** 아래 정책을 코드에 반영해야 한다.
+V2에서도 **기존 공통 siteCode 흐름을 그대로 재사용**한다.  
+V2 전용 resolver·별도 환경변수·별도 도메인 정책을 **만들지 않는다**.
 
-### 목표 정책
+### 운영 방식 (현행 = 유지)
 
-| 환경 | siteCode 결정 |
-|------|----------------|
-| **운영 커스텀 도메인** (현장관리.domain에 등록) | **domain 매핑이 `?siteCode=`보다 우선**. 임의 쿼리로 타 현장 호출 **불가** |
-| **localhost / 개발 환경** | `?siteCode=` 허용 (개발·QA) |
-| **인증된 Preview** | Preview 쿠키/토큰 스코프의 siteCode 사용. 쿼리 override는 정책에 맞게 제한적 허용 가능 |
+| 상황 | siteCode |
+|------|-----------|
+| 공용 도메인 / Netlify 기본 도메인 | `?siteCode=L000` 으로 현장 선택 |
+| 현장별 도메인 등록됨 | 해당 도메인 → 현장 선택 (시트 `현장관리.domain`) |
+| 도메인 없는 현장 | 공용·Netlify 도메인 + `?siteCode=` |
+| 연속성 | cookie · `x-site-code` · `/complete` · 내부 API 기존과 동일 |
 
-V1 운영 도메인(도메인→현장 1:1)이 깨지지 않도록, 도메인이 매핑된 호스트에서는 쿼리를 **무시하거나 거부**하는 호환 설계가 필요하다.
+### 현재 코드 우선순위 (보존)
 
-### 현재 코드 우선순위 (문제)
-
-근거: `src/lib/resolve-site-code.ts` `resolveSiteCodeInput` 주석·구현.
+근거: `src/lib/resolve-site-code.ts`, `src/middleware.ts`, `src/lib/server-site-code.ts`
 
 ```
 query → body → header → domain(시트) → cookie → env → L001
 ```
 
-`src/middleware.ts`도 `resolveSiteCodeInput({ querySiteCode, domainSiteCode, cookieSiteCode })`로 **query가 domain보다 앞**.  
-결과: 운영 커스텀 도메인에서도 `?siteCode=다른현장`으로 **타 현장 콘텐츠·접수가 가능**한 상태.
-
-### 향후 수정 대상 파일 (아직 수정하지 않음)
-
-| 파일 | 역할 |
-|------|------|
-| `src/lib/resolve-site-code.ts` | 환경별 우선순위·쿼리 허용 여부 헬퍼 |
-| `src/middleware.ts` | 호스트 판별 후 `x-site-code` 설정·쿠키 정책 |
-| `src/lib/server-site-code.ts` | RSC 경로의 siteCode 해석 |
-| `src/lib/fetch-domain-site-code-map.ts` | domain 맵 (읽기; 정책은 호출부) |
-| `src/app/api/submit/route.ts` 등 API | `resolveRequestSiteCode` — 운영에서 body/query 위조 차단과 정합 |
-| `src/app/api/preview/enter` (신규 예정) | Preview는 토큰의 siteCode만 신뢰 |
-
-### 권장 목표 우선순위 (구현 시)
+### V2 분기 위치 (siteCode 이후)
 
 ```
-1) 운영 + domain 매핑 존재
-     → domainSiteCode 고정 (query/body의 다른 siteCode 무시 또는 400)
-2) localhost / NODE_ENV=development / 명시적 개발 호스트
-     → 기존처럼 query 허용
-3) 인증 Preview
-     → 쿠키·토큰 siteCode (query로 타 현장 전환 금지 권장)
-4) domain 없음 (예: *.netlify.app 공용)
-     → 기존 호환: query 또는 SHEET_SITE_CODE (운영 커스텀 도메인과 구분)
+siteCode = 기존 middleware / getServerSiteCode / resolveRequestSiteCode
+  → 현장관리 설정 조회
+  → rendererVersion이 v1 또는 빈값 → 기존 LandingPage
+  → rendererVersion이 v2 → V2 renderer
 ```
 
-`appendSiteCodeQuery`를 쓰는 내부 링크는 도메인 매핑 사이트에서는 **불필요해질 수 있음** — V1 광고 URL(`?siteCode=`)이 **전용 도메인이 아닌** 진입에만 쓰이는지 운영 확인 후 제거·유지 결정.
+siteCode 해석 코드를 바꾸지 않는다. 회귀는 `npm run verify:site-code`로 고정한다.
 
 ---
 
@@ -527,8 +508,8 @@ Preview(인증): 상세 검증 오류 표시 **가능**.
 
 | 단계 | 내용 |
 |------|------|
-| 1 | **siteCode 보안 게이트** (`resolve-site-code` / `middleware` 등 §4-3) — V2 UI보다 선행 |
-| 2 | Sheet 컬럼·`V2_*` 탭 (문서 기준) |
+| 1 | Sheet 컬럼·`V2_*` 탭 (문서 기준). **siteCode 라우팅은 변경하지 않음** |
+| 2 | 페이지 진입: 기존 siteCode 확정 → 현장관리 → `rendererVersion` 분기 (v1 LandingPage / v2 renderer) |
 | 3 | 읽기 API + 공개 게이트(pageStatus/isActive) + 60s 캐시 |
 | 4 | 레지스트리·검증·시스템로그 |
 | 5 | 렌더러 (document/overlay/법적 footer/영상 variant) |
@@ -558,4 +539,4 @@ Preview(인증): 상세 검증 오류 표시 **가능**.
 | 2026-07-23 | 리비전·preview·overlay·검증·캐시 초안 |
 | 2026-07-23 | Published=스냅샷 복제, 5개 보관, Preview 메뉴, pageStatus, popup, 영상 variant, 안전 페이지, V1 SEO 제외 |
 | 2026-07-23 | **게시 안전**: pub- 보호 범위, LockService 원자성, ID에 ms+random·충돌 재발급, 실패 시 불완전 행 정리, §14 불변조건 |
-| 2026-07-23 | **siteCode 보안**: 운영 도메인에서 domain > query. §4-3·구현 1단계 선행 명시 |
+| 2026-07-23 | **siteCode**: V1 운영 라우팅 유지. domain-first 폐기. rendererVersion만 분기. `verify:site-code` 회귀 |
