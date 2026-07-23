@@ -63,7 +63,14 @@ function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawPa
   ensureNotifyQueueSheet_();
   var params = rawParams || {};
   var opts = options || {};
-  var needNotify = opts.needNotify === true;
+  /**
+   * options 생략 시(구버전 submit 호환) 알림 기본 Y.
+   * options.needNotify 가 명시되면 그 값을 따름.
+   */
+  var needNotify =
+    !options || opts.needNotify === undefined
+      ? true
+      : opts.needNotify === true;
   var needMirror = opts.needMirror !== false;
 
   appendRowByHeaders_(SHEET_NAMES.NOTIFY_QUEUE, {
@@ -158,31 +165,37 @@ function handleNotifyFlush(params) {
     var errors = [];
     var notifyOk = !job.needNotify;
     var mirrorOk = !job.needMirror;
+    var didNotify = false;
 
     if (job.needNotify) {
       if (!job.name || !job.phone) {
         errors.push('notify_incomplete');
       } else {
-        var result = notifyManagerOnSubmission_(
-          siteRow,
-          {
-            name: job.name,
-            phone: job.phone,
-            inquiry: job.inquiry,
-            consultType: job.consultType,
-            reserveDate: job.reserveDate,
-            reserveTime: job.reserveTime,
-            utmSource: job.utmSource,
-            utmMedium: job.utmMedium,
-            utmCampaign: job.utmCampaign
-          },
-          { referer: job.referer }
-        );
-        if (result && result.success === true) {
-          notifyOk = true;
-          sent++;
-        } else {
-          errors.push((result && result.error) || 'notify_failed');
+        try {
+          var result = notifyManagerOnSubmission_(
+            siteRow,
+            {
+              name: job.name,
+              phone: job.phone,
+              inquiry: job.inquiry,
+              consultType: job.consultType,
+              reserveDate: job.reserveDate,
+              reserveTime: job.reserveTime,
+              utmSource: job.utmSource,
+              utmMedium: job.utmMedium,
+              utmCampaign: job.utmCampaign
+            },
+            { referer: job.referer }
+          );
+          if (result && result.success === true) {
+            notifyOk = true;
+            didNotify = true;
+            sent++;
+          } else {
+            errors.push((result && result.error) || 'notify_failed');
+          }
+        } catch (notifyErr) {
+          errors.push(notifyErr.message || String(notifyErr));
         }
       }
     }
@@ -229,11 +242,16 @@ function handleNotifyFlush(params) {
     }
 
     if (notifyOk && mirrorOk) {
-      sheet.getRange(rowIndex, statusCol + 1).setValue('sent');
+      /** 알림 실발송이면 sent, 알림 없이 미러만이면 done */
+      sheet.getRange(rowIndex, statusCol + 1).setValue(didNotify ? 'sent' : 'done');
       if (errorCol !== undefined) {
         sheet.getRange(rowIndex, errorCol + 1).setValue('');
       }
-      writeLog_('NOTIFY_QUEUE_OK', job.siteCode, 'submission=' + job.submissionId);
+      writeLog_(
+        didNotify ? 'NOTIFY_QUEUE_OK' : 'NOTIFY_QUEUE_DONE',
+        job.siteCode,
+        'submission=' + job.submissionId + ' notify=' + (didNotify ? 'Y' : 'N')
+      );
     } else {
       sheet.getRange(rowIndex, statusCol + 1).setValue('error');
       if (errorCol !== undefined) {
@@ -296,5 +314,75 @@ function runFlushNotificationQueue() {
   } catch (e) {
     // 트리거 실행 시 UI 없음
   }
+  return result;
+}
+
+/**
+ * 알림 없이 done/sent 처리된 큐 행을 다시 pending+needNotify=Y 로 되돌린 뒤 flush
+ * (needNotify 기본값 버그로 알림이 빠진 건 복구용)
+ */
+function handleNotifyRequeueMissed(params) {
+  ensureNotifyQueueSheet_();
+  var sheet = getSheet_(SHEET_NAMES.NOTIFY_QUEUE);
+  var map = getHeaderIndexMap_(sheet);
+  var statusCol = map.status;
+  var needNotifyCol = map.needNotify;
+  var nameCol = map.name;
+  var phoneCol = map.phone;
+  if (statusCol === undefined) {
+    return { requeued: 0, message: 'status 컬럼 없음' };
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { requeued: 0, flush: handleNotifyFlush(params || { limit: 10 }) };
+  }
+
+  var width = sheet.getLastColumn();
+  var values = sheet.getRange(2, 1, lastRow, width).getValues();
+  var requeued = 0;
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var status = String(row[statusCol] || '').trim().toLowerCase();
+    if (status !== 'sent' && status !== 'done' && status !== 'skipped') continue;
+
+    var name = nameCol === undefined ? '' : String(row[nameCol] || '').trim();
+    var phone = phoneCol === undefined ? '' : String(row[phoneCol] || '').trim();
+    if (!name || !phone) continue;
+
+    var needNotifyRaw =
+      needNotifyCol === undefined ? '' : String(row[needNotifyCol] || '').trim().toUpperCase();
+    /** N 이거나 비어 있는데 이미 sent/done 인 경우 → 알림 누락 가능 */
+    if (needNotifyRaw === 'Y' && status === 'sent') continue;
+
+    var rowIndex = i + 2;
+    sheet.getRange(rowIndex, statusCol + 1).setValue('pending');
+    if (needNotifyCol !== undefined) {
+      sheet.getRange(rowIndex, needNotifyCol + 1).setValue('Y');
+    }
+    requeued++;
+  }
+
+  var flush = handleNotifyFlush({
+    limit: (params && params.limit) || Math.max(10, requeued)
+  });
+  return { requeued: requeued, flush: flush };
+}
+
+function runNotifyRequeueMissed() {
+  var result = handleNotifyRequeueMissed({ limit: 30 });
+  try {
+    SpreadsheetApp.getUi().alert(
+      '알림 누락 재큐\n재큐=' +
+        result.requeued +
+        '\nflush 처리=' +
+        (result.flush && result.flush.processed) +
+        ' 알림=' +
+        (result.flush && result.flush.sent) +
+        ' 실패=' +
+        (result.flush && result.flush.failed)
+    );
+  } catch (e) {}
   return result;
 }

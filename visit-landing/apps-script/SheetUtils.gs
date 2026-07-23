@@ -167,7 +167,13 @@ function getSiteNameFromRow_(row) {
 }
 
 function getNotifyPhoneFromRow_(row) {
-  return getSiteField_(row, ['notifyPhone', '담당자번호', 'managerPhone']);
+  return getSiteField_(row, [
+    'notifyPhone',
+    'notificationPhone',
+    '알림수신번호',
+    '담당자번호',
+    'managerPhone'
+  ]);
 }
 
 function getSubmissionSpreadsheetId_(row) {

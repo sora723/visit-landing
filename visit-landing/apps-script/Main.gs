@@ -74,6 +74,9 @@ function routeAction_(action, params) {
     case 'notify.flush':
       return handleNotifyFlush(params);
 
+    case 'notify.requeueMissed':
+      return handleNotifyRequeueMissed(params);
+
     case 'setup.notifyQueueSheet':
       ensureNotifyQueueSheet_();
       return { sheetName: SHEET_NAMES.NOTIFY_QUEUE };
@@ -112,6 +115,7 @@ function onOpen() {
     .addItem('IP 차단 시트 추가 (_IP차단)', 'runEnsureIpBlockSheet')
     .addItem('알림 큐 시트 추가 (_알림큐)', 'runEnsureNotifyQueueSheet')
     .addItem('알림 큐 지금 발송 (notify.flush)', 'runFlushNotificationQueue')
+    .addItem('알림 누락 재발송 (requeueMissed)', 'runNotifyRequeueMissed')
     .addToUi();
 }
 
