@@ -340,6 +340,7 @@ export function buildSiteConfigFromSheet(
 
   return {
     siteCode: site.siteCode,
+    rendererVersion: site.rendererVersion?.trim() || undefined,
     siteName: site.siteName,
     phone: site.phone,
     managerName: site.managerName || undefined,

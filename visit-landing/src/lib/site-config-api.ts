@@ -20,6 +20,8 @@ export type SiteConfigApiCommunity = SiteConfig["community"];
 /** Apps Script getSiteLiveConfig() data 필드 (파싱 후) */
 export type SiteConfigApiData = {
   siteCode: string;
+  /** optional — Apps Script/시트에 컬럼이 생기면 전달 */
+  rendererVersion?: string;
   siteName?: string;
   domain?: string;
   phone?: string;
@@ -298,6 +300,7 @@ export function parseSiteConfigApiResponse(
 
   return {
     siteCode: String(data.siteCode ?? fallbackSiteCode),
+    rendererVersion: optionalString(data.rendererVersion),
     siteName: optionalString(data.siteName),
     domain: optionalString(data.domain),
     phone: optionalString(data.phone),

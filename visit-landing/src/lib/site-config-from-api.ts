@@ -125,8 +125,15 @@ export function buildSiteConfigFromApi(
   const seoTitleSource = seoFromExt?.title ?? fallback.seo.title;
   const { faviconUrl, headerLogoUrl } = resolveBrandingFromExtended(ext);
 
+  const extRenderer =
+    typeof (ext as Record<string, unknown>).rendererVersion === "string"
+      ? String((ext as Record<string, unknown>).rendererVersion).trim()
+      : "";
+
   return {
     siteCode: api.siteCode,
+    rendererVersion:
+      api.rendererVersion?.trim() || extRenderer || fallback.rendererVersion,
     siteName,
     phone: api.phone?.trim() || fallback.phone,
     managerName: api.managerName?.trim() || fallback.managerName,

@@ -1,6 +1,11 @@
 export interface SiteConfig {
   siteCode?: string;
   siteName: string;
+  /**
+   * 렌더러 선택 — 현장관리/API optional.
+   * 정확히 "v2"만 V2 분기, 그 외·미설정은 V1 (`resolveRendererVersion`).
+   */
+  rendererVersion?: "v1" | "v2" | string;
   phone: string;
   kakaoUrl?: string;
   /** 개인정보 수집주체 — 현장관리.managerName */
