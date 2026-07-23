@@ -159,12 +159,12 @@ export function ConfigProvider({
           siteCode
         );
 
-        const allowConversion = result.allowConversion !== false;
+        const allowConversion = result.allowConversion === true;
         notifyReservationSubmitted(input.name.trim(), {
           unitType: input.unitType,
           visitDate: input.visitDate,
           isDuplicate: result.isDuplicate,
-          includeInLiveFeed: result.includeInLiveFeed !== false,
+          includeInLiveFeed: result.includeInLiveFeed === true,
         });
 
         if (result.submissionId) {

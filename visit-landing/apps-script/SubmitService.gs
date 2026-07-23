@@ -1,16 +1,191 @@
 /**
  * SubmitService.gs
- * VisitLanding — submit (접수 저장 + 현장 Spreadsheet 미러 + 알림)
+ * VisitLanding — submit
+ *
+ * 흐름:
+ *   1) action=submit → _검증로그 저장 → 성공 UI
+ *   2) action=submit.postProcess → 검수 → 알림톡 → (알림 성공 건만) 접수관리
  */
 
 var DUPLICATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 기본 120분, 현장별 설정 우선
+var VERIFICATION_STATUS_PENDING = '검수중';
 
 /**
  * POST action=submit
- * 의심 접수는 접수관리에 저장(검증상태 표시) — 알림톡 O, 네이버 전환 X
- * IP차단·IP대량차단·허니팟·토큰차단만 접수관리 미저장
+ * 필드·현장 확인 후 _검증로그에만 기록. 성공 UI는 이 시점 기준.
  */
 function handleSubmit(params) {
+  var prepared = prepareSubmitContext_(params);
+  var siteCode = prepared.siteCode;
+  var validated = prepared.validated;
+  var submissionId = Utilities.getUuid();
+  var submittedAt = new Date();
+  var elapsed = computeElapsedSeconds_(params);
+
+  /** 저비용 게이트 — 실패해도 _검증로그는 남기고 성공 UI (접수자 미노출) */
+  var earlyStatus = '';
+  var earlyReasons = '';
+  var needsPostProcess = true;
+
+  if (String(params.company || '').trim()) {
+    earlyStatus = '허니팟차단';
+    earlyReasons = 'honeypot';
+    needsPostProcess = false;
+  } else if (!consumeFormToken_(params.formToken, siteCode)) {
+    earlyStatus = '토큰차단';
+    earlyReasons = 'invalid_token';
+    needsPostProcess = false;
+  }
+
+  appendVerificationLogRow_(
+    buildVerificationLogRow_({
+      submissionId: submissionId,
+      siteCode: siteCode,
+      submittedAt: submittedAt,
+      validated: validated,
+      rawParams: params,
+      validationStatus: earlyStatus || VERIFICATION_STATUS_PENDING,
+      suspicionReasons: earlyReasons,
+      allowConversion: false,
+      elapsedSeconds: elapsed
+    })
+  );
+
+  writeLog_(
+    needsPostProcess ? 'SUBMIT_LOGGED' : 'SUBMIT_BLOCKED_EARLY',
+    siteCode,
+    '접수ID=' + submissionId + ', 상태=' + (earlyStatus || VERIFICATION_STATUS_PENDING)
+  );
+
+  return {
+    submissionId: submissionId,
+    submittedAt: submittedAt.toISOString(),
+    savedToVerificationLog: true,
+    needsPostProcess: needsPostProcess,
+    /**
+     * 구 Netlify(after → notify.flush) 호환.
+     * flush 가 검수중 _검증로그를 postProcess 합니다.
+     */
+    notificationQueued: needsPostProcess,
+    allowConversion: false,
+    savedToSubmissions: false,
+    includeInLiveFeed: false,
+    notificationSent: false,
+    validationStatus: earlyStatus || VERIFICATION_STATUS_PENDING
+  };
+}
+
+/**
+ * POST action=submit.postProcess
+ * _검증로그 이후: 검수 → 알림톡 → 알림 성공 시에만 접수관리(+현장미러)
+ */
+function handleSubmitPostProcess(params) {
+  var submissionId = String(params.submissionId || '').trim();
+  if (!submissionId) {
+    throw createAppError_('VALIDATION_ERROR', 'submissionId는 필수입니다');
+  }
+
+  var existingStatus = getVerificationLogStatusBySubmissionId_(submissionId);
+  if (
+    existingStatus &&
+    existingStatus !== VERIFICATION_STATUS_PENDING &&
+    existingStatus !== '검수중'
+  ) {
+    return {
+      submissionId: submissionId,
+      alreadyProcessed: true,
+      validationStatus: existingStatus,
+      notificationSent: false,
+      savedToSubmissions: false
+    };
+  }
+
+  var prepared = prepareSubmitContext_(params);
+  var siteCode = prepared.siteCode;
+  var siteRow = prepared.siteRow;
+  var validated = prepared.validated;
+  var submittedAt = params.submittedAt ? new Date(params.submittedAt) : new Date();
+  if (isNaN(submittedAt.getTime())) submittedAt = new Date();
+
+  var validation = classifySubmission_(params, validated, siteCode, {
+    skipTokenConsume: true,
+    skipHoneypot: true
+  });
+
+  updateVerificationLogBySubmissionId_(submissionId, {
+    '검증상태': validation.validationStatus,
+    '의심사유': validation.suspicionReasons || '',
+    '네이버전환대상여부': validation.allowConversion ? 'Y' : 'N',
+    'elapsed_seconds':
+      validation.elapsedSeconds != null ? validation.elapsedSeconds : '',
+    '정규화연락처': validated.phone || ''
+  });
+
+  var notificationSent = false;
+  var savedToSubmissions = false;
+  var mirrored = false;
+
+  if (validation.shouldNotify === true) {
+    var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
+    notificationSent = notificationResult && notificationResult.success === true;
+
+    if (notificationSent) {
+      appendSubmissionRow_(
+        siteRow,
+        validated,
+        submissionId,
+        submittedAt,
+        params,
+        {
+          validationStatus: validation.validationStatus,
+          suspicionReasons: validation.suspicionReasons,
+          skipMirror: false
+        }
+      );
+      savedToSubmissions = true;
+      mirrored = true;
+
+      if (
+        validation.validationStatus === '정상접수' ||
+        validation.validationStatus === '빠른접수'
+      ) {
+        markPhoneSubmittedCache_(
+          siteCode,
+          validated.phone,
+          (SUBMIT_VALIDATION_CONFIG &&
+            SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) ||
+            86400
+        );
+      }
+    }
+  }
+
+  writeLog_(
+    notificationSent ? 'SUBMIT_POST_OK' : 'SUBMIT_POST_SKIP',
+    siteCode,
+    '접수ID=' +
+      submissionId +
+      ', 상태=' +
+      validation.validationStatus +
+      ', 알림=' +
+      (notificationSent ? 'OK' : 'NO') +
+      ', 접수관리=' +
+      (savedToSubmissions ? 'Y' : 'N')
+  );
+
+  return {
+    submissionId: submissionId,
+    validationStatus: validation.validationStatus,
+    allowConversion: validation.allowConversion === true,
+    shouldNotify: validation.shouldNotify === true,
+    notificationSent: notificationSent,
+    savedToSubmissions: savedToSubmissions,
+    includeInLiveFeed: notificationSent,
+    mirrored: mirrored
+  };
+}
+
+function prepareSubmitContext_(params) {
   var siteCode = String(params.siteCode || '').trim();
   if (!siteCode) {
     throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
@@ -34,116 +209,11 @@ function handleSubmit(params) {
 
   var formType = getField_(siteRow, '폼타입') || 'simple';
   var validated = validateSubmitParams_(params, formType);
-  var submissionId = Utilities.getUuid();
-  var submittedAt = new Date();
-
-  var validation = classifySubmission_(params, validated, siteCode);
-
-  /** 검증로그는 응답 후 큐 처리 — submit 경로에서 시트 append 제거 */
-  enqueueVerificationLogDeferred_(
-    buildVerificationLogRow_({
-      submissionId: submissionId,
-      siteCode: siteCode,
-      submittedAt: submittedAt,
-      validated: validated,
-      rawParams: params,
-      validationStatus: validation.validationStatus,
-      suspicionReasons: validation.suspicionReasons,
-      allowConversion: validation.allowConversion,
-      elapsedSeconds: validation.elapsedSeconds
-    })
-  );
-
-  var notificationSent = false;
-  var notificationQueued = false;
-  /**
-   * 기본: 알림·현장미러는 큐로 미룸 (응답 먼저).
-   * 동기 발송이 필요하면 deferNotify=false 만 명시.
-   */
-  var deferNotify = !(
-    params.deferNotify === false ||
-    params.deferNotify === 'false' ||
-    params.deferNotify === '0'
-  );
-
-  if (validation.shouldSaveToSubmissions) {
-    var rowData = appendSubmissionRow_(
-      siteRow,
-      validated,
-      submissionId,
-      submittedAt,
-      params,
-      {
-        validationStatus: validation.validationStatus,
-        suspicionReasons: validation.suspicionReasons,
-        skipMirror: deferNotify
-      }
-    );
-
-    if (
-      validation.validationStatus === '정상접수' ||
-      validation.validationStatus === '빠른접수'
-    ) {
-      markPhoneSubmittedCache_(
-        siteCode,
-        validated.phone,
-        (SUBMIT_VALIDATION_CONFIG && SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) || 86400
-      );
-    }
-
-    if (validation.shouldNotify || deferNotify) {
-      if (deferNotify) {
-        /** 알림톡·현장미러는 응답 후 큐 처리 */
-        enqueueSubmissionNotification_(
-          siteCode,
-          submissionId,
-          validated,
-          params,
-          {
-            needNotify: validation.shouldNotify === true,
-            needMirror: true,
-            rowData: rowData
-          }
-        );
-        notificationQueued = true;
-      } else if (validation.shouldNotify) {
-        var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
-        notificationSent = notificationResult.success === true;
-      }
-    }
-
-    writeLog_(
-      validation.shouldNotify ? 'SUBMIT' : 'SUBMIT_SUSPECT',
-      siteCode,
-      '접수ID=' +
-        submissionId +
-        ', 상태=' +
-        validation.validationStatus +
-        ', 알림=' +
-        (notificationQueued ? 'QUEUED' : notificationSent ? 'OK' : 'SKIP')
-    );
-  } else {
-    writeLog_(
-      'SUBMIT_BLOCKED',
-      siteCode,
-      '접수ID=' +
-        submissionId +
-        ', 상태=' +
-        validation.validationStatus +
-        ', 사유=' +
-        validation.suspicionReasons
-    );
-  }
 
   return {
-    submissionId: submissionId,
-    isDuplicate: validation.validationStatus === '중복접수',
-    validationStatus: validation.validationStatus,
-    allowConversion: validation.allowConversion === true,
-    savedToSubmissions: validation.shouldSaveToSubmissions === true,
-    includeInLiveFeed: validation.shouldNotify === true,
-    notificationSent: notificationSent,
-    notificationQueued: notificationQueued
+    siteCode: siteCode,
+    siteRow: siteRow,
+    validated: validated
   };
 }
 

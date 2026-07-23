@@ -1,5 +1,6 @@
 /**
- * _검증로그 시트 — 의심·차단 접수 전용 (접수자 UI에는 미노출)
+ * _검증로그 시트 — 관심등록 시도 원장 (접수자 UI에는 미노출)
+ * submit 시 먼저 기록 → postProcess에서 검수 결과로 갱신
  */
 
 var VERIFICATION_LOG_HEADERS = [
@@ -54,6 +55,130 @@ function ensureVerificationLogSheet_() {
 function appendVerificationLogRow_(row) {
   ensureVerificationLogSheet_();
   appendRowByHeaders_(SHEET_NAMES.VERIFICATION_LOG, row);
+}
+
+/** submissionId 로 최근 행을 찾아 컬럼 갱신 (postProcess용) */
+function updateVerificationLogBySubmissionId_(submissionId, fields) {
+  var id = String(submissionId || '').trim();
+  if (!id || !fields) return false;
+
+  ensureVerificationLogSheet_();
+  var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
+  var map = getHeaderIndexMap_(sheet);
+  var idCol = map.submissionId;
+  if (idCol === undefined) return false;
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return false;
+
+  var idValues = sheet.getRange(2, idCol + 1, lastRow, idCol + 1).getValues();
+  var rowIndex = -1;
+  for (var i = idValues.length - 1; i >= 0; i--) {
+    if (String(idValues[i][0] || '').trim() === id) {
+      rowIndex = i + 2;
+      break;
+    }
+  }
+  if (rowIndex < 0) return false;
+
+  Object.keys(fields).forEach(function (header) {
+    var col = map[header];
+    if (col === undefined) return;
+    sheet.getRange(rowIndex, col + 1).setValue(fields[header]);
+  });
+  return true;
+}
+
+function getVerificationLogStatusBySubmissionId_(submissionId) {
+  var id = String(submissionId || '').trim();
+  if (!id) return '';
+  ensureVerificationLogSheet_();
+  var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
+  var map = getHeaderIndexMap_(sheet);
+  var idCol = map.submissionId;
+  var statusCol = map['검증상태'];
+  if (idCol === undefined || statusCol === undefined) return '';
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return '';
+
+  var idValues = sheet.getRange(2, idCol + 1, lastRow, idCol + 1).getValues();
+  for (var i = idValues.length - 1; i >= 0; i--) {
+    if (String(idValues[i][0] || '').trim() === id) {
+      return String(sheet.getRange(i + 2, statusCol + 1).getValue() || '').trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * 검수중 행을 raw_payload 로 postProcess (구 Netlify notify.flush 호환)
+ */
+function processPendingVerificationLogs_(limit) {
+  var max = Number(limit) || 10;
+  if (max < 1) max = 10;
+  if (max > 20) max = 20;
+
+  ensureVerificationLogSheet_();
+  var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
+  var map = getHeaderIndexMap_(sheet);
+  var statusCol = map['검증상태'];
+  var idCol = map.submissionId;
+  var payloadCol = map.raw_payload;
+  var timeCol = map['기록시간'];
+  if (statusCol === undefined || idCol === undefined || payloadCol === undefined) {
+    return { processed: 0, message: 'verification_log_columns_missing' };
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { processed: 0, sent: 0, saved: 0, failed: 0 };
+
+  var width = sheet.getLastColumn();
+  var values = sheet.getRange(2, 1, lastRow, width).getValues();
+  var processed = 0;
+  var sent = 0;
+  var saved = 0;
+  var failed = 0;
+
+  for (var i = values.length - 1; i >= 0 && processed < max; i--) {
+    var status = String(values[i][statusCol] || '').trim();
+    if (status !== '검수중') continue;
+
+    var submissionId = String(values[i][idCol] || '').trim();
+    var raw = String(values[i][payloadCol] || '').trim();
+    if (!submissionId || !raw) {
+      failed++;
+      processed++;
+      continue;
+    }
+
+    try {
+      var payload = JSON.parse(raw);
+      payload.submissionId = submissionId;
+      payload.action = 'submit.postProcess';
+      if (timeCol !== undefined && values[i][timeCol]) {
+        var recorded = values[i][timeCol];
+        payload.submittedAt =
+          recorded instanceof Date
+            ? recorded.toISOString()
+            : new Date(recorded).toISOString();
+      }
+      var result = handleSubmitPostProcess(payload);
+      if (result && result.notificationSent) sent++;
+      if (result && result.savedToSubmissions) saved++;
+      processed++;
+    } catch (err) {
+      failed++;
+      processed++;
+      writeLog_(
+        'POSTPROCESS_PENDING_FAIL',
+        '',
+        'submissionId=' + submissionId + ', ' + (err.message || String(err))
+      );
+    }
+  }
+
+  return { processed: processed, sent: sent, saved: saved, failed: failed };
 }
 
 function buildVerificationLogRow_(ctx) {

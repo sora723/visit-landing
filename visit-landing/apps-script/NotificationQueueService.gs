@@ -1,5 +1,7 @@
 /**
- * 접수 후처리 큐 — 알림톡·현장미러를 submit 응답 뒤로 미룸
+ * (레거시) 접수 후처리 큐
+ * 신규 접수는 submit → _검증로그 → submit.postProcess 경로를 씁니다.
+ * notify.flush 는 예전 _알림큐 pending 잔여분 소진용으로만 유지합니다.
  */
 
 var NOTIFY_QUEUE_HEADERS = [
@@ -128,15 +130,40 @@ function enqueueVerificationLogDeferred_(logRow) {
 }
 
 /**
- * POST action=notify.flush — pending 알림·미러 처리
+ * POST action=notify.flush
+ * 1) _검증로그 검수중 → postProcess (신규 흐름 / 구 프론트 호환)
+ * 2) 레거시 _알림큐 pending 잔여분
  */
 function handleNotifyFlush(params) {
   var limit = Number(params && params.limit);
   if (!limit || limit < 1) limit = 10;
   if (limit > 30) limit = 30;
 
-  ensureNotifyQueueSheet_();
-  var sheet = getSheet_(SHEET_NAMES.NOTIFY_QUEUE);
+  var pendingLog = processPendingVerificationLogs_(limit);
+  var queueResult = { processed: 0, sent: 0, mirrored: 0, failed: 0 };
+  try {
+    queueResult = handleLegacyNotifyQueueFlush_(limit);
+  } catch (queueErr) {
+    writeLog_('NOTIFY_QUEUE_FLUSH_ERR', '', queueErr.message || String(queueErr));
+  }
+
+  return {
+    verificationPending: pendingLog,
+    legacyQueue: queueResult,
+    processed: (pendingLog.processed || 0) + (queueResult.processed || 0),
+    sent: (pendingLog.sent || 0) + (queueResult.sent || 0),
+    mirrored: queueResult.mirrored || 0,
+    failed: (pendingLog.failed || 0) + (queueResult.failed || 0)
+  };
+}
+
+/** 레거시 _알림큐 flush (탭 없으면 스킵) */
+function handleLegacyNotifyQueueFlush_(limit) {
+  var sheet = getSheetOptional_(SHEET_NAMES.NOTIFY_QUEUE);
+  if (!sheet) {
+    return { processed: 0, sent: 0, mirrored: 0, failed: 0, skipped: true };
+  }
+
   var map = getHeaderIndexMap_(sheet);
   var statusCol = map.status;
   var attemptsCol = map.attempts;

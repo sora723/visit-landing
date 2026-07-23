@@ -47,6 +47,9 @@ function routeAction_(action, params) {
     case 'submit':
       return handleSubmit(params);
 
+    case 'submit.postProcess':
+      return handleSubmitPostProcess(params);
+
     case 'formToken.issue':
       return handleFormTokenIssue(params);
 
@@ -71,15 +74,12 @@ function routeAction_(action, params) {
     case 'setup.siteConversion':
       return handleSetupSiteConversion(params);
 
+    /** 레거시 _알림큐 잔여분 소진용 (신규 enqueue 없음) */
     case 'notify.flush':
       return handleNotifyFlush(params);
 
     case 'notify.requeueMissed':
       return handleNotifyRequeueMissed(params);
-
-    case 'setup.notifyQueueSheet':
-      ensureNotifyQueueSheet_();
-      return { sheetName: SHEET_NAMES.NOTIFY_QUEUE };
 
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
@@ -113,9 +113,7 @@ function onOpen() {
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
     .addItem('IP 차단 시트 추가 (_IP차단)', 'runEnsureIpBlockSheet')
-    .addItem('알림 큐 시트 추가 (_알림큐)', 'runEnsureNotifyQueueSheet')
-    .addItem('알림 큐 지금 발송 (notify.flush)', 'runFlushNotificationQueue')
-    .addItem('알림 누락 재발송 (requeueMissed)', 'runNotifyRequeueMissed')
+    .addItem('(레거시) 알림 큐 잔여 발송', 'runFlushNotificationQueue')
     .addToUi();
 }
 

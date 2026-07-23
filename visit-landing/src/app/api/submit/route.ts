@@ -6,9 +6,9 @@ import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
 const NO_STORE = { "Cache-Control": API_NO_STORE_CACHE_CONTROL };
-/** Apps Script 저장+검증 상한 — 알림톡은 defer 후 after()에서 flush */
-const APPS_SCRIPT_SUBMIT_TIMEOUT_MS = 20_000;
-const APPS_SCRIPT_NOTIFY_FLUSH_TIMEOUT_MS = 25_000;
+/** _검증로그 저장만 — 검수·알림은 postProcess */
+const APPS_SCRIPT_SUBMIT_TIMEOUT_MS = 15_000;
+const APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS = 25_000;
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
@@ -51,10 +51,12 @@ function handleDemoSubmit(
       data: {
         submissionId: `demo-${Date.now()}`,
         demo: true,
+        savedToVerificationLog: true,
+        needsPostProcess: false,
         notificationSent: false,
-        allowConversion: true,
-        savedToSubmissions: true,
-        includeInLiveFeed: true,
+        allowConversion: false,
+        savedToSubmissions: false,
+        includeInLiveFeed: false,
         stored: {
           utmSource: body.utmSource ?? "",
           utmMedium: body.utmMedium ?? "",
@@ -72,18 +74,28 @@ function handleDemoSubmit(
   );
 }
 
-function scheduleNotifyFlush(appsScriptUrl: string) {
+function scheduleSubmitPostProcess(
+  appsScriptUrl: string,
+  basePayload: Record<string, unknown>,
+  submissionId: string,
+  submittedAt?: string
+) {
   after(async () => {
     try {
       await fetch(appsScriptUrl, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "notify.flush", limit: 10 }),
+        body: JSON.stringify({
+          ...basePayload,
+          action: "submit.postProcess",
+          submissionId,
+          submittedAt: submittedAt || new Date().toISOString(),
+        }),
         cache: "no-store",
-        signal: AbortSignal.timeout(APPS_SCRIPT_NOTIFY_FLUSH_TIMEOUT_MS),
+        signal: AbortSignal.timeout(APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS),
       });
     } catch (err) {
-      console.error("[api/submit] notify.flush after() failed", err);
+      console.error("[api/submit] submit.postProcess after() failed", err);
     }
   });
 }
@@ -116,11 +128,9 @@ export async function POST(request: NextRequest) {
   }
 
   const clientIp = getClientIp(request);
-  const payload = {
+  const payload: Record<string, unknown> = {
     action: "submit",
     siteCode,
-    /** 알림톡은 큐에 넣고 응답 먼저 — after()에서 notify.flush */
-    deferNotify: true,
     name: body.name,
     phone: body.phone,
     privacyAgreed: true,
@@ -166,10 +176,18 @@ export async function POST(request: NextRequest) {
 
     if (
       json?.success === true &&
-      (json?.data?.notificationQueued === true ||
-        json?.data?.savedToSubmissions === true)
+      json?.data?.savedToVerificationLog === true &&
+      json?.data?.needsPostProcess !== false &&
+      typeof json?.data?.submissionId === "string"
     ) {
-      scheduleNotifyFlush(appsScriptUrl);
+      scheduleSubmitPostProcess(
+        appsScriptUrl,
+        payload,
+        json.data.submissionId,
+        typeof json.data.submittedAt === "string"
+          ? json.data.submittedAt
+          : undefined
+      );
     }
 
     return NextResponse.json(

@@ -35,11 +35,13 @@ export type SubmitReservationResult = {
   isDuplicate?: boolean;
   notificationSent?: boolean;
   demo?: boolean;
-  /** 내부용 — UI 미노출 */
+  /** 내부용 — UI 미노출. postProcess 전엔 false */
   allowConversion?: boolean;
+  savedToVerificationLog?: boolean;
   savedToSubmissions?: boolean;
   includeInLiveFeed?: boolean;
   validationStatus?: string;
+  needsPostProcess?: boolean;
 };
 
 export async function submitReservation(

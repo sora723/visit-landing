@@ -1,8 +1,8 @@
 /**
- * 접수 검증 — 시트에서만 분류, 접수자에게는 항상 정상 UI
+ * 접수 검증 — postProcess에서 분류, 접수자에게는 항상 정상 UI
  *
- * 의심표시(접수관리 O, 알림톡 O, 네이버전환 X): 허수의심, 광고신호없음, 중복접수
- * 확정 차단(접수관리 X, _검증로그만): IP차단, IP대량차단, 허니팟차단, 토큰차단
+ * 알림톡 발송 성공 건만 접수관리에 추가
+ * 확정 차단·알림 실패: _검증로그만
  */
 
 function normalizePhoneStrict_(phone) {
@@ -166,7 +166,12 @@ function buildBulkIpBlockResult_(elapsed, count, maxCount, windowSeconds) {
   );
 }
 
-function classifySubmission_(params, validated, siteCode) {
+/**
+ * options.skipTokenConsume — submit에서 이미 토큰 소모한 뒤 postProcess용
+ * options.skipHoneypot — submit에서 이미 허니팟 처리한 뒤
+ */
+function classifySubmission_(params, validated, siteCode, options) {
+  var opts = options || {};
   var cfg = SUBMIT_VALIDATION_CONFIG;
   var reasons = [];
   var elapsed = computeElapsedSeconds_(params);
@@ -174,7 +179,7 @@ function classifySubmission_(params, validated, siteCode) {
   var behaviorSuspicious = isBehaviorSuspicious_(params);
   var clientIp = normalizeClientIp_(params.clientIp);
 
-  if (String(params.company || '').trim()) {
+  if (!opts.skipHoneypot && String(params.company || '').trim()) {
     return buildValidationResult_('허니팟차단', 'honeypot', false, false, elapsed);
   }
 
@@ -182,7 +187,7 @@ function classifySubmission_(params, validated, siteCode) {
     return buildIpBlockResult_('ip_blocked', elapsed);
   }
 
-  if (!consumeFormToken_(params.formToken, siteCode)) {
+  if (!opts.skipTokenConsume && !consumeFormToken_(params.formToken, siteCode)) {
     return buildValidationResult_('토큰차단', 'invalid_token', false, false, elapsed);
   }
 
