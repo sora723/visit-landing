@@ -42,6 +42,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
   ],
   '_검증로그': VERIFICATION_LOG_HEADERS,
   '_IP차단': IP_BLOCK_HEADERS,
+  '_알림큐': NOTIFY_QUEUE_HEADERS,
   '시스템로그': [
     'occurredAt', 'action', 'siteCode', 'provider',
     'recipientPhone', 'errorMessage', 'payload', 'message'
