@@ -1,6 +1,5 @@
 /**
- * 접수 알림 비동기 큐 — submit 응답을 알림톡보다 먼저 반환하기 위함
- * 탭을 닫아도 접수관리 저장은 이미 끝난 뒤라 유실 위험이 줄어듦
+ * 접수 후처리 큐 — 알림톡·현장미러를 submit 응답 뒤로 미룸
  */
 
 var NOTIFY_QUEUE_HEADERS = [
@@ -17,6 +16,9 @@ var NOTIFY_QUEUE_HEADERS = [
   'utmMedium',
   'utmCampaign',
   'referer',
+  'needNotify',
+  'needMirror',
+  'rowPayload',
   'status',
   'attempts',
   'processedAt',
@@ -39,13 +41,31 @@ function ensureNotifyQueueSheet_() {
 function runEnsureNotifyQueueSheet() {
   ensureNotifyQueueSheet_();
   SpreadsheetApp.getUi().alert(
-    '_알림큐 시트가 준비되었습니다.\n접수 저장 후 알림톡은 이 큐에서 비동기로 발송됩니다.'
+    '_알림큐 시트가 준비되었습니다.\n알림톡·현장미러는 이 큐에서 비동기로 처리됩니다.\n\n※ 설정 시 runFlushNotificationQueue 는 실행하지 마세요 (느림·실발송).'
   );
 }
 
-function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawParams) {
+function serializeQueueRowData_(rowData) {
+  var src = rowData || {};
+  var out = {};
+  Object.keys(src).forEach(function (key) {
+    var value = src[key];
+    if (value instanceof Date) {
+      out[key] = value.toISOString();
+    } else {
+      out[key] = value;
+    }
+  });
+  return JSON.stringify(out);
+}
+
+function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawParams, options) {
   ensureNotifyQueueSheet_();
   var params = rawParams || {};
+  var opts = options || {};
+  var needNotify = opts.needNotify === true;
+  var needMirror = opts.needMirror !== false;
+
   appendRowByHeaders_(SHEET_NAMES.NOTIFY_QUEUE, {
     queuedAt: new Date(),
     submissionId: submissionId,
@@ -60,6 +80,9 @@ function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawPa
     utmMedium: validated.utmMedium || '',
     utmCampaign: validated.utmCampaign || '',
     referer: String(params.referer || '').trim(),
+    needNotify: needNotify ? 'Y' : 'N',
+    needMirror: needMirror ? 'Y' : 'N',
+    rowPayload: needMirror ? serializeQueueRowData_(opts.rowData) : '',
     status: 'pending',
     attempts: 0,
     processedAt: '',
@@ -68,7 +91,7 @@ function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawPa
 }
 
 /**
- * POST action=notify.flush — pending 알림 발송 (Next after / 수동 실행)
+ * POST action=notify.flush — pending 알림·미러 처리
  */
 function handleNotifyFlush(params) {
   var limit = Number(params && params.limit);
@@ -83,18 +106,19 @@ function handleNotifyFlush(params) {
   var processedCol = map.processedAt;
   var errorCol = map.lastError;
   if (statusCol === undefined) {
-    return { processed: 0, sent: 0, failed: 0, message: 'status 컬럼 없음' };
+    return { processed: 0, sent: 0, mirrored: 0, failed: 0, message: 'status 컬럼 없음' };
   }
 
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) {
-    return { processed: 0, sent: 0, failed: 0 };
+    return { processed: 0, sent: 0, mirrored: 0, failed: 0 };
   }
 
   var width = sheet.getLastColumn();
   var values = sheet.getRange(2, 1, lastRow, width).getValues();
   var processed = 0;
   var sent = 0;
+  var mirrored = 0;
   var failed = 0;
 
   for (var i = 0; i < values.length && processed < limit; i++) {
@@ -107,7 +131,7 @@ function handleNotifyFlush(params) {
 
     var rowIndex = i + 2;
     var job = notifyQueueRowToJob_(row, map);
-    if (!job.siteCode || !job.name || !job.phone) {
+    if (!job.siteCode || !job.submissionId) {
       sheet.getRange(rowIndex, statusCol + 1).setValue('skipped');
       if (errorCol !== undefined) {
         sheet.getRange(rowIndex, errorCol + 1).setValue('incomplete_payload');
@@ -131,21 +155,70 @@ function handleNotifyFlush(params) {
       continue;
     }
 
-    var result = notifyManagerOnSubmission_(
-      siteRow,
-      {
-        name: job.name,
-        phone: job.phone,
-        inquiry: job.inquiry,
-        consultType: job.consultType,
-        reserveDate: job.reserveDate,
-        reserveTime: job.reserveTime,
-        utmSource: job.utmSource,
-        utmMedium: job.utmMedium,
-        utmCampaign: job.utmCampaign
-      },
-      { referer: job.referer }
-    );
+    var errors = [];
+    var notifyOk = !job.needNotify;
+    var mirrorOk = !job.needMirror;
+
+    if (job.needNotify) {
+      if (!job.name || !job.phone) {
+        errors.push('notify_incomplete');
+      } else {
+        var result = notifyManagerOnSubmission_(
+          siteRow,
+          {
+            name: job.name,
+            phone: job.phone,
+            inquiry: job.inquiry,
+            consultType: job.consultType,
+            reserveDate: job.reserveDate,
+            reserveTime: job.reserveTime,
+            utmSource: job.utmSource,
+            utmMedium: job.utmMedium,
+            utmCampaign: job.utmCampaign
+          },
+          { referer: job.referer }
+        );
+        if (result && result.success === true) {
+          notifyOk = true;
+          sent++;
+        } else {
+          errors.push((result && result.error) || 'notify_failed');
+        }
+      }
+    }
+
+    if (job.needMirror) {
+      try {
+        var rowData = job.rowPayload ? JSON.parse(job.rowPayload) : null;
+        if (!rowData) {
+          errors.push('mirror_no_payload');
+        } else {
+          if (rowData.createdAt) rowData.createdAt = new Date(rowData.createdAt);
+          if (rowData['접수일시']) rowData['접수일시'] = new Date(rowData['접수일시']);
+          var mirrorResult = mirrorSubmissionToSiteSpreadsheet_(
+            siteRow,
+            rowData,
+            job.submissionId
+          );
+          if (mirrorResult && mirrorResult.mirrored) {
+            mirrorOk = true;
+            mirrored++;
+          } else if (
+            mirrorResult &&
+            (mirrorResult.reason === 'NO_SPREADSHEET_ID' ||
+              mirrorResult.reason === 'TAB_NOT_FOUND' ||
+              mirrorResult.reason === 'SPREADSHEET_NOT_FOUND')
+          ) {
+            /** 미러 대상 없음 — 실패로 재시도하지 않음 */
+            mirrorOk = true;
+          } else {
+            errors.push((mirrorResult && mirrorResult.reason) || 'mirror_failed');
+          }
+        }
+      } catch (err) {
+        errors.push(err.message || String(err));
+      }
+    }
 
     processed++;
     if (attemptsCol !== undefined) {
@@ -155,35 +228,37 @@ function handleNotifyFlush(params) {
       sheet.getRange(rowIndex, processedCol + 1).setValue(new Date());
     }
 
-    if (result && result.success === true) {
+    if (notifyOk && mirrorOk) {
       sheet.getRange(rowIndex, statusCol + 1).setValue('sent');
       if (errorCol !== undefined) {
         sheet.getRange(rowIndex, errorCol + 1).setValue('');
       }
-      sent++;
       writeLog_('NOTIFY_QUEUE_OK', job.siteCode, 'submission=' + job.submissionId);
     } else {
       sheet.getRange(rowIndex, statusCol + 1).setValue('error');
       if (errorCol !== undefined) {
-        sheet
-          .getRange(rowIndex, errorCol + 1)
-          .setValue((result && result.error) || 'notify_failed');
+        sheet.getRange(rowIndex, errorCol + 1).setValue(errors.join('|'));
       }
       failed++;
       writeLog_(
         'NOTIFY_QUEUE_FAIL',
         job.siteCode,
-        'submission=' + job.submissionId + ' ' + ((result && result.error) || '')
+        'submission=' + job.submissionId + ' ' + errors.join('|')
       );
     }
   }
 
-  return { processed: processed, sent: sent, failed: failed };
+  return { processed: processed, sent: sent, mirrored: mirrored, failed: failed };
 }
 
 function notifyQueueRowToJob_(row, map) {
   function cell(key) {
     return map[key] === undefined ? '' : row[map[key]];
+  }
+  function yn(key, defaultVal) {
+    var raw = String(cell(key) || '').trim().toUpperCase();
+    if (!raw) return defaultVal === true;
+    return raw === 'Y' || raw === 'TRUE' || raw === '1';
   }
   return {
     submissionId: String(cell('submissionId') || '').trim(),
@@ -197,19 +272,24 @@ function notifyQueueRowToJob_(row, map) {
     utmSource: String(cell('utmSource') || '').trim(),
     utmMedium: String(cell('utmMedium') || '').trim(),
     utmCampaign: String(cell('utmCampaign') || '').trim(),
-    referer: String(cell('referer') || '').trim()
+    referer: String(cell('referer') || '').trim(),
+    needNotify: yn('needNotify', true),
+    needMirror: yn('needMirror', true),
+    rowPayload: String(cell('rowPayload') || '').trim()
   };
 }
 
-/** 에디터에서 수동/트리거 실행 */
+/** 에디터에서 수동/트리거 실행 — 설정 단계에서는 실행하지 말 것 */
 function runFlushNotificationQueue() {
   var result = handleNotifyFlush({ limit: 20 });
   try {
     SpreadsheetApp.getUi().alert(
       '알림 큐 처리\n처리=' +
         result.processed +
-        ' 성공=' +
+        ' 알림=' +
         result.sent +
+        ' 미러=' +
+        result.mirrored +
         ' 실패=' +
         result.failed
     );

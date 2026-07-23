@@ -55,13 +55,18 @@ function handleSubmit(params) {
 
   var notificationSent = false;
   var notificationQueued = false;
-  var deferNotify =
-    params.deferNotify === true ||
-    params.deferNotify === 'true' ||
-    params.deferNotify === '1';
+  /**
+   * 기본: 알림·현장미러는 큐로 미룸 (응답 먼저).
+   * 동기 발송이 필요하면 deferNotify=false 만 명시.
+   */
+  var deferNotify = !(
+    params.deferNotify === false ||
+    params.deferNotify === 'false' ||
+    params.deferNotify === '0'
+  );
 
   if (validation.shouldSaveToSubmissions) {
-    appendSubmissionRow_(
+    var rowData = appendSubmissionRow_(
       siteRow,
       validated,
       submissionId,
@@ -69,16 +74,27 @@ function handleSubmit(params) {
       params,
       {
         validationStatus: validation.validationStatus,
-        suspicionReasons: validation.suspicionReasons
+        suspicionReasons: validation.suspicionReasons,
+        skipMirror: deferNotify
       }
     );
 
-    if (validation.shouldNotify) {
+    if (validation.shouldNotify || deferNotify) {
       if (deferNotify) {
-        /** 알림톡은 응답 후 큐 처리 — 「처리 중」 대기·탭 종료 시 유실 완화 */
-        enqueueSubmissionNotification_(siteCode, submissionId, validated, params);
+        /** 알림톡·현장미러는 응답 후 큐 처리 */
+        enqueueSubmissionNotification_(
+          siteCode,
+          submissionId,
+          validated,
+          params,
+          {
+            needNotify: validation.shouldNotify === true,
+            needMirror: true,
+            rowData: rowData
+          }
+        );
         notificationQueued = true;
-      } else {
+      } else if (validation.shouldNotify) {
         var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
         notificationSent = notificationResult.success === true;
       }
@@ -183,18 +199,23 @@ function validateSubmitParams_(params, formType) {
  * 2) 현장관리.submissionSpreadsheetId → 현장별 독립 Spreadsheet
  */
 function appendSubmissionRow_(siteRow, data, submissionId, submittedAt, rawParams, options) {
+  var opts = options || {};
   var rowData = buildSubmissionRowData_(
     siteRow,
     data,
     submissionId,
     submittedAt,
     rawParams,
-    options
+    opts
   );
 
   appendRowByHeaders_(SHEET_NAMES.SUBMISSION, rowData);
 
-  mirrorSubmissionToSiteSpreadsheet_(siteRow, rowData, submissionId);
+  if (!opts.skipMirror) {
+    mirrorSubmissionToSiteSpreadsheet_(siteRow, rowData, submissionId);
+  }
+
+  return rowData;
 }
 
 /**
