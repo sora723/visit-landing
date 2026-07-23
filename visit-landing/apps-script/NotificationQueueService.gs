@@ -4,6 +4,7 @@
 
 var NOTIFY_QUEUE_HEADERS = [
   'queuedAt',
+  'jobType',
   'submissionId',
   'siteCode',
   'name',
@@ -75,6 +76,7 @@ function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawPa
 
   appendRowByHeaders_(SHEET_NAMES.NOTIFY_QUEUE, {
     queuedAt: new Date(),
+    jobType: 'notify',
     submissionId: submissionId,
     siteCode: siteCode,
     name: validated.name,
@@ -90,6 +92,34 @@ function enqueueSubmissionNotification_(siteCode, submissionId, validated, rawPa
     needNotify: needNotify ? 'Y' : 'N',
     needMirror: needMirror ? 'Y' : 'N',
     rowPayload: needMirror ? serializeQueueRowData_(opts.rowData) : '',
+    status: 'pending',
+    attempts: 0,
+    processedAt: '',
+    lastError: ''
+  });
+}
+
+/** _검증로그 행을 큐에 넣고 submit 응답을 먼저 반환 */
+function enqueueVerificationLogDeferred_(logRow) {
+  ensureNotifyQueueSheet_();
+  appendRowByHeaders_(SHEET_NAMES.NOTIFY_QUEUE, {
+    queuedAt: new Date(),
+    jobType: 'verifyLog',
+    submissionId: String((logRow && logRow.submissionId) || '').trim(),
+    siteCode: String((logRow && (logRow.siteCode || logRow['현장코드'])) || '').trim(),
+    name: String((logRow && (logRow['이름'] || logRow.name)) || '').trim(),
+    phone: String((logRow && (logRow['정규화연락처'] || logRow['연락처'])) || '').trim(),
+    inquiry: '',
+    consultType: '',
+    reserveDate: '',
+    reserveTime: '',
+    utmSource: '',
+    utmMedium: '',
+    utmCampaign: '',
+    referer: '',
+    needNotify: 'N',
+    needMirror: 'N',
+    rowPayload: serializeQueueRowData_(logRow || {}),
     status: 'pending',
     attempts: 0,
     processedAt: '',
@@ -138,6 +168,41 @@ function handleNotifyFlush(params) {
 
     var rowIndex = i + 2;
     var job = notifyQueueRowToJob_(row, map);
+
+    /** 검증로그 비동기 적재 — 알림보다 먼저 빠르게 처리 */
+    if (job.jobType === 'verifyLog') {
+      try {
+        var logRow = job.rowPayload ? JSON.parse(job.rowPayload) : null;
+        if (!logRow) {
+          throw new Error('verifyLog_no_payload');
+        }
+        if (logRow['기록시간']) logRow['기록시간'] = new Date(logRow['기록시간']);
+        appendVerificationLogRow_(logRow);
+        sheet.getRange(rowIndex, statusCol + 1).setValue('done');
+        if (attemptsCol !== undefined) {
+          sheet.getRange(rowIndex, attemptsCol + 1).setValue(attempts + 1);
+        }
+        if (processedCol !== undefined) {
+          sheet.getRange(rowIndex, processedCol + 1).setValue(new Date());
+        }
+        if (errorCol !== undefined) {
+          sheet.getRange(rowIndex, errorCol + 1).setValue('');
+        }
+        processed++;
+      } catch (logErr) {
+        sheet.getRange(rowIndex, statusCol + 1).setValue('error');
+        if (attemptsCol !== undefined) {
+          sheet.getRange(rowIndex, attemptsCol + 1).setValue(attempts + 1);
+        }
+        if (errorCol !== undefined) {
+          sheet.getRange(rowIndex, errorCol + 1).setValue(logErr.message || String(logErr));
+        }
+        processed++;
+        failed++;
+      }
+      continue;
+    }
+
     if (!job.siteCode || !job.submissionId) {
       sheet.getRange(rowIndex, statusCol + 1).setValue('skipped');
       if (errorCol !== undefined) {
@@ -281,6 +346,7 @@ function notifyQueueRowToJob_(row, map) {
   return {
     submissionId: String(cell('submissionId') || '').trim(),
     siteCode: String(cell('siteCode') || '').trim(),
+    jobType: String(cell('jobType') || '').trim() || 'notify',
     name: String(cell('name') || '').trim(),
     phone: String(cell('phone') || '').trim(),
     inquiry: String(cell('inquiry') || '').trim(),

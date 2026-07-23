@@ -39,7 +39,8 @@ function handleSubmit(params) {
 
   var validation = classifySubmission_(params, validated, siteCode);
 
-  appendVerificationLogRow_(
+  /** 검증로그는 응답 후 큐 처리 — submit 경로에서 시트 append 제거 */
+  enqueueVerificationLogDeferred_(
     buildVerificationLogRow_({
       submissionId: submissionId,
       siteCode: siteCode,
@@ -78,6 +79,17 @@ function handleSubmit(params) {
         skipMirror: deferNotify
       }
     );
+
+    if (
+      validation.validationStatus === '정상접수' ||
+      validation.validationStatus === '빠른접수'
+    ) {
+      markPhoneSubmittedCache_(
+        siteCode,
+        validated.phone,
+        (SUBMIT_VALIDATION_CONFIG && SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) || 86400
+      );
+    }
 
     if (validation.shouldNotify || deferNotify) {
       if (deferNotify) {

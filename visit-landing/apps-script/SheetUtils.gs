@@ -143,6 +143,47 @@ function sheetToObjects_(sheetName) {
   return rows;
 }
 
+/**
+ * 시트 최근 maxRows 행만 객체로 읽기 (검증 스캔용 — 전체 getDataRange 금지)
+ */
+function readRecentSheetObjects_(sheetName, maxRows) {
+  var sheet = getSheetOptional_(sheetName);
+  if (!sheet) return [];
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return [];
+
+  var limit = Math.max(1, Number(maxRows) || 400);
+  var startRow = Math.max(2, lastRow - limit + 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+    return String(h).trim();
+  });
+  var values = sheet.getRange(startRow, 1, lastRow, lastCol).getValues();
+  var rows = [];
+
+  for (var r = 0; r < values.length; r++) {
+    var row = values[r];
+    var isEmpty = true;
+    for (var c = 0; c < row.length; c++) {
+      if (row[c] !== '' && row[c] !== null && row[c] !== undefined) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (isEmpty) continue;
+
+    var obj = {};
+    for (var i = 0; i < headers.length; i++) {
+      if (headers[i]) obj[headers[i]] = row[i];
+    }
+    rows.push(obj);
+  }
+  return rows;
+}
+
 function getField_(row, headerName) {
   if (!row || row[headerName] === undefined || row[headerName] === null) return '';
   return String(row[headerName]).trim();

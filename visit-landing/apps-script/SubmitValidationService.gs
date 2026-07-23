@@ -49,7 +49,13 @@ function isBehaviorSuspicious_(params) {
 }
 
 function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
-  var rows = sheetToObjects_(SHEET_NAMES.SUBMISSION);
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'ph:' + siteCode + ':' + normalizedPhone;
+  if (cache.get(cacheKey)) return true;
+
+  var cfg = SUBMIT_VALIDATION_CONFIG || {};
+  var maxRows = Number(cfg.VALIDATION_RECENT_SUBMISSION_ROWS) || 800;
+  var rows = readRecentSheetObjects_(SHEET_NAMES.SUBMISSION, maxRows);
   var now = Date.now();
   var windowMs = (ttlSeconds || 86400) * 1000;
 
@@ -68,9 +74,20 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
     if (!submittedAt) continue;
     var submittedDate = submittedAt instanceof Date ? submittedAt : new Date(submittedAt);
     if (isNaN(submittedDate.getTime())) continue;
-    if (now - submittedDate.getTime() <= windowMs) return true;
+    if (now - submittedDate.getTime() <= windowMs) {
+      /** CacheService 최대 6시간 — 24h 전체는 시트 최근행으로 보완 */
+      cache.put(cacheKey, '1', Math.min(21600, Math.max(60, ttlSeconds || 86400)));
+      return true;
+    }
   }
   return false;
+}
+
+function markPhoneSubmittedCache_(siteCode, normalizedPhone, ttlSeconds) {
+  if (!siteCode || !normalizedPhone) return;
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'ph:' + siteCode + ':' + normalizedPhone;
+  cache.put(cacheKey, '1', Math.min(21600, Math.max(60, Number(ttlSeconds) || 86400)));
 }
 
 function parseSheetDateMs_(value) {
@@ -80,18 +97,14 @@ function parseSheetDateMs_(value) {
   return parsed.getTime();
 }
 
-/**
- * _검증로그 기준 — 동일 siteCode + IP 의 최근 시도 건수 (차단 건 포함)
- * 현재 접수는 아직 로그에 없으므로, MAX=3 이면 기존 3건 이후(4건째)부터 차단
- */
-function countIpAttemptsWithin_(siteCode, clientIp, windowSeconds) {
-  var normalized = normalizeClientIp_(clientIp);
-  if (!normalized) return 0;
+function ipAttemptCacheKey_(siteCode, clientIp) {
+  return 'bip:' + siteCode + ':' + normalizeClientIp_(clientIp);
+}
 
-  var sheet = getSheetOptional_(SHEET_NAMES.VERIFICATION_LOG);
-  if (!sheet) return 0;
-
-  var rows = sheetToObjects_(SHEET_NAMES.VERIFICATION_LOG);
+function countIpAttemptsFromRecentSheet_(siteCode, normalizedIp, windowSeconds) {
+  var cfg = SUBMIT_VALIDATION_CONFIG || {};
+  var maxRows = Number(cfg.VALIDATION_RECENT_LOG_ROWS) || 400;
+  var rows = readRecentSheetObjects_(SHEET_NAMES.VERIFICATION_LOG, maxRows);
   var now = Date.now();
   var windowMs = Math.max(1, Number(windowSeconds) || 600) * 1000;
   var count = 0;
@@ -102,15 +115,49 @@ function countIpAttemptsWithin_(siteCode, clientIp, windowSeconds) {
     if (rowSite !== siteCode) continue;
 
     var rowIp = normalizeClientIp_(row.ip || row['IP'] || '');
-    if (!rowIp || rowIp !== normalized) continue;
+    if (!rowIp || rowIp !== normalizedIp) continue;
 
     var recordedAt = row['기록시간'] || row.createdAt || row['접수일시'];
     var recordedMs = parseSheetDateMs_(recordedAt);
     if (isNaN(recordedMs)) continue;
-    if (now - recordedMs > windowMs) break;
+    if (now - recordedMs > windowMs) continue;
     count += 1;
   }
   return count;
+}
+
+/**
+ * _검증로그 기준 — 동일 siteCode + IP 의 최근 시도 건수
+ * CacheService 우선 (검증로그 비동기화 대응), 없으면 최근 N행만 스캔
+ * 현재 접수는 아직 카운트에 없으므로, MAX=3 이면 기존 3건 이후(4건째)부터 차단
+ */
+function countIpAttemptsWithin_(siteCode, clientIp, windowSeconds) {
+  var normalized = normalizeClientIp_(clientIp);
+  if (!normalized) return 0;
+
+  var cache = CacheService.getScriptCache();
+  var key = ipAttemptCacheKey_(siteCode, normalized);
+  var cached = cache.get(key);
+  if (cached !== null && cached !== undefined && cached !== '') {
+    var n = Number(cached);
+    return isNaN(n) ? 0 : n;
+  }
+
+  var fromSheet = countIpAttemptsFromRecentSheet_(siteCode, normalized, windowSeconds);
+  var ttl = Math.min(21600, Math.max(60, Number(windowSeconds) || 600));
+  cache.put(key, String(fromSheet), ttl);
+  return fromSheet;
+}
+
+function bumpIpAttemptCache_(siteCode, clientIp, windowSeconds) {
+  var normalized = normalizeClientIp_(clientIp);
+  if (!normalized) return 0;
+  var current = countIpAttemptsWithin_(siteCode, normalized, windowSeconds);
+  var next = current + 1;
+  var cache = CacheService.getScriptCache();
+  var ttl = Math.min(21600, Math.max(60, Number(windowSeconds) || 600));
+  cache.put(ipAttemptCacheKey_(siteCode, normalized), String(next), ttl);
+  return next;
 }
 
 function buildBulkIpBlockResult_(elapsed, count, maxCount, windowSeconds) {
@@ -155,6 +202,7 @@ function classifySubmission_(params, validated, siteCode) {
   if (clientIp && bulkMax > 0) {
     var recentIpCount = countIpAttemptsWithin_(siteCode, clientIp, bulkWindow);
     if (recentIpCount >= bulkMax) {
+      bumpIpAttemptCache_(siteCode, clientIp, bulkWindow);
       registerTemporaryIpBlockFromBulk_(
         clientIp,
         siteCode,
@@ -164,6 +212,8 @@ function classifySubmission_(params, validated, siteCode) {
       );
       return buildBulkIpBlockResult_(elapsed, recentIpCount, bulkMax, bulkWindow);
     }
+    /** 이번 시도 반영 — 검증로그 비동기여도 4건째 차단 유지 */
+    bumpIpAttemptCache_(siteCode, clientIp, bulkWindow);
   }
 
   if (hasPhoneDuplicateWithin_(siteCode, strictPhone, cfg.DUPLICATE_PHONE_TTL_SECONDS)) {
