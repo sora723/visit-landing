@@ -148,8 +148,12 @@ Master 시트 → **`_IP차단`** 탭 (없으면 Apps Script 메뉴: VisitLandin
 | `ENABLE_FAST_SUBMIT_CONVERSION` | true | 빠른접수도 전환할지 |
 | `REQUIRE_AD_SIGNAL_FOR_CONVERSION` | true | 광고 신호 없으면 전환 X |
 | `BULK_IP_WINDOW_SECONDS` | 600 | 동일 IP 대량 판정 시간 창(초) |
-| `BULK_IP_MAX_COUNT` | 3 | 창 안 허용 건수 — 이상이면 `IP대량차단` |
+| `BULK_IP_MAX_COUNT` | 3 | 창 안 **3건 허용 · 4건째** `IP대량차단` |
 | `BULK_IP_AUTO_BLOCK_HOURS` | 24 | IP대량차단 시 `_IP차단` 자동 등록 시간 |
+| `VALIDATION_RECENT_LOG_ROWS` | 400 | IP 카운트 시트 폴백 시 최근 N행만 |
+| `VALIDATION_RECENT_SUBMISSION_ROWS` | 800 | 전화 중복 검사 최근 N행만 |
+
+IP 카운트는 `CacheService` 우선(검증로그 비동기 대응). `_검증로그` 쓰기는 `_알림큐` `jobType=verifyLog` 로 미룬 뒤 `notify.flush`에서 반영.
 
 변경 후 `npm run setup:apps-script:push` 로 배포.
 
