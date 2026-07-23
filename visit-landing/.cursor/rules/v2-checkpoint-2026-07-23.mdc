@@ -1,0 +1,37 @@
+---
+description: V2 freeform landing — 2026-07-23 작업 체크포인트 (내일 재개용)
+alwaysApply: true
+---
+
+# V2 작업 체크포인트 (2026-07-23 저장)
+
+브랜치: **`feature/v2-freeform-landing`**  
+마지막 커밋: **`41df687`** `feat: add v2 page schema validation`  
+직전: **`3307d7a`** `feat: add safe renderer version routing` · **`e24eb5c`** siteCode 회귀
+
+## 완료된 것
+
+1. **siteCode**: V1 라우팅 **유지** (도메인 우선 변경 금지). `verify:site-code` 23통과.  
+   수정 금지: `resolve-site-code.ts`, `middleware.ts`, `server-site-code.ts`
+2. **rendererVersion 분기** (`page.tsx` 서버): 빈값/v1/미지 → LandingPage, 정확 `v2` → `V2Placeholder`  
+   `resolveRendererVersion` · `verify:renderer-version`
+3. **V2 스키마만**: `src/v2/` 타입·레지스트리·정규화·검증 · `verify:v2-schema`  
+   Sheet / Apps Script / V2 UI / Preview / submit **미구현**
+
+## 문서·주의
+
+- 설계: `docs/V2_SHEET_STRUCTURE.md`
+- `backgroundColor`: 코드에 있음, 문서 §7 요약에는 미기재
+- §10 variant: 문서 **명시분만** 레지스트리 등록
+- `rendererVersion` 우선순위: 직접 필드 → `extendedData`(임시) → v1. V2 신규 코드는 extendedData 의존 금지
+- **후속**: `V2Placeholder`의 `<meta robots>`는 body에 있어 head metadata로 불안정 → `generateMetadata`로 이전 필요
+- 운영 Apps Script는 **`@51`** 유지 중. Preview HMAC 미설정
+- `npm run lint` 전체는 기존 `.figma-ref` 오류 있음 → 변경 파일만 eslint
+
+## 다음에 하면 안 되는 것 (이전 단계와 동일)
+
+Sheet 탭 생성, Apps Script push, V2 실제 렌더러/API/Preview/폼, siteCode 런타임 변경 — **별도 지시 전까지 금지**
+
+## 재개 시 권장 다음 단계 (문서 §15)
+
+읽기 API + pageStatus 게이트 / 또는 렌더러 / Preview — 사용자 지시 대기
