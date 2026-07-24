@@ -6,6 +6,32 @@
 export type ResolvedRendererVersion = "v1" | "v2";
 
 /**
+ * Source of Truth 우선순위 (확정 계약):
+ * 1. 현장관리.rendererVersion (비어 있지 않으면 항상 우선)
+ * 2. 현장관리가 빈칸일 때만 extendedData.rendererVersion
+ * 3. 둘 다 없으면 undefined → 호출측 fallback / V1
+ */
+export function pickRendererVersionFromSources(
+  siteManagementRendererVersion: unknown,
+  extendedData: unknown
+): string | undefined {
+  const fromSite = String(siteManagementRendererVersion ?? "").trim();
+  if (fromSite) return fromSite;
+
+  if (
+    extendedData &&
+    typeof extendedData === "object" &&
+    !Array.isArray(extendedData)
+  ) {
+    const raw = (extendedData as Record<string, unknown>).rendererVersion;
+    const fromExt = String(raw ?? "").trim();
+    if (fromExt) return fromExt;
+  }
+
+  return undefined;
+}
+
+/**
  * @param value 현장관리/API/site.json의 rendererVersion (optional)
  */
 export function resolveRendererVersion(

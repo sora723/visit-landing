@@ -5,6 +5,7 @@
  */
 
 import {
+  pickRendererVersionFromSources,
   resolveHomeRobotsMetadata,
   resolveRendererVersion,
 } from "../src/lib/resolve-renderer-version.ts";
@@ -71,6 +72,59 @@ assertEqual(chooseSurface("v3"), "landing", "v3 → LandingPage");
 
 assertEqual(resolveRendererVersion(null), "v1", "null → v1");
 assertEqual(resolveRendererVersion(2), "v1", "number → v1");
+
+/** 현장관리 vs extendedData 우선순위 (production pickRendererVersionFromSources) */
+assertEqual(
+  pickRendererVersionFromSources("v2", { rendererVersion: "v1" }),
+  "v2",
+  "site=v2 / ext=v1 → site wins"
+);
+assertEqual(
+  pickRendererVersionFromSources("v1", { rendererVersion: "v2" }),
+  "v1",
+  "site=v1 / ext=v2 → site wins"
+);
+assertEqual(
+  pickRendererVersionFromSources("", { rendererVersion: "v2" }),
+  "v2",
+  "site blank / ext=v2 → ext fallback"
+);
+assertEqual(
+  pickRendererVersionFromSources("  ", { rendererVersion: "v2" }),
+  "v2",
+  "site whitespace / ext=v2 → ext fallback"
+);
+assertEqual(
+  pickRendererVersionFromSources("", { rendererVersion: "" }),
+  undefined,
+  "both blank → undefined (V1/fallback)"
+);
+assertEqual(
+  pickRendererVersionFromSources(undefined, undefined),
+  undefined,
+  "both missing → undefined"
+);
+assertEqual(
+  resolveRendererVersion(
+    pickRendererVersionFromSources("v2", { rendererVersion: "v1" })
+  ),
+  "v2",
+  "picked site v2 → resolve v2"
+);
+assertEqual(
+  resolveRendererVersion(
+    pickRendererVersionFromSources("", { rendererVersion: "v2" })
+  ),
+  "v2",
+  "picked ext v2 → resolve v2"
+);
+assertEqual(
+  chooseSurface(
+    pickRendererVersionFromSources("v2", { rendererVersion: "v1" })
+  ),
+  "v2-runtime",
+  "page+metadata shared pick → v2 surface"
+);
 
 /** fallback site.json과 동일: rendererVersion 필드 없음 */
 const fallbackLike = { siteCode: "L001" } as Partial<SiteConfig>;
