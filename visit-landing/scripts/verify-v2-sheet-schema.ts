@@ -160,7 +160,33 @@ class MockSpreadsheet {
 
 type LockState = { acquire: boolean };
 
-function createSandbox(ss: MockSpreadsheet, lockState: LockState) {
+type CallLog = {
+  events: string[];
+  flushCount: number;
+  tryLockCount: number;
+  releaseLockCount: number;
+  openByIdArgs: string[];
+  getActiveCount: number;
+  writes: number;
+};
+
+function createCallLog(): CallLog {
+  return {
+    events: [],
+    flushCount: 0,
+    tryLockCount: 0,
+    releaseLockCount: 0,
+    openByIdArgs: [],
+    getActiveCount: 0,
+    writes: 0,
+  };
+}
+
+function createSandbox(
+  ss: MockSpreadsheet,
+  lockState: LockState,
+  log: CallLog = createCallLog()
+) {
   const SHEET_NAMES = {
     SITE: "현장관리",
     CONTENT: "콘텐츠관리",
@@ -171,14 +197,33 @@ function createSandbox(ss: MockSpreadsheet, lockState: LockState) {
   const sandbox: Record<string, unknown> = {
     SHEET_NAMES,
     SpreadsheetApp: {
-      getActiveSpreadsheet: () => ss,
-      openById: () => ss,
+      getActiveSpreadsheet: () => {
+        log.getActiveCount++;
+        log.events.push("getActiveSpreadsheet");
+        return ss;
+      },
+      openById: (id: string) => {
+        log.openByIdArgs.push(String(id));
+        log.events.push("openById:" + id);
+        return ss;
+      },
+      flush: () => {
+        log.flushCount++;
+        log.events.push("flush");
+      },
       getUi: () => ({ alert: () => {} }),
     },
     LockService: {
-      getDocumentLock: () => ({
-        tryLock: () => lockState.acquire,
-        releaseLock: () => {},
+      getScriptLock: () => ({
+        tryLock: () => {
+          log.tryLockCount++;
+          log.events.push("tryLock");
+          return lockState.acquire;
+        },
+        releaseLock: () => {
+          log.releaseLockCount++;
+          log.events.push("releaseLock");
+        },
       }),
     },
     PropertiesService: {
@@ -228,12 +273,78 @@ function createSandbox(ss: MockSpreadsheet, lockState: LockState) {
   );
   vm.runInNewContext(schemaSrc, sandbox, { filename: "V2SheetSchemaService.gs" });
 
-  return sandbox as Record<string, unknown> & {
+  return Object.assign(sandbox, { __log: log }) as Record<string, unknown> & {
     inspectV2SheetSchema: () => Record<string, unknown>;
     ensureV2SheetSchema: () => Record<string, unknown>;
+    ensureV2SheetSchemaUnlocked_: () => Record<string, unknown>;
     V2_BLOCK_PUBLIC_COLUMNS: string[];
     V2_CONTENT_PUBLIC_COLUMNS: string[];
     V2_SITE_MANAGEMENT_COLUMNS: string[];
+    __log: CallLog;
+  };
+}
+
+function extractGsFunction(src: string, name: string): string {
+  const needle = "function " + name + "(";
+  const start = src.indexOf(needle);
+  if (start < 0) throw new Error("function not found: " + name);
+  const braceStart = src.indexOf("{", start);
+  if (braceStart < 0) throw new Error("no body: " + name);
+  let depth = 0;
+  for (let i = braceStart; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return src.slice(start, i + 1);
+    }
+  }
+  throw new Error("unbalanced braces: " + name);
+}
+
+/** Load production SheetUtils getSpreadsheet_ path (active=null → openById). */
+function loadProductionGetSpreadsheet_(log: CallLog) {
+  const MASTER_ID = "1rRLKLBIyZPjw1e4a14MPzaTNBib0vTKEpHEqfQg3pyA";
+  const fakeSs = { id: MASTER_ID };
+  const sandbox: Record<string, unknown> = {
+    MASTER_SPREADSHEET_ID: MASTER_ID,
+    SpreadsheetApp: {
+      getActiveSpreadsheet: () => {
+        log.getActiveCount++;
+        log.events.push("getActiveSpreadsheet");
+        return null;
+      },
+      openById: (id: string) => {
+        log.openByIdArgs.push(String(id));
+        log.events.push("openById:" + id);
+        return fakeSs;
+      },
+    },
+    PropertiesService: {
+      getScriptProperties: () => ({
+        getProperty: () => null,
+      }),
+    },
+    createAppError_: (code: string, message: string) => {
+      const err = new Error(message) as Error & { code: string };
+      err.code = code;
+      return err;
+    },
+  };
+
+  const utilsSrc = fs.readFileSync(path.join(APPS, "SheetUtils.gs"), "utf8");
+  const masterVar = utilsSrc.match(/var MASTER_SPREADSHEET_ID = [^;]+;/);
+  if (!masterVar) throw new Error("MASTER_SPREADSHEET_ID not found");
+  const extract = [
+    masterVar[0],
+    extractGsFunction(utilsSrc, "getMasterSpreadsheetId_"),
+    extractGsFunction(utilsSrc, "getSpreadsheet_"),
+  ].join("\n");
+
+  vm.runInNewContext(extract, sandbox, { filename: "SheetUtils-extract.gs" });
+  return sandbox as {
+    getSpreadsheet_: () => unknown;
+    getMasterSpreadsheetId_: () => string;
   };
 }
 
@@ -522,12 +633,15 @@ function main() {
   check("14. lock failure → no changes", () => {
     const ss = new MockSpreadsheet();
     seedSiteSheet(ss, baseSiteHeaders());
-    const api = createSandbox(ss, { acquire: false });
+    const log = createCallLog();
+    const api = createSandbox(ss, { acquire: false }, log);
     const r = api.ensureV2SheetSchema();
     assert(r.ok === false && r.changed === false, "no change");
     assert((r.warnings as string[]).includes("lock_not_acquired"), "warn");
     assert(!ss.getSheetByName("V2_블록관리"), "no block sheet");
     assert(ss.getSheetByName("현장관리")!.headerRow().length === 6, "site untouched");
+    assert(log.flushCount === 0, "no flush");
+    assert(log.releaseLockCount === 0, "no release without acquire");
   });
 
   check("15. published read column arrays match sheet headers", () => {
@@ -569,20 +683,108 @@ function main() {
     }
   });
 
-  check("inspect is read-only", () => {
+  check("inspect is read-only (no lock/flush/write)", () => {
     const ss = new MockSpreadsheet();
     seedSiteSheet(ss, baseSiteHeaders());
-    const api = createSandbox(ss, { acquire: true });
+    const log = createCallLog();
+    const api = createSandbox(ss, { acquire: true }, log);
     const before = JSON.stringify([...ss.sheets.entries()].map(([k, v]) => [k, v.data]));
     const r = api.inspectV2SheetSchema();
     const after = JSON.stringify([...ss.sheets.entries()].map(([k, v]) => [k, v.data]));
     assert(r.changed === false, "changed false");
     assert(before === after, "no mutations");
+    assert(log.tryLockCount === 0, "no tryLock");
+    assert(log.flushCount === 0, "no flush");
+    assert(log.releaseLockCount === 0, "no releaseLock");
     assert(
       (r.siteManagement as { missingHeaders: string[] }).missingHeaders.length ===
         SITE_V2.length,
       "reports missing"
     );
+  });
+
+  check("17. production source uses getScriptLock (not getDocumentLock)", () => {
+    const src = fs.readFileSync(path.join(APPS, "V2SheetSchemaService.gs"), "utf8");
+    assert(/LockService\.getScriptLock\s*\(/.test(src), "getScriptLock present");
+    assert(!/getDocumentLock/.test(src), "getDocumentLock absent");
+  });
+
+  check("18. successful change calls flush before releaseLock", () => {
+    const ss = new MockSpreadsheet();
+    seedSiteSheet(ss, baseSiteHeaders());
+    const log = createCallLog();
+    const api = createSandbox(ss, { acquire: true }, log);
+    const r = api.ensureV2SheetSchema();
+    assert(r.changed === true, "changed");
+    assert(log.flushCount === 1, "flush once");
+    const fi = log.events.indexOf("flush");
+    const ri = log.events.lastIndexOf("releaseLock");
+    assert(fi >= 0 && ri >= 0 && fi < ri, `order flush@${fi} release@${ri}`);
+  });
+
+  check("19. changed=false skips flush and extra writes", () => {
+    const ss = new MockSpreadsheet();
+    seedSiteSheet(ss, [...baseSiteHeaders(), ...SITE_V2]);
+    seedV2Sheet(ss, "V2_블록관리", BLOCK);
+    seedV2Sheet(ss, "V2_콘텐츠", CONTENT);
+    const log = createCallLog();
+    const api = createSandbox(ss, { acquire: true }, log);
+    const before = JSON.stringify([...ss.sheets.entries()].map(([k, v]) => [k, v.data]));
+    const r = api.ensureV2SheetSchema();
+    const after = JSON.stringify([...ss.sheets.entries()].map(([k, v]) => [k, v.data]));
+    assert(r.changed === false, "unchanged");
+    assert(log.flushCount === 0, "no flush");
+    assert(before === after, "no writes");
+    assert(log.releaseLockCount === 1, "still released");
+  });
+
+  check("20. exception during ensure still releases lock", () => {
+    const ss = new MockSpreadsheet();
+    seedSiteSheet(ss, [...baseSiteHeaders(), ...SITE_V2]);
+    const originalInsert = ss.insertSheet.bind(ss);
+    ss.insertSheet = () => {
+      throw new Error("simulated sheet failure");
+    };
+    const log = createCallLog();
+    const api = createSandbox(ss, { acquire: true }, log);
+    let threw = false;
+    try {
+      api.ensureV2SheetSchema();
+    } catch {
+      threw = true;
+    }
+    assert(threw, "throws");
+    assert(log.releaseLockCount === 1, "releaseLock after throw");
+    assert(log.flushCount === 0, "no flush on failure");
+    ss.insertSheet = originalInsert;
+  });
+
+  check("21. production getSpreadsheet_ opens Master when active is null", () => {
+    const log = createCallLog();
+    const api = loadProductionGetSpreadsheet_(log);
+    const opened = api.getSpreadsheet_() as { id: string };
+    const masterId = "1rRLKLBIyZPjw1e4a14MPzaTNBib0vTKEpHEqfQg3pyA";
+    assert(opened && opened.id === masterId, "returns Master via openById");
+    assert(log.openByIdArgs.length === 1 && log.openByIdArgs[0] === masterId, "openById Master");
+    assert(log.getActiveCount === 1, "checked active once");
+    /** standalone-safe: null active does not block; does not require a bound document */
+    const utilsSrc = fs.readFileSync(path.join(APPS, "SheetUtils.gs"), "utf8");
+    assert(/SpreadsheetApp\.openById\s*\(/.test(utilsSrc), "production openById");
+    assert(/getMasterSpreadsheetId_/.test(utilsSrc), "Master ID helper");
+  });
+
+  check("22. ensure second run changed=false (idempotent + no flush)", () => {
+    const ss = new MockSpreadsheet();
+    seedSiteSheet(ss, baseSiteHeaders());
+    const log1 = createCallLog();
+    const api1 = createSandbox(ss, { acquire: true }, log1);
+    const r1 = api1.ensureV2SheetSchema();
+    assert(r1.changed === true && log1.flushCount === 1, "first flush");
+    const log2 = createCallLog();
+    const api2 = createSandbox(ss, { acquire: true }, log2);
+    const r2 = api2.ensureV2SheetSchema();
+    assert(r2.ok === true && r2.changed === false, "second unchanged");
+    assert(log2.flushCount === 0, "second no flush");
   });
 
   console.log(`\nResult: ${pass} passed, ${fail} failed\n`);

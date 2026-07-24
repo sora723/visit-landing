@@ -139,7 +139,7 @@ function inspectV2SheetSchema_() {
 }
 
 function ensureV2SheetSchema_() {
-  var lock = LockService.getDocumentLock();
+  var lock = LockService.getScriptLock();
   var locked = false;
   try {
     locked = lock.tryLock(10000);
@@ -160,7 +160,11 @@ function ensureV2SheetSchema_() {
   }
 
   try {
-    return ensureV2SheetSchemaUnlocked_();
+    var result = ensureV2SheetSchemaUnlocked_();
+    if (result && result.changed) {
+      SpreadsheetApp.flush();
+    }
+    return result;
   } finally {
     try {
       lock.releaseLock();
