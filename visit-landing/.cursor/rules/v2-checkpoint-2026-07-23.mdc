@@ -9,17 +9,19 @@ alwaysApply: true
 
 ## 이 파일의 역할
 
-의도적으로 추가한 **프로젝트 재개용 규칙** (Cursor 자동 생성물 아님).  
-경로: `visit-landing/.cursor/rules/v2-checkpoint-2026-07-23.mdc`
+의도적 프로젝트 재개 규칙: `.cursor/rules/v2-checkpoint-2026-07-23.mdc`
 
 ## 완료
 
-1. siteCode V1 유지 · rendererVersion 분기 · V2 스키마/경계
-2. 미디어: URL은 `V2_콘텐츠` 컬럼만 · options는 재생 플래그만
-3. V2 noindex: `resolveHomeRobotsMetadata` + page `generateMetadata`
-4. site live config: React `cache` + 60s TTL + in-flight dedupe  
-   → metadata/page 별도 호출해도 동일 요청에서 원격 Apps Script는 사실상 1회
+1. siteCode V1 · rendererVersion · V2 스키마/경계 · media 컬럼 계약
+2. V2 noindex metadata
+3. **읽기 전용** `v2.page.published` Apps Script + Next `fetchV2PublishedPage`  
+   (Sheet 탭 미생성 · clasp push/deploy 안 함 · page.tsx는 여전히 V2Placeholder)
 
-## 미구현 (별도 지시 전 금지)
+## 다음에 하면 안 되는 것
 
-Sheet · Apps Script · V2 API · 렌더러 · Preview · submit
+Sheet 탭 생성 · clasp push · Netlify 배포 · Preview · V2 UI 렌더러 · page.tsx Placeholder 교체 — **별도 지시 전 금지**
+
+## 재개 시
+
+V2 safe page / renderer에 `fetchV2PublishedPage` 연결 — 사용자 지시 대기

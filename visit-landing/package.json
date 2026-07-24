@@ -15,6 +15,7 @@
     "verify:site-code": "node --experimental-strip-types scripts/verify-site-code.ts",
     "verify:renderer-version": "node --experimental-strip-types scripts/verify-renderer-version.ts",
     "verify:v2-schema": "npx --yes tsx scripts/verify-v2-schema.ts",
+    "verify:v2-published-read": "npx --yes tsx scripts/verify-v2-published-read.ts",
     "verify:notification": "node scripts/verify-notification.mjs",
     "verify:tracking": "node scripts/verify-site-tracking.mjs",
     "capture:mobile": "node scripts/capture-mobile-screenshots.mjs",
@@ -26,7 +27,8 @@
     "lucide-react": "^1.18.0",
     "next": "15.5.19",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
