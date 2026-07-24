@@ -8,15 +8,19 @@ export type RoleFieldRequirement =
   | { allOf: readonly string[] }
   | { anyOf: readonly string[] };
 
-/** §10-2 영상 variant 옵션 (문서 명시 키만) */
+/** optionsJson 허용 — 재생 동작만 (§10-2). 미디어 URL은 콘텐츠 컬럼 */
 export const VIDEO_OPTION_KEYS = [
   "muted",
   "autoplay",
   "loop",
   "playsinline",
+] as const;
+
+/** 콘텐츠 컬럼 전용 — optionsJson에 오면 제거 + reserved_media_field_in_options */
+export const RESERVED_MEDIA_OPTION_KEYS = [
+  "videoUrl",
   "poster",
   "mobileFallback",
-  "videoUrl",
 ] as const;
 
 /** 렌더러 우회 가능 — 절대 허용하지 않음 */

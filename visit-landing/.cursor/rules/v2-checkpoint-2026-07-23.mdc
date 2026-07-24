@@ -1,26 +1,25 @@
 ---
-description: V2 freeform landing — 2026-07-23 작업 체크포인트 (내일 재개용)
+description: V2 freeform landing — 작업 체크포인트 (재개용)
 alwaysApply: true
 ---
 
-# V2 작업 체크포인트 (2026-07-24 갱신)
+# V2 작업 체크포인트 (2026-07-24)
 
-브랜치: **`feature/v2-freeform-landing`**  
-최신: **`fix: harden v2 schema validation boundaries`** (본 커밋)  
-이전: **`41df687`** schema · **`3307d7a`** renderer · **`e24eb5c`** siteCode
+브랜치: **`feature/v2-freeform-landing`**
 
-## 완료된 것
+## 이 파일의 역할
 
-1. **siteCode**: V1 라우팅 유지. 수정 금지 파일 동일
-2. **rendererVersion 분기** + V2Placeholder
-3. **V2 스키마 검증** + 경계 보완 (order/video/options allowlist/maxItems/실질 블록)
-4. **V2 noindex**: `page.tsx` `generateMetadata` — `rendererVersion===v2`만 robots noindex (V1 유지)
-5. 문서 §7에 **backgroundColor** 및 배경 규칙 반영
+의도적으로 추가한 **프로젝트 재개용 규칙** (Cursor 자동 생성물 아님).  
+경로: `visit-landing/.cursor/rules/v2-checkpoint-2026-07-23.mdc`
+
+## 완료
+
+1. siteCode V1 유지 · rendererVersion 분기 · V2 스키마/경계
+2. 미디어: URL은 `V2_콘텐츠` 컬럼만 · options는 재생 플래그만
+3. V2 noindex: `resolveHomeRobotsMetadata` + page `generateMetadata`
+4. site live config: React `cache` + 60s TTL + in-flight dedupe  
+   → metadata/page 별도 호출해도 동일 요청에서 원격 Apps Script는 사실상 1회
 
 ## 미구현 (별도 지시 전 금지)
 
-Sheet 탭 · Apps Script · V2 API · 실제 렌더러 · Preview · submit 변경
-
-## 재개 시
-
-읽기 API + pageStatus 게이트 / 렌더러 / Preview — 사용자 지시 대기
+Sheet · Apps Script · V2 API · 렌더러 · Preview · submit

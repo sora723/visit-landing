@@ -1070,8 +1070,6 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
         autoplay: true,
         loop: true,
         playsinline: true,
-        poster: "https://example.com/p.jpg",
-        mobileFallback: "https://example.com/m.jpg",
       }),
     }),
   ];
@@ -1081,6 +1079,9 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
       itemId: "h1",
       role: "root",
       title: "H",
+      videoUrl: "https://example.com/v.mp4",
+      imagePc: "https://example.com/p.jpg",
+      imageMobile: "https://example.com/m.jpg",
     }),
   ];
   const result = validateV2Page({ ...SCOPE, blocks, contents });
@@ -1092,7 +1093,7 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
   );
 }
 
-// 29. excluded item must not satisfy poster
+// 29. excluded item must not satisfy poster fields
 {
   const blocks = [
     block({
@@ -1105,7 +1106,6 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
         autoplay: true,
         loop: true,
         playsinline: true,
-        // poster/mobileFallback omitted — only on disallowed item
       }),
     }),
   ];
@@ -1115,11 +1115,13 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
       itemId: "h1",
       role: "root",
       title: "H",
+      // no videoUrl/imagePc/imageMobile on kept root
     }),
     content({
       contentGroup: "cg-hero",
       itemId: "bad-role",
       role: "notAllowed",
+      videoUrl: "https://example.com/v.mp4",
       imagePc: "https://example.com/poster.jpg",
       imageMobile: "https://example.com/mobile.jpg",
       itemOrder: 2,
@@ -1131,7 +1133,7 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
       result.page.blocks[0].variant === "fullBleed" &&
       result.warnings.some((w) => w.code === "video_variant_incomplete") &&
       result.warnings.some((w) => w.code === "disallowed_role"),
-    "29. excluded item does not satisfy poster/mobileFallback"
+    "29. excluded item does not satisfy media field requirements"
   );
 }
 
@@ -1344,6 +1346,189 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
       result.page.blocks.some((b) => b.componentType === "hero") &&
       result.page.blocks.some((b) => b.componentType === "footerInfo"),
     "36. hero + footerInfo → ok"
+  );
+}
+
+function videoReadyOptions() {
+  return JSON.stringify({
+    muted: true,
+    autoplay: true,
+    loop: true,
+    playsinline: true,
+  });
+}
+
+function videoReadyContent(
+  overrides: Partial<V2ContentRow> = {}
+): V2ContentRow {
+  return content({
+    contentGroup: "cg-hero",
+    itemId: "h1",
+    role: "root",
+    title: "H",
+    videoUrl: "https://example.com/v.mp4",
+    imagePc: "https://example.com/p.jpg",
+    imageMobile: "https://example.com/m.jpg",
+    ...overrides,
+  });
+}
+
+// 37. videoUrl in optionsJson removed
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "fullBleed",
+      optionsJson: JSON.stringify({ videoUrl: "https://evil.example/x.mp4" }),
+    }),
+  ];
+  const contents = [videoReadyContent({ videoUrl: "", imagePc: "", imageMobile: "" })];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      !Object.prototype.hasOwnProperty.call(
+        result.page.blocks[0].options,
+        "videoUrl"
+      ) &&
+      result.warnings.some((w) => w.code === "reserved_media_field_in_options"),
+    "37. options videoUrl removed"
+  );
+}
+
+// 38. poster in optionsJson removed
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      optionsJson: JSON.stringify({ poster: "https://example.com/p.jpg" }),
+    }),
+  ];
+  const contents = [videoReadyContent({ videoUrl: "", imagePc: "", imageMobile: "" })];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      !Object.prototype.hasOwnProperty.call(
+        result.page.blocks[0].options,
+        "poster"
+      ) &&
+      result.warnings.some((w) => w.code === "reserved_media_field_in_options"),
+    "38. options poster removed"
+  );
+}
+
+// 39. mobileFallback in optionsJson removed
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      optionsJson: JSON.stringify({
+        mobileFallback: "https://example.com/m.jpg",
+      }),
+    }),
+  ];
+  const contents = [videoReadyContent({ videoUrl: "", imagePc: "", imageMobile: "" })];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      !Object.prototype.hasOwnProperty.call(
+        result.page.blocks[0].options,
+        "mobileFallback"
+      ) &&
+      result.warnings.some((w) => w.code === "reserved_media_field_in_options"),
+    "39. options mobileFallback removed"
+  );
+}
+
+// 40. missing content videoUrl → video fallback
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "video",
+      optionsJson: videoReadyOptions(),
+    }),
+  ];
+  const contents = [videoReadyContent({ videoUrl: "" })];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].variant === "fullBleed" &&
+      result.warnings.some((w) => w.code === "video_variant_incomplete"),
+    "40. missing content videoUrl → video fallback"
+  );
+}
+
+// 41. missing content imagePc → video fallback
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "video",
+      optionsJson: videoReadyOptions(),
+    }),
+  ];
+  const contents = [videoReadyContent({ imagePc: "" })];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].variant === "fullBleed" &&
+      result.warnings.some((w) => w.code === "video_variant_incomplete"),
+    "41. missing content imagePc → video fallback"
+  );
+}
+
+// 42. missing content imageMobile → video fallback
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "video",
+      optionsJson: videoReadyOptions(),
+    }),
+  ];
+  const contents = [videoReadyContent({ imageMobile: "" })];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].variant === "fullBleed" &&
+      result.warnings.some((w) => w.code === "video_variant_incomplete"),
+    "42. missing content imageMobile → video fallback"
+  );
+}
+
+// 43. all content media + true playback options → video kept
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "video",
+      optionsJson: videoReadyOptions(),
+    }),
+  ];
+  const contents = [videoReadyContent()];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].variant === "video" &&
+      result.page.blocks[0].options.muted === true &&
+      result.page.blocks[0].items[0].videoUrl ===
+        "https://example.com/v.mp4" &&
+      !result.warnings.some((w) => w.code === "video_variant_incomplete"),
+    "43. complete video fields → video variant kept"
   );
 }
 

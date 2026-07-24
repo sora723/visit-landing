@@ -5,6 +5,7 @@
 export {
   COMPONENT_REGISTRY,
   FORBIDDEN_JSON_KEYS,
+  RESERVED_MEDIA_OPTION_KEYS,
   VIDEO_OPTION_KEYS,
   getComponentRegistryEntry,
   isKnownComponentType,

@@ -6,6 +6,7 @@
 import {
   getComponentRegistryEntry,
   isKnownComponentType,
+  RESERVED_MEDIA_OPTION_KEYS,
 } from "./component-registry";
 import { filterAllowedKeys, parseSafeJsonObject } from "./safe-json";
 import type {
@@ -157,14 +158,29 @@ export function normalizeV2Rows(
       };
     }
 
+    const reservedHits = RESERVED_MEDIA_OPTION_KEYS.filter((key) =>
+      Object.prototype.hasOwnProperty.call(rawOptions, key)
+    );
+    if (reservedHits.length > 0) {
+      warnings.push({
+        code: "reserved_media_field_in_options",
+        message: `media fields belong on content columns; removed from options: ${reservedHits.join(", ")}`,
+        sectionId: trimString(row.sectionId) || undefined,
+      });
+    }
+
     const filteredOptions = filterAllowedKeys(
       rawOptions,
       registry.allowedOptionKeys
     );
-    if (filteredOptions.removedKeys.length > 0) {
+    const otherRemoved = filteredOptions.removedKeys.filter(
+      (key) =>
+        !(RESERVED_MEDIA_OPTION_KEYS as readonly string[]).includes(key)
+    );
+    if (otherRemoved.length > 0) {
       warnings.push({
         code: "unknown_option_key",
-        message: `options keys removed: ${filteredOptions.removedKeys.join(", ")}`,
+        message: `options keys removed: ${otherRemoved.join(", ")}`,
         sectionId: trimString(row.sectionId) || undefined,
       });
     }

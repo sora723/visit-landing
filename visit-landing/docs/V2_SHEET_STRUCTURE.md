@@ -438,12 +438,25 @@ V1→현장관리 SEO 통합은 **V2 안정화 이후 별도 단계**.
 | `hero` | **`video`** | 히어로 영상 배경 |
 | `media` | **`background-video`** | 미디어 섹션 영상 배경 |
 
-영상 variant **필수**:
+**미디어 URL·이미지는 `V2_콘텐츠` 컬럼만 사용한다. `optionsJson`에 넣지 않는다.**
 
-- `muted`, `autoplay`, `loop`, `playsinline`
-- **poster** 이미지 (URL)
-- **모바일 fallback** 이미지 (URL)
-- 영상 실패 시 **이미지 fallback**
+| 데이터 | 저장 위치 | 비고 |
+|--------|-----------|------|
+| 영상 URL | **`V2_콘텐츠.videoUrl`** | |
+| PC 포스터 | **`V2_콘텐츠.imagePc`** | |
+| 모바일 fallback 이미지 | **`V2_콘텐츠.imageMobile`** | |
+| 재생 동작 | **`optionsJson`** | `muted` / `autoplay` / `loop` / `playsinline` 만 (`=== true` 필수) |
+
+**금지 (optionsJson):** `videoUrl`, `poster`, `mobileFallback` — 들어오면 제거하고 `reserved_media_field_in_options` 경고.  
+컬럼과 JSON에 **동일 값을 이중 저장하지 않는다.**
+
+영상 variant **필수** (유지된 콘텐츠 아이템 + options 기준):
+
+1. `videoUrl` 존재  
+2. `imagePc` 존재  
+3. `imageMobile` 존재  
+4. `muted` · `autoplay` · `loop` · `playsinline` 모두 `true`  
+5. 미충족 시 해당 타입 **defaultVariant** + warning
 
 ### 10-3. Overlay
 

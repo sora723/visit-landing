@@ -105,8 +105,9 @@ function toValidatedBlock(
 
 /**
  * hero.video / media.background-video 필수.
- * muted·autoplay·loop·playsinline 은 반드시 true.
- * poster·mobileFallback 은 options 또는 유지된 아이템만 기준.
+ * 유지된 아이템: videoUrl + imagePc + imageMobile
+ * options: muted/autoplay/loop/playsinline 모두 === true
+ * (poster·mobileFallback·videoUrl 은 options 금지 — 콘텐츠 컬럼만)
  */
 function videoVariantReady(
   block: NormalizedV2Block,
@@ -123,28 +124,10 @@ function videoVariantReady(
     if (opts[key] !== true) return false;
   }
 
-  const posterFromOpts =
-    typeof opts.poster === "string" && opts.poster.trim()
-      ? opts.poster.trim()
-      : "";
-  const mobileFromOpts =
-    typeof opts.mobileFallback === "string" && opts.mobileFallback.trim()
-      ? opts.mobileFallback.trim()
-      : "";
-
-  const posterFromItems =
-    keptItems.find((i) => i.imagePc)?.imagePc ||
-    keptItems.find((i) => i.role === "root")?.imagePc ||
-    "";
-  const mobileFromItems =
-    keptItems.find((i) => i.imageMobile)?.imageMobile ||
-    keptItems.find((i) => i.role === "root")?.imageMobile ||
-    "";
-
-  return Boolean(
-    (posterFromOpts || posterFromItems) &&
-      (mobileFromOpts || mobileFromItems)
-  );
+  const hasVideoUrl = keptItems.some((i) => Boolean(i.videoUrl));
+  const hasImagePc = keptItems.some((i) => Boolean(i.imagePc));
+  const hasImageMobile = keptItems.some((i) => Boolean(i.imageMobile));
+  return hasVideoUrl && hasImagePc && hasImageMobile;
 }
 
 function validatePopupVariantRoles(
@@ -166,7 +149,7 @@ function mediaHasRequiredContent(
   items: NormalizedV2Content[]
 ): boolean {
   if (block.variant === "video" || block.variant === "background-video") {
-    return items.some((i) => i.videoUrl) || Boolean(block.options.videoUrl);
+    return items.some((i) => Boolean(i.videoUrl));
   }
   return items.some(
     (i) =>

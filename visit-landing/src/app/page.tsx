@@ -5,7 +5,7 @@ import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 import { isMobileUserAgent } from "@/lib/is-mobile-user-agent";
 import { resolveHeroImageSources } from "@/lib/responsive-image";
-import { resolveRendererVersion } from "@/lib/resolve-renderer-version";
+import { resolveHomeRobotsMetadata, resolveRendererVersion } from "@/lib/resolve-renderer-version";
 import { getServerSiteCode } from "@/lib/server-site-code";
 import { ConfigProvider } from "@/components/ConfigProvider";
 import { FormSubmitSecurityProvider } from "@/components/FormSubmitSecurityProvider";
@@ -33,12 +33,8 @@ export async function generateMetadata({
   const config =
     live.source === "sheet" && live.siteConfig ? live.siteConfig : fallback;
 
-  if (resolveRendererVersion(config.rendererVersion) === "v2") {
-    return {
-      robots: { index: false, follow: false },
-    };
-  }
-  return {};
+  const robots = resolveHomeRobotsMetadata(config.rendererVersion);
+  return robots ? { robots } : {};
 }
 
 export default async function Home({ searchParams }: HomeProps) {

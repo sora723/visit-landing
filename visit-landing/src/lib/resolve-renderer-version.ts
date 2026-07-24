@@ -16,3 +16,16 @@ export function resolveRendererVersion(
   if (normalized === "v2") return "v2";
   return "v1";
 }
+
+/**
+ * Home `generateMetadata`용 robots.
+ * v2 placeholder만 noindex/nofollow. V1은 null → metadata 미덮어씀.
+ */
+export function resolveHomeRobotsMetadata(
+  rendererVersion: unknown
+): { index: false; follow: false } | null {
+  if (resolveRendererVersion(rendererVersion) === "v2") {
+    return { index: false, follow: false };
+  }
+  return null;
+}
