@@ -12,7 +12,8 @@ type Props = { block: ValidatedV2Block };
 
 /**
  * 디자인용 footerInfo 블록.
- * 시스템 법적 footer(SiteFooter)를 대체하지 않음 — 별도 TODO.
+ * 시스템 법적 footer(SiteSystemFooter)를 대체·숨기지 않음.
+ * 시스템 footer는 V2PublishedPageShell 하단에 항상 렌더.
  */
 export function V2FooterInfoBlock({ block }: Props) {
   const root = firstByRole(block.items, "root");
@@ -86,7 +87,6 @@ export function V2FooterInfoBlock({ block }: Props) {
           </dl>
         ) : null}
       </div>
-      {/* TODO: append system legal SiteFooter on V2 path — do not invent legal copy here */}
     </V2SectionFrame>
   );
 }

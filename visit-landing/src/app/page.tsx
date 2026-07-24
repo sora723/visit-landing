@@ -15,6 +15,7 @@ import { V2PublishedPageShell } from "@/components/v2/V2PublishedPageShell";
 import { V2SafeStatePage } from "@/components/v2/V2SafeStatePage";
 import { hasRenderableV2Blocks } from "@/v2/renderable-v2-blocks";
 import { loadV2PublishedPage } from "@/v2/server/fetch-v2-published-page";
+import { buildV2RuntimeSiteContext } from "@/v2/v2-runtime-site-context";
 
 export const dynamic = "force-dynamic";
 
@@ -54,10 +55,12 @@ export default async function Home({ searchParams }: HomeProps) {
   if (renderer === "v2") {
     const published = await loadV2PublishedPage(siteCode);
     if (published.ok && hasRenderableV2Blocks(published.page)) {
+      const site = buildV2RuntimeSiteContext(siteCode, config);
       return (
         <V2PublishedPageShell
           page={published.page}
-          siteName={config.siteName}
+          site={site}
+          conversionTracking={live.conversionTracking}
         />
       );
     }

@@ -17,6 +17,7 @@ import {
 import {
   getRenderableV2Blocks,
   hasRenderableV2Blocks,
+  isV2RenderableBlockType,
   isV2StaticBlockType,
   V2_STATIC_BLOCK_TYPES,
 } from "../src/v2/renderable-v2-blocks.ts";
@@ -25,7 +26,11 @@ import {
   parseSafeHexColor,
 } from "../src/v2/section-presets.ts";
 import { stripV2RichTextForTest } from "../src/v2/safe-rich-text.tsx";
-import { V2_BLOCK_RENDERERS, V2BlockRenderer } from "../src/components/v2/V2BlockRenderer.tsx";
+import {
+  V2_BLOCK_RENDERERS,
+  V2_STATIC_BLOCK_RENDERERS,
+  V2BlockRenderer,
+} from "../src/components/v2/V2BlockRenderer.tsx";
 import { V2SectionFrame } from "../src/components/v2/V2SectionFrame.tsx";
 import { V2PublishedPageShell } from "../src/components/v2/V2PublishedPageShell.tsx";
 import { V2SafeStatePage } from "../src/components/v2/V2SafeStatePage.tsx";
@@ -33,12 +38,27 @@ import { V2HeroBlock } from "../src/components/v2/blocks/V2HeroBlock.tsx";
 import { V2FeatureCardsBlock } from "../src/components/v2/blocks/V2FeatureCardsBlock.tsx";
 import { V2RichTextBlock } from "../src/components/v2/blocks/V2RichTextBlock.tsx";
 import { V2MediaBlock } from "../src/components/v2/blocks/V2MediaBlock.tsx";
+import { V2FormBlock } from "../src/components/v2/blocks/V2FormBlock.tsx";
 import type {
   ValidatedV2Block,
   ValidatedV2Page,
 } from "../src/v2/types.ts";
+import type { V2RuntimeSiteContext } from "../src/v2/v2-runtime-site-context.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+const testSite: V2RuntimeSiteContext = {
+  siteCode: "L001",
+  siteName: "검수현장",
+  phone: "",
+  privacyText: "동의",
+  formButtonText: "신청",
+  unitTypeEnabled: false,
+  unitTypeOptions: [],
+  visitDateEnabled: false,
+  visitDateOptions: [],
+  footer: { items: [{ title: "운영", content: "주체" }] },
+};
 
 let passed = 0;
 let failed = 0;
@@ -97,7 +117,8 @@ console.log("\n[verify:v2-block-renderer] static block renderer\n");
 
 assert(
   V2_BLOCK_RENDERERS.hero === V2HeroBlock &&
-    V2_STATIC_BLOCK_TYPES.every((t) => V2_BLOCK_RENDERERS[t]),
+    V2_BLOCK_RENDERERS.form === V2FormBlock &&
+    V2_STATIC_BLOCK_TYPES.every((t) => V2_STATIC_BLOCK_RENDERERS[t]),
   "1. supported componentTypes map to renderers"
 );
 
@@ -112,6 +133,8 @@ assert(!isV2StaticBlockType("unknownWidget"), "2. unknown componentType not stat
           items: [{ itemId: "i", order: 1, role: "root", title: "X", extra: {} }],
         }),
       ],
+      site: testSite,
+      conversionTracking: {},
     })
   );
   assert(!html.includes("X"), "2b. unknown componentType skipped in render");
@@ -403,28 +426,32 @@ assert(parseSafeSectionTarget("bad id!") === null, "13b. bad scroll rejected");
           ],
         }),
       ]),
+      site: testSite,
+      conversionTracking: {},
     })
   );
   assert(shell.includes("현장명"), "20. footerInfo renders");
   assert(
-    shell.includes("TODO: system legal") ||
-      shell.includes("SiteFooter") === false,
-    "20b. system footer not removed (TODO retained, no fake legal)"
+    shell.includes("© 2026 DAVID") && shell.includes("검수현장"),
+    "20b. system legal footer always present"
   );
   const src = readFileSync(
     join(root, "src/components/v2/blocks/V2FooterInfoBlock.tsx"),
     "utf8"
   );
   assert(
-    src.includes("TODO") && src.includes("SiteFooter"),
-    "20c. footerInfo notes system footer TODO"
+    src.includes("SiteSystemFooter") &&
+      src.includes("대체") &&
+      !src.includes("TODO"),
+    "20c. footerInfo notes system footer is separate"
   );
 }
 
-assert(!isV2StaticBlockType("form"), "21. form excluded");
-assert(!isV2StaticBlockType("liveFeed"), "21b. liveFeed excluded");
-assert(!isV2StaticBlockType("stickyPromo"), "21c. stickyPromo excluded");
-assert(!isV2StaticBlockType("popup"), "21d. popup excluded");
+assert(isV2RenderableBlockType("form"), "21. form renderable");
+assert(!isV2StaticBlockType("form"), "21a. form not in static-only list");
+assert(!isV2RenderableBlockType("liveFeed"), "21b. liveFeed excluded");
+assert(!isV2RenderableBlockType("stickyPromo"), "21c. stickyPromo excluded");
+assert(!isV2RenderableBlockType("popup"), "21d. popup excluded");
 
 {
   const onlyForm = pageWith([
@@ -443,8 +470,8 @@ assert(!isV2StaticBlockType("popup"), "21d. popup excluded");
       ],
     }),
   ]);
-  assert(!hasRenderableV2Blocks(onlyForm), "22. zero renderable → flag");
-  assert(getRenderableV2Blocks(onlyForm).length === 0, "22b. empty list");
+  assert(hasRenderableV2Blocks(onlyForm), "22. form-only is renderable");
+  assert(getRenderableV2Blocks(onlyForm).length === 1, "22b. form list length");
 }
 
 {
@@ -486,6 +513,8 @@ assert(!isV2StaticBlockType("popup"), "21d. popup excluded");
           ],
         }),
       ]),
+      site: testSite,
+      conversionTracking: {},
     })
   );
   assert(
@@ -494,6 +523,7 @@ assert(!isV2StaticBlockType("popup"), "21d. popup excluded");
       !html.includes("revisionId"),
     "24. revisionId/options raw not in HTML"
   );
+  assert(html.includes("© 2026 DAVID"), "24b. system footer on hero-only page");
 }
 
 {
@@ -502,8 +532,13 @@ assert(!isV2StaticBlockType("popup"), "21d. popup excluded");
   function walk(dir: string) {
     for (const name of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, name.name);
-      if (name.isDirectory()) walk(p);
-      else if (name.name.endsWith(".tsx")) files.push(p);
+      if (name.isDirectory()) {
+        // form client island 허용
+        if (name.name === "forms") continue;
+        walk(p);
+        continue;
+      }
+      if (name.name.endsWith(".tsx")) files.push(p);
     }
   }
   walk(v2Dir);
@@ -514,14 +549,13 @@ assert(!isV2StaticBlockType("popup"), "21d. popup excluded");
       src.includes('"use client"') ||
       src.includes("'use client'")
     ) {
-      // Placeholder may remain unused
       if (!f.endsWith("V2Placeholder.tsx")) {
         bad = true;
         fail("25. unexpected use client", f);
       }
     }
   }
-  if (!bad) ok("25. no unnecessary use client in v2 components");
+  if (!bad) ok("25. no unnecessary use client outside v2/forms");
 }
 
 {

@@ -352,8 +352,8 @@ assert(
     "utf8"
   );
   assert(
-    !rendererSrc.includes("form:") && !rendererSrc.includes("V2Form"),
-    "29. V2 FormBlock not registered"
+    rendererSrc.includes("form:") && rendererSrc.includes("V2FormBlock"),
+    "29. V2 FormBlock registered"
   );
 }
 
@@ -393,9 +393,9 @@ assert(
     "utf8"
   );
   assert(
-    shell.includes("TODO: system legal SiteFooter") &&
-      !shell.includes("© 2026 DAVID"),
-    "system legal footer still TODO on V2 shell (no invented copy)"
+    shell.includes("SiteSystemFooter") &&
+      !shell.includes("TODO: system legal"),
+    "system legal footer wired on V2 shell"
   );
 }
 

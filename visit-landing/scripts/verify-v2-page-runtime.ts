@@ -201,11 +201,24 @@ assert(resolveV2HomeBranch("V2") === "v2", "V2 case → V2 branch");
   const html = renderToStaticMarkup(
     createElement(V2PublishedPageShell, {
       page: samplePage,
-      siteName: "성공현장",
+      site: {
+        siteCode: "L001",
+        siteName: "성공현장",
+        phone: "",
+        privacyText: "동의",
+        formButtonText: "신청",
+        unitTypeEnabled: false,
+        unitTypeOptions: [],
+        visitDateEnabled: false,
+        visitDateOptions: [],
+        footer: { items: [] },
+      },
+      conversionTracking: {},
     })
   );
   assert(html.includes("런타임히어로"), "shell: renders hero title");
-  assert(!html.includes("성공현장"), "shell: siteName not required in body");
+  assert(html.includes("성공현장"), "shell: system footer shows siteName");
+  assert(html.includes("© 2026 DAVID"), "shell: system legal footer");
   assert(!html.includes("pub-L001-secret-rev"), "shell: revisionId not in HTML");
   assert(!html.includes("revisionId"), "shell: no revisionId label");
   assert(!html.includes('"blocks"'), "shell: no page JSON dump");
