@@ -11,6 +11,7 @@ type Props = {
   block: ValidatedV2Block;
   site: V2RuntimeSiteContext;
   conversionTracking: ConversionTrackingConfig;
+  isPreview?: boolean;
 };
 
 /** registry form variant allowlist → 카드 스타일만 */
@@ -21,7 +22,12 @@ function formVariantClass(variant: string): string {
   return "rounded-xl border border-black/10 bg-white p-5 shadow-sm sm:p-6";
 }
 
-export function V2FormBlock({ block, site, conversionTracking }: Props) {
+export function V2FormBlock({
+  block,
+  site,
+  conversionTracking,
+  isPreview = false,
+}: Props) {
   const root = firstByRole(block.items, "root");
   const formRole = firstByRole(block.items, "form");
   // registry: form role 필수
@@ -61,14 +67,24 @@ export function V2FormBlock({ block, site, conversionTracking }: Props) {
         ) : null}
 
         <div className="mt-6">
-          <FormSubmitSecurityProvider siteCode={site.siteCode}>
+          {isPreview ? (
             <V2ReservationFormAdapter
               sectionId={block.sectionId}
               site={site}
               conversionTracking={conversionTracking}
               buttonText={buttonText}
+              isPreview
             />
-          </FormSubmitSecurityProvider>
+          ) : (
+            <FormSubmitSecurityProvider siteCode={site.siteCode}>
+              <V2ReservationFormAdapter
+                sectionId={block.sectionId}
+                site={site}
+                conversionTracking={conversionTracking}
+                buttonText={buttonText}
+              />
+            </FormSubmitSecurityProvider>
+          )}
         </div>
       </div>
     </V2SectionFrame>

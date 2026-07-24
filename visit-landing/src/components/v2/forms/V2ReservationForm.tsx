@@ -30,6 +30,9 @@ type Props = {
   error: string;
   onSubmit: (values: V2ReservationFormValues) => void | Promise<void>;
   formRootRef?: (el: HTMLElement | null) => void;
+  /** Preview — 제출 불가 */
+  submitLocked?: boolean;
+  lockMessage?: string;
 };
 
 const inputClass =
@@ -44,6 +47,8 @@ export function V2ReservationForm({
   error,
   onSubmit,
   formRootRef,
+  submitLocked = false,
+  lockMessage,
 }: Props) {
   const uid = useId();
   const id = (name: string) =>
@@ -58,9 +63,11 @@ export function V2ReservationForm({
 
   const showUnit = site.unitTypeEnabled && site.unitTypeOptions.length > 0;
   const showVisit = site.visitDateEnabled && site.visitDateOptions.length > 0;
+  const blocked = submitLocked || submitting;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitLocked) return;
     await onSubmit({
       name,
       phone,
@@ -195,6 +202,12 @@ export function V2ReservationForm({
         </Link>
       </div>
 
+      {lockMessage ? (
+        <p className="text-center text-sm text-[#7a7060]" role="status">
+          {lockMessage}
+        </p>
+      ) : null}
+
       {error ? (
         <p
           className="text-center text-sm text-red-500"
@@ -207,8 +220,8 @@ export function V2ReservationForm({
 
       <button
         type="submit"
-        disabled={submitting}
-        aria-disabled={submitting}
+        disabled={blocked}
+        aria-disabled={blocked}
         className="min-h-14 w-full touch-manipulation rounded-lg bg-[#0f1a2e] py-4 text-base font-medium text-white disabled:opacity-60"
       >
         {submitting ? "처리 중..." : buttonText}

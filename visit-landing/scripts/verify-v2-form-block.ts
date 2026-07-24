@@ -245,7 +245,8 @@ assert(guardV2PrivacyConsent({ agreed: true }) === null, "20. consent allows");
     "20b. consent then shared submit"
   );
   assert(
-    formUi.includes("disabled={submitting}") &&
+    (formUi.includes("disabled={submitting}") ||
+      formUi.includes("disabled={blocked}")) &&
       formUi.includes("aria-disabled") &&
       formUi.includes("처리 중"),
     "21/22. duplicate click + loading UI"

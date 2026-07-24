@@ -43,12 +43,14 @@ type Props = {
   blocks: readonly ValidatedV2Block[];
   site: V2RuntimeSiteContext;
   conversionTracking: ConversionTrackingConfig;
+  isPreview?: boolean;
 };
 
 export function V2BlockRenderer({
   blocks,
   site,
   conversionTracking,
+  isPreview = false,
 }: Props) {
   return (
     <>
@@ -62,6 +64,7 @@ export function V2BlockRenderer({
               block={block}
               site={site}
               conversionTracking={conversionTracking}
+              isPreview={isPreview}
             />
           );
         }
