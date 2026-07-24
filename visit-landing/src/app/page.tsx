@@ -11,7 +11,9 @@ import { ConfigProvider } from "@/components/ConfigProvider";
 import { FormSubmitSecurityProvider } from "@/components/FormSubmitSecurityProvider";
 import { LandingPage } from "@/components/LandingPage";
 import { PromoStickyBar } from "@/components/PromoStickyBar";
-import { V2Placeholder } from "@/components/v2/V2Placeholder";
+import { V2PublishedPageShell } from "@/components/v2/V2PublishedPageShell";
+import { V2SafeStatePage } from "@/components/v2/V2SafeStatePage";
+import { loadV2PublishedPage } from "@/v2/server/fetch-v2-published-page";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ type HomeProps = {
 };
 
 /**
- * V2 placeholder만 noindex.
+ * V2 경로만 noindex.
  * V1(LandingPage)에는 robots를 넣지 않아 layout SEO가 유지된다.
  */
 export async function generateMetadata({
@@ -47,9 +49,20 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const renderer = resolveRendererVersion(config.rendererVersion);
 
-  /** V2 자유형 렌더러 자리 — Sheet/레지스트리 미연결. 폼·전환 미실행. */
+  /** 정확히 v2만 Published loader — 실패 시 V1 fallback 금지 */
   if (renderer === "v2") {
-    return <V2Placeholder siteCode={siteCode} renderer={renderer} />;
+    const published = await loadV2PublishedPage(siteCode);
+    if (published.ok) {
+      return (
+        <V2PublishedPageShell
+          page={published.page}
+          siteName={config.siteName}
+        />
+      );
+    }
+    return (
+      <V2SafeStatePage siteName={config.siteName} phone={config.phone} />
+    );
   }
 
   const hdrs = await headers();

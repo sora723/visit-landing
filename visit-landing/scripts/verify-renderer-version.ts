@@ -39,10 +39,10 @@ function assertEqual(actual: unknown, expected: unknown, label: string) {
     );
 }
 
-/** page.tsx와 동일한 선택: v2만 placeholder, 나머지 LandingPage */
-function chooseSurface(rendererVersion: unknown): "landing" | "v2-placeholder" {
+/** page.tsx와 동일한 선택: v2만 Published runtime, 나머지 LandingPage */
+function chooseSurface(rendererVersion: unknown): "landing" | "v2-runtime" {
   return resolveRendererVersion(rendererVersion) === "v2"
-    ? "v2-placeholder"
+    ? "v2-runtime"
     : "landing";
 }
 
@@ -58,13 +58,13 @@ assertEqual(resolveRendererVersion("v1"), "v1", "v1 → v1");
 assertEqual(chooseSurface("v1"), "landing", "v1 → LandingPage");
 
 assertEqual(resolveRendererVersion("v2"), "v2", "v2 → v2");
-assertEqual(chooseSurface("v2"), "v2-placeholder", "v2 → V2 placeholder");
+assertEqual(chooseSurface("v2"), "v2-runtime", "v2 → V2 published runtime");
 
 assertEqual(resolveRendererVersion("V2"), "v2", "V2 (case) → v2");
-assertEqual(chooseSurface("V2"), "v2-placeholder", "V2 → placeholder");
+assertEqual(chooseSurface("V2"), "v2-runtime", "V2 → V2 runtime");
 
 assertEqual(resolveRendererVersion("  v2  "), "v2", "trimmed v2 → v2");
-assertEqual(chooseSurface("  v2  "), "v2-placeholder", "spaced v2 → placeholder");
+assertEqual(chooseSurface("  v2  "), "v2-runtime", "spaced v2 → V2 runtime");
 
 assertEqual(resolveRendererVersion("v3"), "v1", "unknown v3 → v1 (safe)");
 assertEqual(chooseSurface("v3"), "landing", "v3 → LandingPage");
@@ -97,9 +97,9 @@ assertEqual(
 
   const v2 = resolveHomeRobotsMetadata("v2");
   if (v2 && v2.index === false && v2.follow === false) {
-    ok("v2 placeholder metadata → noindex,nofollow");
+    ok("v2 path metadata → noindex,nofollow");
   } else {
-    fail("v2 placeholder metadata → noindex,nofollow");
+    fail("v2 path metadata → noindex,nofollow");
   }
 }
 

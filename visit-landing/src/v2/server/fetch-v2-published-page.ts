@@ -1,6 +1,6 @@
 /**
  * 공개 Published V2 페이지 서버 로더 (React cache + 60s dedupe).
- * page.tsx에는 아직 연결하지 않음 — V2Placeholder 유지.
+ * page.tsx: rendererVersion === v2 일 때 loadV2PublishedPage(siteCode) 연결.
  */
 
 import "server-only";
@@ -65,6 +65,9 @@ export const fetchV2PublishedPage = cache(
   (siteCode: string): Promise<FetchV2PublishedPageResult> =>
     fetchV2PublishedPageImpl(siteCode)
 );
+
+/** page.tsx Published V2 진입점 (fetchV2PublishedPage와 동일) */
+export const loadV2PublishedPage = fetchV2PublishedPage;
 
 /** 테스트용 — React cache 우회, fetcher 주입 */
 export function fetchV2PublishedPageForTest(
