@@ -37,11 +37,6 @@ export function isPubRevisionIdForSite(
   return rev.startsWith(`pub-${code}-`);
 }
 
-/** @deprecated use isPubRevisionIdForSite — 단순 pub- 접두는 불충분 */
-export function isPubRevisionId(revisionId: string): boolean {
-  return revisionId.startsWith("pub-");
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

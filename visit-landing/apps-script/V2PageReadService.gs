@@ -22,50 +22,7 @@ var V2_PUBLIC_MESSAGES = {
   V2_READ_FAILED: 'Published V2 page is not available.'
 };
 
-var V2_BLOCK_PUBLIC_COLUMNS = [
-  'siteCode',
-  'revisionId',
-  'sectionId',
-  'sectionOrder',
-  'componentType',
-  'variant',
-  'contentGroup',
-  'enabled',
-  'desktopVisible',
-  'mobileVisible',
-  'backgroundType',
-  'backgroundColor',
-  'backgroundPc',
-  'backgroundMobile',
-  'themeVariant',
-  'paddingPreset',
-  'animationPreset',
-  'optionsJson'
-];
-
-var V2_CONTENT_PUBLIC_COLUMNS = [
-  'siteCode',
-  'revisionId',
-  'contentGroup',
-  'itemId',
-  'itemOrder',
-  'role',
-  'eyebrow',
-  'title',
-  'subtitle',
-  'description',
-  'value',
-  'badge',
-  'icon',
-  'imagePc',
-  'imageMobile',
-  'videoUrl',
-  'actionType',
-  'actionLabel',
-  'actionValue',
-  'extraJson',
-  'enabled'
-];
+/** V2_BLOCK_PUBLIC_COLUMNS / V2_CONTENT_PUBLIC_COLUMNS — V2SheetSchemaService.gs 단일 정의 */
 
 /**
  * 공개 응답 엔벨로프 (Main에서 success 래퍼 없이 그대로 반환).
