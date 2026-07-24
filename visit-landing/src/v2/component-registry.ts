@@ -8,6 +8,27 @@ export type RoleFieldRequirement =
   | { allOf: readonly string[] }
   | { anyOf: readonly string[] };
 
+/** §10-2 영상 variant 옵션 (문서 명시 키만) */
+export const VIDEO_OPTION_KEYS = [
+  "muted",
+  "autoplay",
+  "loop",
+  "playsinline",
+  "poster",
+  "mobileFallback",
+  "videoUrl",
+] as const;
+
+/** 렌더러 우회 가능 — 절대 허용하지 않음 */
+export const FORBIDDEN_JSON_KEYS = [
+  "script",
+  "iframe",
+  "html",
+  "style",
+  "className",
+  "dangerouslySetInnerHTML",
+] as const;
+
 export type ComponentRegistryEntry = {
   componentType: string;
   variants: readonly string[];
@@ -26,19 +47,42 @@ export type ComponentRegistryEntry = {
   isOverlay: boolean;
   maxPerPage: number;
   allowsVideo: boolean;
+  /**
+   * 실질 콘텐츠 블록 여부.
+   * footerInfo·liveFeed·overlay는 false — 이들만으로는 페이지 유효하지 않음.
+   */
+  contributesToPageValidity: boolean;
+  /** optionsJson 허용 키 (문서 정의분만). 미정의면 빈 배열 */
+  allowedOptionKeys: readonly string[];
+  /** role별 extraJson 허용 키. 미정의 role은 빈 목록 */
+  allowedExtraKeysByRole: Readonly<Record<string, readonly string[]>>;
   defaultOptions: Readonly<Record<string, unknown>>;
 };
 
 function entry(
-  partial: Omit<ComponentRegistryEntry, "requiredRootFields" | "requiredItemFields"> & {
+  partial: Omit<
+    ComponentRegistryEntry,
+    | "requiredRootFields"
+    | "requiredItemFields"
+    | "allowedOptionKeys"
+    | "allowedExtraKeysByRole"
+    | "contributesToPageValidity"
+  > & {
     requiredRootFields?: readonly string[];
     requiredItemFields?: readonly string[];
+    allowedOptionKeys?: readonly string[];
+    allowedExtraKeysByRole?: Readonly<Record<string, readonly string[]>>;
+    contributesToPageValidity?: boolean;
   }
 ): ComponentRegistryEntry {
   return {
+    ...partial,
     requiredRootFields: partial.requiredRootFields ?? [],
     requiredItemFields: partial.requiredItemFields ?? [],
-    ...partial,
+    allowedOptionKeys: partial.allowedOptionKeys ?? [],
+    allowedExtraKeysByRole: partial.allowedExtraKeysByRole ?? {},
+    contributesToPageValidity:
+      partial.contributesToPageValidity ?? !partial.isOverlay,
   };
 }
 
@@ -68,6 +112,8 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: true,
+    contributesToPageValidity: true,
+    allowedOptionKeys: [...VIDEO_OPTION_KEYS],
     defaultOptions: {},
   }),
   notice: entry({
@@ -86,6 +132,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   liveFeed: entry({
@@ -102,6 +149,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: false,
     defaultOptions: {},
   }),
   richText: entry({
@@ -120,6 +168,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   featureCards: entry({
@@ -138,6 +187,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   media: entry({
@@ -157,6 +207,8 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: true,
+    contributesToPageValidity: true,
+    allowedOptionKeys: [...VIDEO_OPTION_KEYS],
     defaultOptions: {},
   }),
   location: entry({
@@ -177,6 +229,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   form: entry({
@@ -195,6 +248,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   ctaBand: entry({
@@ -217,6 +271,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   footerInfo: entry({
@@ -235,6 +290,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
+    contributesToPageValidity: false,
     defaultOptions: {},
   }),
   stickyPromo: entry({
@@ -254,6 +310,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: true,
     maxPerPage: 1,
     allowsVideo: false,
+    contributesToPageValidity: false,
     defaultOptions: {},
   }),
   popup: entry({
@@ -274,6 +331,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: true,
     maxPerPage: 1,
     allowsVideo: false,
+    contributesToPageValidity: false,
     defaultOptions: {},
   }),
 };

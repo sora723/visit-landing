@@ -7,7 +7,7 @@ import {
   getComponentRegistryEntry,
   isKnownComponentType,
 } from "./component-registry";
-import { parseSafeJsonObject } from "./safe-json";
+import { filterAllowedKeys, parseSafeJsonObject } from "./safe-json";
 import type {
   NormalizedV2Block,
   NormalizedV2Content,
@@ -35,9 +35,19 @@ export function normalizeSheetBool(
   return defaultValue;
 }
 
+/**
+ * Sheet 순서 셀 정규화.
+ * 빈 셀·공백·NaN·±Infinity → fallback (sourceIndex).
+ * "0" / 0 은 유효한 0으로 유지.
+ */
 export function normalizeOrder(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  const n = Number(String(value ?? "").trim());
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : fallback;
+  }
+  if (value === undefined || value === null) return fallback;
+  const s = String(value).trim();
+  if (s === "") return fallback;
+  const n = Number(s);
   return Number.isFinite(n) ? n : fallback;
 }
 
@@ -50,6 +60,35 @@ export function normalizeBackgroundType(value: unknown): V2BackgroundType {
 function optionalTrimmed(value: unknown): string | undefined {
   const s = trimString(value);
   return s ? s : undefined;
+}
+
+/** backgroundType에 따라 사용할 배경 필드만 남김 */
+export function pickBackgroundFields(
+  backgroundType: V2BackgroundType,
+  fields: {
+    backgroundColor?: string;
+    backgroundPc?: string;
+    backgroundMobile?: string;
+  }
+): {
+  backgroundColor?: string;
+  backgroundPc?: string;
+  backgroundMobile?: string;
+} {
+  if (backgroundType === "color") {
+    return fields.backgroundColor
+      ? { backgroundColor: fields.backgroundColor }
+      : {};
+  }
+  if (backgroundType === "image") {
+    return {
+      ...(fields.backgroundPc ? { backgroundPc: fields.backgroundPc } : {}),
+      ...(fields.backgroundMobile
+        ? { backgroundMobile: fields.backgroundMobile }
+        : {}),
+    };
+  }
+  return {};
 }
 
 export type NormalizeV2RowsResult = {
@@ -103,19 +142,31 @@ export function normalizeV2Rows(
     }
 
     const optionsParsed = parseSafeJsonObject(row.optionsJson);
-    let options: Record<string, unknown>;
+    let rawOptions: Record<string, unknown>;
     if (!optionsParsed.ok) {
       warnings.push({
         code: "options_json_error",
         message: `optionsJson parse failed (${optionsParsed.reason}); using defaults`,
         sectionId: trimString(row.sectionId) || undefined,
       });
-      options = { ...registry.defaultOptions };
+      rawOptions = { ...registry.defaultOptions };
     } else {
-      options = {
+      rawOptions = {
         ...registry.defaultOptions,
         ...optionsParsed.value,
       };
+    }
+
+    const filteredOptions = filterAllowedKeys(
+      rawOptions,
+      registry.allowedOptionKeys
+    );
+    if (filteredOptions.removedKeys.length > 0) {
+      warnings.push({
+        code: "unknown_option_key",
+        message: `options keys removed: ${filteredOptions.removedKeys.join(", ")}`,
+        sectionId: trimString(row.sectionId) || undefined,
+      });
     }
 
     const rawBackgroundType = trimString(row.backgroundType);
@@ -131,6 +182,12 @@ export function normalizeV2Rows(
       });
     }
 
+    const bg = pickBackgroundFields(backgroundType, {
+      backgroundColor: optionalTrimmed(row.backgroundColor),
+      backgroundPc: optionalTrimmed(row.backgroundPc),
+      backgroundMobile: optionalTrimmed(row.backgroundMobile),
+    });
+
     blocks.push({
       siteCode: trimString(row.siteCode),
       revisionId: trimString(row.revisionId),
@@ -143,13 +200,11 @@ export function normalizeV2Rows(
       desktopVisible: normalizeSheetBool(row.desktopVisible, true),
       mobileVisible: normalizeSheetBool(row.mobileVisible, true),
       backgroundType,
-      backgroundColor: optionalTrimmed(row.backgroundColor),
-      backgroundPc: optionalTrimmed(row.backgroundPc),
-      backgroundMobile: optionalTrimmed(row.backgroundMobile),
+      ...bg,
       themeVariant: optionalTrimmed(row.themeVariant),
       paddingPreset: optionalTrimmed(row.paddingPreset),
       animationPreset: optionalTrimmed(row.animationPreset),
-      options,
+      options: filteredOptions.value,
       sourceIndex,
     });
   });
@@ -177,6 +232,7 @@ export function normalizeV2Rows(
       });
       extra = {};
     } else {
+      // role별 허용 키 필터는 validate에서 componentType 확정 후 적용
       extra = extraParsed.value;
     }
 

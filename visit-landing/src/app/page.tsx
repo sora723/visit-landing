@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { preload } from "react-dom";
 import { headers } from "next/headers";
 import { getSiteConfigFromFile } from "@/lib/config-source";
@@ -17,6 +18,28 @@ export const dynamic = "force-dynamic";
 type HomeProps = {
   searchParams: Promise<{ siteCode?: string }>;
 };
+
+/**
+ * V2 placeholder만 noindex.
+ * V1(LandingPage)에는 robots를 넣지 않아 layout SEO가 유지된다.
+ */
+export async function generateMetadata({
+  searchParams,
+}: HomeProps): Promise<Metadata> {
+  const params = await searchParams;
+  const siteCode = await getServerSiteCode(params.siteCode);
+  const fallback = getSiteConfigFromFile();
+  const live = await fetchSiteLiveConfigFromSheet(siteCode);
+  const config =
+    live.source === "sheet" && live.siteConfig ? live.siteConfig : fallback;
+
+  if (resolveRendererVersion(config.rendererVersion) === "v2") {
+    return {
+      robots: { index: false, follow: false },
+    };
+  }
+  return {};
+}
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;

@@ -4,6 +4,8 @@
 
 export {
   COMPONENT_REGISTRY,
+  FORBIDDEN_JSON_KEYS,
+  VIDEO_OPTION_KEYS,
   getComponentRegistryEntry,
   isKnownComponentType,
   type ComponentRegistryEntry,
@@ -15,11 +17,16 @@ export {
   normalizeOrder,
   normalizeSheetBool,
   normalizeV2Rows,
+  pickBackgroundFields,
   trimString,
   type NormalizeV2RowsResult,
 } from "./normalize-v2-data";
 
-export { parseSafeJsonObject, sanitizePlainObject } from "./safe-json";
+export {
+  filterAllowedKeys,
+  parseSafeJsonObject,
+  sanitizePlainObject,
+} from "./safe-json";
 
 export { validateV2Page } from "./validate-v2-page";
 

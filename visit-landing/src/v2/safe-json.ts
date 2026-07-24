@@ -2,7 +2,10 @@
  * 안전한 JSON 파싱 — prototype pollution 키 제거, plain object만 허용.
  */
 
-const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+import { FORBIDDEN_JSON_KEYS } from "./component-registry";
+
+const POLLUTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+const RENDER_BYPASS_KEYS = new Set<string>(FORBIDDEN_JSON_KEYS);
 
 export type SafeJsonParseResult =
   | { ok: true; value: Record<string, unknown> }
@@ -25,7 +28,7 @@ export function sanitizePlainObject(
   const out: Record<string, unknown> = Object.create(null);
   for (const key of Reflect.ownKeys(input)) {
     if (typeof key !== "string") continue;
-    if (FORBIDDEN_KEYS.has(key)) continue;
+    if (POLLUTION_KEYS.has(key) || RENDER_BYPASS_KEYS.has(key)) continue;
     const raw = (input as Record<string, unknown>)[key];
     if (isPlainObject(raw)) {
       const nested = sanitizePlainObject(raw, depth + 1);
@@ -91,4 +94,29 @@ export function parseSafeJsonObject(
   } catch {
     return { ok: false, reason: "json_parse_error" };
   }
+}
+
+export type FilterAllowedKeysResult = {
+  value: Record<string, unknown>;
+  removedKeys: string[];
+};
+
+/**
+ * 레지스트리 허용 키만 유지. 금지·미허용 키는 제거하고 목록 반환.
+ */
+export function filterAllowedKeys(
+  input: Record<string, unknown>,
+  allowedKeys: readonly string[]
+): FilterAllowedKeysResult {
+  const allowed = new Set(allowedKeys);
+  const value: Record<string, unknown> = {};
+  const removedKeys: string[] = [];
+  for (const [key, raw] of Object.entries(input)) {
+    if (POLLUTION_KEYS.has(key) || RENDER_BYPASS_KEYS.has(key) || !allowed.has(key)) {
+      removedKeys.push(key);
+      continue;
+    }
+    value[key] = raw;
+  }
+  return { value, removedKeys };
 }

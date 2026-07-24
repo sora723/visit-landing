@@ -9,6 +9,7 @@ import {
   type RoleFieldRequirement,
 } from "./component-registry";
 import { normalizeV2Rows } from "./normalize-v2-data";
+import { filterAllowedKeys } from "./safe-json";
 import type {
   NormalizedV2Block,
   NormalizedV2Content,
@@ -33,10 +34,7 @@ function isSupportedSchemaVersion(version: string): boolean {
   return (SUPPORTED as readonly string[]).includes(version);
 }
 
-function fieldPresent(
-  item: NormalizedV2Content,
-  field: string
-): boolean {
+function fieldPresent(item: NormalizedV2Content, field: string): boolean {
   const v = (item as Record<string, unknown>)[field];
   return typeof v === "string" ? v.length > 0 : v != null && v !== "";
 }
@@ -105,9 +103,14 @@ function toValidatedBlock(
   };
 }
 
+/**
+ * hero.video / media.background-video 필수.
+ * muted·autoplay·loop·playsinline 은 반드시 true.
+ * poster·mobileFallback 은 options 또는 유지된 아이템만 기준.
+ */
 function videoVariantReady(
   block: NormalizedV2Block,
-  items: NormalizedV2Content[],
+  keptItems: readonly NormalizedV2Content[],
   registry: ComponentRegistryEntry
 ): boolean {
   if (!registry.allowsVideo) return true;
@@ -117,20 +120,31 @@ function videoVariantReady(
   const opts = block.options;
   const flags = ["muted", "autoplay", "loop", "playsinline"] as const;
   for (const key of flags) {
-    if (opts[key] !== true && opts[key] !== false) {
-      // 명시 없으면 실패로 보고 defaultVariant로 되돌림
-      return false;
-    }
+    if (opts[key] !== true) return false;
   }
-  const poster =
-    (typeof opts.poster === "string" && opts.poster.trim()) ||
-    items.find((i) => i.imagePc)?.imagePc ||
-    items.find((i) => i.role === "root")?.imagePc;
-  const mobileFallback =
-    (typeof opts.mobileFallback === "string" && opts.mobileFallback.trim()) ||
-    items.find((i) => i.imageMobile)?.imageMobile ||
-    items.find((i) => i.role === "root")?.imageMobile;
-  return Boolean(poster && mobileFallback);
+
+  const posterFromOpts =
+    typeof opts.poster === "string" && opts.poster.trim()
+      ? opts.poster.trim()
+      : "";
+  const mobileFromOpts =
+    typeof opts.mobileFallback === "string" && opts.mobileFallback.trim()
+      ? opts.mobileFallback.trim()
+      : "";
+
+  const posterFromItems =
+    keptItems.find((i) => i.imagePc)?.imagePc ||
+    keptItems.find((i) => i.role === "root")?.imagePc ||
+    "";
+  const mobileFromItems =
+    keptItems.find((i) => i.imageMobile)?.imageMobile ||
+    keptItems.find((i) => i.role === "root")?.imageMobile ||
+    "";
+
+  return Boolean(
+    (posterFromOpts || posterFromItems) &&
+      (mobileFromOpts || mobileFromItems)
+  );
 }
 
 function validatePopupVariantRoles(
@@ -138,8 +152,7 @@ function validatePopupVariantRoles(
   items: NormalizedV2Content[]
 ): boolean {
   const hasImage = items.some(
-    (i) =>
-      i.role === "image" && (i.imagePc || i.imageMobile)
+    (i) => i.role === "image" && (i.imagePc || i.imageMobile)
   );
   const hasForm = items.some((i) => i.role === "form");
   if (variant === "image") return hasImage;
@@ -162,12 +175,17 @@ function mediaHasRequiredContent(
   );
 }
 
+type FilterItemsResult = {
+  kept: NormalizedV2Content[];
+  validated: ValidatedV2ContentItem[];
+};
+
 function filterAndValidateItems(
   block: NormalizedV2Block,
   registry: ComponentRegistryEntry,
   groupItems: NormalizedV2Content[],
   warnings: V2Warning[]
-): ValidatedV2ContentItem[] {
+): FilterItemsResult {
   const sorted = [...groupItems].sort((a, b) => {
     if (a.itemOrder !== b.itemOrder) return a.itemOrder - b.itemOrder;
     return a.sourceIndex - b.sourceIndex;
@@ -219,11 +237,40 @@ function filterAndValidateItems(
       continue;
     }
 
+    const allowedExtra =
+      registry.allowedExtraKeysByRole[item.role] ?? [];
+    const filteredExtra = filterAllowedKeys(item.extra, allowedExtra);
+    if (filteredExtra.removedKeys.length > 0) {
+      warnings.push({
+        code: "unknown_extra_key",
+        message: `extra keys removed on "${item.itemId}": ${filteredExtra.removedKeys.join(", ")}`,
+        sectionId: block.sectionId,
+        contentGroup: block.contentGroup,
+        itemId: item.itemId,
+      });
+    }
+
     seenIds.add(item.itemId);
-    kept.push(item);
+    kept.push({ ...item, extra: filteredExtra.value });
   }
 
-  return kept.map(toValidatedItem);
+  // maxItems: 초과 아이템만 제외 (블록 전체 제외하지 않음)
+  let trimmed = kept;
+  if (kept.length > registry.maxItems) {
+    const overflow = kept.slice(registry.maxItems);
+    trimmed = kept.slice(0, registry.maxItems);
+    warnings.push({
+      code: "max_items_exceeded",
+      message: `${block.componentType} maxItems=${registry.maxItems}; dropped ${overflow.length} item(s)`,
+      sectionId: block.sectionId,
+      contentGroup: block.contentGroup,
+    });
+  }
+
+  return {
+    kept: trimmed,
+    validated: trimmed.map(toValidatedItem),
+  };
 }
 
 function blockMeetsRequiredRoles(
@@ -235,7 +282,6 @@ function blockMeetsRequiredRoles(
     if (count < req.min) return false;
   }
   if (items.length < registry.minItems) return false;
-  if (items.length > registry.maxItems) return false;
   return true;
 }
 
@@ -269,7 +315,6 @@ export function validateV2Page(
     return { ok: false, fatalErrors, warnings };
   }
 
-  // 입력 불변: normalize는 새 배열만 생성
   const blocksSnapshot = input.blocks.slice();
   const contentsSnapshot = input.contents.slice();
   const normalized = normalizeV2Rows(blocksSnapshot, contentsSnapshot);
@@ -297,7 +342,6 @@ export function validateV2Page(
     });
   }
 
-  // 후순위 = 더 큰 sourceIndex (시트에서 아래 행). sectionOrder 정렬 전에 중복 제거.
   const bySource = [...scopedBlocks].sort(
     (a, b) => a.sourceIndex - b.sourceIndex
   );
@@ -364,30 +408,31 @@ export function validateV2Page(
       continue;
     }
 
-    let working = block;
     const groupItems = contentsByGroup.get(block.contentGroup) ?? [];
-
-    if (!videoVariantReady(working, groupItems, registry)) {
-      warnings.push({
-        code: "video_variant_incomplete",
-        message: `video variant incomplete; using default "${registry.defaultVariant}"`,
-        sectionId: block.sectionId,
-      });
-      working = { ...working, variant: registry.defaultVariant };
-    }
-
-    const validatedItems = filterAndValidateItems(
-      working,
+    const { kept, validated: validatedItems } = filterAndValidateItems(
+      block,
       registry,
       groupItems,
       warnings
     );
 
+    let working = block;
+    if (!videoVariantReady(working, kept, registry)) {
+      if (
+        working.variant === "video" ||
+        working.variant === "background-video"
+      ) {
+        warnings.push({
+          code: "video_variant_incomplete",
+          message: `video variant incomplete; using default "${registry.defaultVariant}"`,
+          sectionId: block.sectionId,
+        });
+        working = { ...working, variant: registry.defaultVariant };
+      }
+    }
+
     if (working.componentType === "media") {
-      const rawForMedia = groupItems.filter((i) =>
-        validatedItems.some((v) => v.itemId === i.itemId)
-      );
-      if (!mediaHasRequiredContent(working, rawForMedia)) {
+      if (!mediaHasRequiredContent(working, kept)) {
         warnings.push({
           code: "media_missing_assets",
           message: "media block missing image/video assets; excluded",
@@ -398,10 +443,7 @@ export function validateV2Page(
     }
 
     if (working.componentType === "popup") {
-      const rawKept = groupItems.filter((i) =>
-        validatedItems.some((v) => v.itemId === i.itemId)
-      );
-      if (!validatePopupVariantRoles(working.variant, rawKept)) {
+      if (!validatePopupVariantRoles(working.variant, kept)) {
         warnings.push({
           code: "popup_variant_unmet",
           message: `popup variant "${working.variant}" requirements unmet; excluded`,
@@ -438,13 +480,16 @@ export function validateV2Page(
     }
   }
 
-  if (documentBlocks.length === 0) {
+  const substantiveCount = documentBlocks.filter((b) => {
+    const entry = getComponentRegistryEntry(b.componentType);
+    return entry?.contributesToPageValidity === true;
+  }).length;
+
+  if (substantiveCount === 0) {
     fatalErrors.push({
       code: "no_valid_document_blocks",
       message:
-        overlayBlocks.length > 0
-          ? "only overlays present; at least one document block required"
-          : "no valid document blocks",
+        "no substantive content blocks (footerInfo/liveFeed/overlay alone are insufficient)",
     });
     return { ok: false, fatalErrors, warnings };
   }

@@ -350,7 +350,36 @@ V1→현장관리 SEO 통합은 **V2 안정화 이후 별도 단계**.
 
 블록·콘텐츠 공통: **`revisionId` 필수**.
 
-블록: `siteCode`, `revisionId`, `sectionId`, `sectionOrder`, `componentType`, `variant`, `contentGroup`, `enabled`, `desktopVisible`, `mobileVisible`, **`backgroundType`** (`none`\|`color`\|`image`만), `backgroundPc`/`backgroundMobile`, `themeVariant`, `paddingPreset`, `animationPreset`, `optionsJson`
+### `V2_블록관리` 컬럼
+
+| 컬럼 | 형식 | 설명 |
+|------|------|------|
+| siteCode | 문자열 | 현장 코드 |
+| revisionId | 문자열 | Draft/Published 리비전 |
+| sectionId | 문자열 | revision 내 유일 |
+| sectionOrder | 숫자 | 섹션 순서 (빈 셀 → 행 순서로 fallback) |
+| componentType | 문자열 | 레지스트리 타입 |
+| variant | 문자열 | 타입별 허용 variant |
+| contentGroup | 문자열 | 블록 1:1 콘텐츠 그룹 |
+| enabled | Y/N | |
+| desktopVisible | Y/N | |
+| mobileVisible | Y/N | |
+| **backgroundType** | `none` \| `color` \| `image` | 공통 배경 모드 (`video` 미지원) |
+| **backgroundColor** | HEX | `backgroundType=color`일 때만 사용 |
+| **backgroundPc** | URL | `backgroundType=image`일 때 PC 배경 |
+| **backgroundMobile** | URL | `backgroundType=image`일 때 모바일 배경 |
+| themeVariant | 문자열 | |
+| paddingPreset | 문자열 | |
+| animationPreset | 문자열 | |
+| optionsJson | JSON | 레지스트리 `allowedOptionKeys`만 |
+
+**배경 규칙:**
+
+| backgroundType | 사용 필드 | 나머지 |
+|----------------|-----------|--------|
+| `none` | (없음) | `backgroundColor` / `backgroundPc` / `backgroundMobile` **무시** |
+| `color` | **`backgroundColor`** (HEX) | 이미지 URL 필드 무시 |
+| `image` | **`backgroundPc`** / **`backgroundMobile`** (URL) | `backgroundColor` 무시 |
 
 콘텐츠: `siteCode`, `revisionId`, `contentGroup`, `itemId`, `itemOrder`, `role`, 카피·**URL 이미지**·`videoUrl`·action·`extraJson`·`enabled`
 

@@ -5,6 +5,8 @@
 
 import { validateV2Page } from "../src/v2/validate-v2-page";
 import { parseSafeJsonObject } from "../src/v2/safe-json";
+import { normalizeOrder } from "../src/v2/normalize-v2-data";
+import { COMPONENT_REGISTRY } from "../src/v2/component-registry";
 import type { V2BlockRow, V2ContentRow } from "../src/v2/types";
 
 let passed = 0;
@@ -893,7 +895,6 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
   const result = validateV2Page({ ...SCOPE, blocks, contents });
   assert(
     result.ok === true &&
-      result.page.blocks[0].options.safe === true &&
       !Object.prototype.hasOwnProperty.call(
         result.page.blocks[0].options,
         "constructor"
@@ -903,15 +904,20 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
         "__proto__"
       ) &&
       !Object.prototype.hasOwnProperty.call(
+        result.page.blocks[0].options,
+        "safe"
+      ) &&
+      !Object.prototype.hasOwnProperty.call(
         result.page.blocks[0].items[0].extra,
         "constructor"
       ) &&
       !Object.prototype.hasOwnProperty.call(
         result.page.blocks[0].items[0].extra,
-        "prototype"
+        "a"
       ) &&
-      result.page.blocks[0].items[0].extra.a === 1,
-    "23b. options/extra pollution keys stripped in page model"
+      result.warnings.some((w) => w.code === "unknown_option_key") &&
+      result.warnings.some((w) => w.code === "unknown_extra_key"),
+    "23b. options/extra pollution + unknown keys stripped in page model"
   );
 }
 
@@ -979,6 +985,365 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
     JSON.stringify(blocks) === blocksBefore &&
       JSON.stringify(contents) === contentsBefore,
     "25. input arrays not mutated"
+  );
+}
+
+// --- boundary hardening ---
+
+// 26. empty order → sourceIndex fallback
+{
+  assert(normalizeOrder("", 7) === 7, "26a. sectionOrder=\"\" → sourceIndex");
+  assert(normalizeOrder("   ", 7) === 7, "26b. sectionOrder=\"   \" → sourceIndex");
+  assert(normalizeOrder(null, 7) === 7, "26c. itemOrder=null → sourceIndex");
+  assert(normalizeOrder(undefined, 7) === 7, "26d. undefined → sourceIndex");
+  assert(normalizeOrder(Number.NaN, 7) === 7, "26e. NaN → sourceIndex");
+  assert(normalizeOrder(Infinity, 7) === 7, "26f. Infinity → sourceIndex");
+
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      sectionOrder: "",
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+      itemOrder: "   ",
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].order === 0 &&
+      result.page.blocks[0].items[0].order === 0,
+    "26g. empty sheet orders use sourceIndex in page model"
+  );
+}
+
+// 27. valid 0 order kept
+{
+  assert(normalizeOrder("0", 99) === 0, '27a. order="0" → 0');
+  assert(normalizeOrder(0, 99) === 0, "27b. order=0 → 0");
+  assert(normalizeOrder("3", 99) === 3, '27c. order="3" → 3');
+
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      sectionOrder: "0",
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+      itemOrder: 0,
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].order === 0 &&
+      result.page.blocks[0].items[0].order === 0,
+    "27d. zero orders preserved in validated page"
+  );
+}
+
+// 28. video option false rejected
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "video",
+      optionsJson: JSON.stringify({
+        muted: false,
+        autoplay: true,
+        loop: true,
+        playsinline: true,
+        poster: "https://example.com/p.jpg",
+        mobileFallback: "https://example.com/m.jpg",
+      }),
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].variant === "fullBleed" &&
+      result.warnings.some((w) => w.code === "video_variant_incomplete"),
+    "28. video option false → defaultVariant"
+  );
+}
+
+// 29. excluded item must not satisfy poster
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      variant: "video",
+      optionsJson: JSON.stringify({
+        muted: true,
+        autoplay: true,
+        loop: true,
+        playsinline: true,
+        // poster/mobileFallback omitted — only on disallowed item
+      }),
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+    }),
+    content({
+      contentGroup: "cg-hero",
+      itemId: "bad-role",
+      role: "notAllowed",
+      imagePc: "https://example.com/poster.jpg",
+      imageMobile: "https://example.com/mobile.jpg",
+      itemOrder: 2,
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].variant === "fullBleed" &&
+      result.warnings.some((w) => w.code === "video_variant_incomplete") &&
+      result.warnings.some((w) => w.code === "disallowed_role"),
+    "29. excluded item does not satisfy poster/mobileFallback"
+  );
+}
+
+// 30. unknown options key removed
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      optionsJson: JSON.stringify({
+        muted: true,
+        hackScript: "<script>",
+        maxWidth: 1100,
+      }),
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks[0].options.muted === true &&
+      !Object.prototype.hasOwnProperty.call(
+        result.page.blocks[0].options,
+        "hackScript"
+      ) &&
+      !Object.prototype.hasOwnProperty.call(
+        result.page.blocks[0].options,
+        "maxWidth"
+      ) &&
+      result.warnings.some((w) => w.code === "unknown_option_key"),
+    "30. unknown options keys removed"
+  );
+}
+
+// 31. unknown extra key removed
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+      extraJson: JSON.stringify({ customHtml: "<b>x</b>", note: "x" }),
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      Object.keys(result.page.blocks[0].items[0].extra).length === 0 &&
+      result.warnings.some((w) => w.code === "unknown_extra_key"),
+    "31. unknown extra keys removed"
+  );
+}
+
+// 32. maxItems overflow keeps block, trims items
+{
+  const max = COMPONENT_REGISTRY.featureCards.maxItems;
+  const blocks = [
+    block({
+      sectionId: "sec-cards",
+      contentGroup: "cg-cards",
+      componentType: "featureCards",
+    }),
+  ];
+  const contents = Array.from({ length: max + 1 }, (_, i) =>
+    content({
+      contentGroup: "cg-cards",
+      itemId: `c${i}`,
+      role: "item",
+      title: `Card ${i}`,
+      itemOrder: i,
+    })
+  );
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks.length === 1 &&
+      result.page.blocks[0].items.length === max &&
+      result.warnings.some((w) => w.code === "max_items_exceeded"),
+    "32. maxItems+1 → block kept, overflow items dropped"
+  );
+}
+
+// 33. footerInfo only → fatal
+{
+  const blocks = [
+    block({
+      sectionId: "sec-foot",
+      contentGroup: "cg-foot",
+      componentType: "footerInfo",
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-foot",
+      itemId: "f1",
+      role: "item",
+      title: "Addr",
+      description: "Seoul",
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === false &&
+      result.fatalErrors.some((e) => e.code === "no_valid_document_blocks"),
+    "33. footerInfo only → fatal"
+  );
+}
+
+// 34. liveFeed only → fatal
+{
+  const blocks = [
+    block({
+      sectionId: "sec-live",
+      contentGroup: "cg-live",
+      componentType: "liveFeed",
+    }),
+  ];
+  const contents: V2ContentRow[] = [];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === false &&
+      result.fatalErrors.some((e) => e.code === "no_valid_document_blocks"),
+    "34. liveFeed only → fatal"
+  );
+}
+
+// 35. footerInfo + liveFeed only → fatal
+{
+  const blocks = [
+    block({
+      sectionId: "sec-live",
+      contentGroup: "cg-live",
+      componentType: "liveFeed",
+      sectionOrder: 1,
+    }),
+    block({
+      sectionId: "sec-foot",
+      contentGroup: "cg-foot",
+      componentType: "footerInfo",
+      sectionOrder: 2,
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-foot",
+      itemId: "f1",
+      role: "item",
+      title: "Addr",
+      description: "Seoul",
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === false &&
+      result.fatalErrors.some((e) => e.code === "no_valid_document_blocks"),
+    "35. footerInfo + liveFeed only → fatal"
+  );
+}
+
+// 36. hero + footerInfo → ok
+{
+  const blocks = [
+    block({
+      sectionId: "sec-hero",
+      contentGroup: "cg-hero",
+      componentType: "hero",
+      sectionOrder: 1,
+    }),
+    block({
+      sectionId: "sec-foot",
+      contentGroup: "cg-foot",
+      componentType: "footerInfo",
+      sectionOrder: 2,
+    }),
+  ];
+  const contents = [
+    content({
+      contentGroup: "cg-hero",
+      itemId: "h1",
+      role: "root",
+      title: "H",
+    }),
+    content({
+      contentGroup: "cg-foot",
+      itemId: "f1",
+      role: "item",
+      title: "Addr",
+      description: "Seoul",
+    }),
+  ];
+  const result = validateV2Page({ ...SCOPE, blocks, contents });
+  assert(
+    result.ok === true &&
+      result.page.blocks.some((b) => b.componentType === "hero") &&
+      result.page.blocks.some((b) => b.componentType === "footerInfo"),
+    "36. hero + footerInfo → ok"
   );
 }
 
