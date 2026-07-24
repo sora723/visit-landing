@@ -1,0 +1,30 @@
+---
+description: V2 freeform landing — 작업 체크포인트 (재개용)
+alwaysApply: true
+---
+
+# V2 작업 체크포인트 (2026-07-24)
+
+브랜치: **`feature/v2-freeform-landing`**
+
+## 이 파일의 역할
+
+의도적 프로젝트 재개 규칙: `.cursor/rules/v2-checkpoint-2026-07-23.mdc`
+
+## 완료
+
+1. siteCode V1 · rendererVersion · V2 스키마/경계 · media 컬럼 계약
+2. V2 noindex metadata
+3. 읽기 전용 `v2.page.published` + Next `loadV2PublishedPage`
+4. idempotent V2 Sheet schema inspect/ensure (수동)
+5. page.tsx: v2 → Published loader → Shell / SafeState
+6. **정적 블록 렌더러** (hero/notice/richText/featureCards/media/location/ctaBand/footerInfo)  
+   form·liveFeed·stickyPromo·popup 제외 · 렌더가능 0개 → SafeState
+
+## 다음에 하면 안 되는 것
+
+clasp push · Netlify 배포 · Preview · Draft · Publish · Rollback · form/liveFeed/popup 인터랙션 — **별도 지시 전 금지**
+
+## 재개 시
+
+form Headless / liveFeed / overlay / 시스템 법적 footer — 사용자 지시 대기
