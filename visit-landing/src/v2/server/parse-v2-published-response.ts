@@ -26,6 +26,18 @@ export function mapV2RemoteCodeToReason(
   return REMOTE_CODE_TO_REASON[code] ?? "invalid-response";
 }
 
+/** pub-{siteCode}-… 형식만 허용 */
+export function isPubRevisionIdForSite(
+  revisionId: string,
+  siteCode: string
+): boolean {
+  const code = siteCode.trim();
+  const rev = revisionId.trim();
+  if (!code || !rev) return false;
+  return rev.startsWith(`pub-${code}-`);
+}
+
+/** @deprecated use isPubRevisionIdForSite — 단순 pub- 접두는 불충분 */
 export function isPubRevisionId(revisionId: string): boolean {
   return revisionId.startsWith("pub-");
 }
@@ -36,7 +48,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Apps Script JSON → 허용 필드만 추출.
- * ok:false / blocks|contents 비배열 / siteCode 불일치 / pub- 아님 → invalid
+ * pageSchemaVersion 빈값/"1" 자동 보정 없음.
+ * revisionId는 pub-{requestedSiteCode}- 필수.
  */
 export function parseV2PublishedRemoteResponse(
   json: unknown,
@@ -65,12 +78,15 @@ export function parseV2PublishedRemoteResponse(
   const raw = json.data;
   const siteCode = String(raw.siteCode ?? "").trim();
   const revisionId = String(raw.revisionId ?? "").trim();
-  const pageSchemaVersion = String(raw.pageSchemaVersion ?? "").trim() || "1";
+  const pageSchemaVersion = String(raw.pageSchemaVersion ?? "").trim();
 
   if (!siteCode || siteCode !== requestedSiteCode) {
     return { ok: false, reason: "invalid-response" };
   }
-  if (!revisionId || !isPubRevisionId(revisionId)) {
+  if (!pageSchemaVersion) {
+    return { ok: false, reason: "invalid-response" };
+  }
+  if (!revisionId || !isPubRevisionIdForSite(revisionId, requestedSiteCode)) {
     return { ok: false, reason: "invalid-response" };
   }
   if (!Array.isArray(raw.blocks)) {

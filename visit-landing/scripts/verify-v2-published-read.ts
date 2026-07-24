@@ -6,12 +6,15 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadV2PublishedPageUncached } from "../src/v2/server/load-v2-published-page";
+import { loadV2PublishedPageCore } from "../src/v2/server/load-v2-published-page-core";
 import {
   clearV2PublishedPageCache,
   dedupeV2PublishedPageFetch,
 } from "../src/v2/server/v2-published-page-cache";
-import { parseV2PublishedRemoteResponse } from "../src/v2/server/parse-v2-published-response";
+import {
+  isPubRevisionIdForSite,
+  parseV2PublishedRemoteResponse,
+} from "../src/v2/server/parse-v2-published-response";
 import type { FetchV2PublishedPageSuccess } from "../src/v2/server/types";
 import type { ValidatedV2Page } from "../src/v2/types";
 
@@ -154,9 +157,24 @@ function mockFetcher(body: unknown, status = 200) {
   };
 }
 
-process.env.APPS_SCRIPT_URL =
-  process.env.APPS_SCRIPT_URL ||
-  "https://script.google.com/macros/s/testDeployIdXXXX/exec";
+function requestUrlFor(siteCode: string) {
+  return (
+    `https://script.example/macros/s/test/exec?action=v2.page.published` +
+    `&siteCode=${encodeURIComponent(siteCode)}`
+  );
+}
+
+async function loadPublished(
+  siteCode: string,
+  body: unknown,
+  status = 200
+) {
+  return loadV2PublishedPageCore({
+    siteCode,
+    requestUrl: requestUrlFor(siteCode),
+    httpFetcher: mockFetcher(body, status),
+  });
+}
 
 async function main() {
   console.log("\n[verify:v2-published-read] Next loader + Apps Script static\n");
@@ -164,10 +182,7 @@ async function main() {
   // 1. success → validateV2Page ok
   {
     clearV2PublishedPageCache(SITE);
-    const result = await loadV2PublishedPageUncached(
-      SITE,
-      mockFetcher(validRemotePayload())
-    );
+    const result = await loadPublished(SITE, validRemotePayload());
     assert(
       result.ok === true &&
         result.page.siteCode === SITE &&
@@ -179,14 +194,11 @@ async function main() {
 
   // 2. V2_NOT_CONFIGURED
   {
-    const result = await loadV2PublishedPageUncached(
-      SITE,
-      mockFetcher({
-        ok: false,
-        code: "V2_NOT_CONFIGURED",
-        message: "V2 published page is not configured.",
-      })
-    );
+    const result = await loadPublished(SITE, {
+      ok: false,
+      code: "V2_NOT_CONFIGURED",
+      message: "V2 published page is not configured.",
+    });
     assert(
       result.ok === false && result.reason === "not-configured",
       "2. V2_NOT_CONFIGURED → not-configured"
@@ -195,14 +207,11 @@ async function main() {
 
   // 3. V2_NOT_PUBLISHED
   {
-    const result = await loadV2PublishedPageUncached(
-      SITE,
-      mockFetcher({
-        ok: false,
-        code: "V2_NOT_PUBLISHED",
-        message: "Published V2 page is not available.",
-      })
-    );
+    const result = await loadPublished(SITE, {
+      ok: false,
+      code: "V2_NOT_PUBLISHED",
+      message: "Published V2 page is not available.",
+    });
     assert(
       result.ok === false && result.reason === "not-published",
       "3. V2_NOT_PUBLISHED → not-published"
@@ -213,7 +222,7 @@ async function main() {
   {
     const body = validRemotePayload();
     (body.data as { blocks: unknown }).blocks = { bad: true };
-    const result = await loadV2PublishedPageUncached(SITE, mockFetcher(body));
+    const result = await loadPublished(SITE, body);
     assert(
       result.ok === false && result.reason === "invalid-response",
       "4. blocks not array → invalid-response"
@@ -224,7 +233,7 @@ async function main() {
   {
     const body = validRemotePayload();
     (body.data as { contents: unknown }).contents = null;
-    const result = await loadV2PublishedPageUncached(SITE, mockFetcher(body));
+    const result = await loadPublished(SITE, body);
     assert(
       result.ok === false && result.reason === "invalid-response",
       "5. contents not array → invalid-response"
@@ -234,7 +243,7 @@ async function main() {
   // 6. siteCode mismatch
   {
     const body = validRemotePayload({ siteCode: "OTHER" });
-    const result = await loadV2PublishedPageUncached(SITE, mockFetcher(body));
+    const result = await loadPublished(SITE, body);
     assert(
       result.ok === false && result.reason === "invalid-response",
       "6. response siteCode mismatch → invalid-response"
@@ -244,7 +253,7 @@ async function main() {
   // 7. revisionId not pub-
   {
     const body = validRemotePayload({ revisionId: "draft-L001-x" });
-    const result = await loadV2PublishedPageUncached(SITE, mockFetcher(body));
+    const result = await loadPublished(SITE, body);
     assert(
       result.ok === false && result.reason === "invalid-response",
       "7. revisionId not pub- → invalid-response"
@@ -302,7 +311,7 @@ async function main() {
         },
       ],
     });
-    const result = await loadV2PublishedPageUncached(SITE, mockFetcher(body));
+    const result = await loadPublished(SITE, body);
     assert(
       result.ok === false && result.reason === "invalid-page",
       "8. schema validator fatal → invalid-page"
@@ -311,8 +320,12 @@ async function main() {
 
   // 9. network failure
   {
-    const result = await loadV2PublishedPageUncached(SITE, async () => {
-      throw new Error("ECONNRESET");
+    const result = await loadV2PublishedPageCore({
+      siteCode: SITE,
+      requestUrl: requestUrlFor(SITE),
+      httpFetcher: async () => {
+        throw new Error("ECONNRESET");
+      },
     });
     assert(
       result.ok === false && result.reason === "network",
@@ -459,8 +472,9 @@ async function main() {
     );
 
     assert(
-      service.includes("indexOf('pub-')") || service.includes('indexOf("pub-")'),
-      "18. non-pub revision rejected"
+      service.includes("pubPrefix") &&
+        /'pub-'\s*\+\s*siteCode\s*\+\s*'-'/.test(service),
+      "18. non-pub / wrong-site revision rejected"
     );
 
     assert(
@@ -474,6 +488,106 @@ async function main() {
       service.includes("rowSite !== siteCode") &&
         service.includes("rowRev !== revisionId"),
       "20. filters rows by siteCode + revisionId exact match"
+    );
+
+    // --- access gate / server-only boundary ---
+    assert(
+      /function isV2PublicSiteActive_\s*\(/.test(service) &&
+        /if\s*\(\s*!isV2PublicSiteActive_\s*\(\s*siteRow\s*\)\s*\)/.test(
+          service
+        ) &&
+        service.includes("ynToBool_(getField_(siteRow, 'isActive'), true)"),
+      "21. Apps Script isActive public gate exists (real condition)"
+    );
+
+    assert(
+      /if\s*\(\s*!isV2PublicSiteActive_\s*\(\s*siteRow\s*\)\s*\)/.test(
+        service
+      ) &&
+        service.indexOf("isV2PublicSiteActive_") <
+          service.indexOf("siteHeaders.rendererVersion") &&
+        service.includes("V2_NOT_PUBLISHED") &&
+        service.includes("site inactive"),
+      "22. isActive=false blocks before Published row read (V2_NOT_PUBLISHED)"
+    );
+
+    assert(
+      /siteHeaders\.pageSchemaVersion\s*===\s*undefined/.test(service) &&
+        service.includes("rendererVersion") &&
+        service.includes("pageStatus") &&
+        service.includes("publishedRevisionId"),
+      "23. pageSchemaVersion header is required with other V2 headers"
+    );
+
+    assert(
+      /if\s*\(\s*!pageSchemaVersion\s*\)/.test(service) &&
+        !/pageSchemaVersion\s*=\s*'1'/.test(service) &&
+        !/pageSchemaVersion\s*=\s*"1"/.test(service),
+      "24. empty pageSchemaVersion not auto-filled to 1"
+    );
+
+    assert(
+      isPubRevisionIdForSite("pub-L001-202607-x", "L001") === true,
+      "25. pub-L001-* accepted for L001"
+    );
+
+    assert(
+      parseV2PublishedRemoteResponse(
+        validRemotePayload({ revisionId: "pub-L002-202607-x" }),
+        "L001"
+      ).ok === false,
+      "26. pub-L002-* for L001 → invalid-response"
+    );
+
+    const wrapper = readFileSync(
+      join(root, "src/v2/server/load-v2-published-page.ts"),
+      "utf8"
+    );
+    const core = readFileSync(
+      join(root, "src/v2/server/load-v2-published-page-core.ts"),
+      "utf8"
+    );
+    const fetchWrap = readFileSync(
+      join(root, "src/v2/server/fetch-v2-published-page.ts"),
+      "utf8"
+    );
+    const verifySrc = readFileSync(
+      join(root, "scripts/verify-v2-published-read.ts"),
+      "utf8"
+    );
+
+    assert(
+      /^\s*import\s+[\"']server-only[\"']\s*;/m.test(wrapper) &&
+        /^\s*import\s+[\"']server-only[\"']\s*;/m.test(fetchWrap),
+      "27. env/fetch wrappers import server-only"
+    );
+
+    assert(
+      !/process\.env\./.test(core) &&
+        !/from\s+[\"']@\/lib\/apps-script-env[\"']/.test(core) &&
+        !/import\s+[\"']server-only[\"']/.test(core),
+      "28. pure core has no process.env / getAppsScriptEnv / server-only"
+    );
+
+    const verifyImportCore =
+      /^import\s+.+\s+from\s+[\"']\.\.\/src\/v2\/server\/load-v2-published-page-core[\"']/m.test(
+        verifySrc
+      );
+    const verifyImportWrapper =
+      /^import\s+.+\s+from\s+[\"']\.\.\/src\/v2\/server\/load-v2-published-page[\"']/m.test(
+        verifySrc
+      );
+    assert(
+      verifyImportCore && !verifyImportWrapper,
+      "29. tests import pure core, not server wrapper"
+    );
+
+    assert(
+      parseV2PublishedRemoteResponse(
+        validRemotePayload({ pageSchemaVersion: "" }),
+        SITE
+      ).ok === false,
+      "30. empty pageSchemaVersion in remote data → invalid-response (no 1 fallback)"
     );
   }
 

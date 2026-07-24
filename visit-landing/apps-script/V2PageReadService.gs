@@ -114,10 +114,16 @@ function readV2PublishedPage_(siteCode) {
     throw createAppError_('V2_SITE_NOT_FOUND', 'site not found');
   }
 
+  /** 최상위 공개 게이트 — 제출 활성(isSiteSubmissionEnabled_)과 역할 분리 */
+  if (!isV2PublicSiteActive_(siteRow)) {
+    throw createAppError_('V2_NOT_PUBLISHED', 'site inactive');
+  }
+
   var siteHeaders = getHeaderIndexMap_(getSheet_(SHEET_NAMES.SITE));
   if (
     siteHeaders.rendererVersion === undefined ||
     siteHeaders.pageStatus === undefined ||
+    siteHeaders.pageSchemaVersion === undefined ||
     siteHeaders.publishedRevisionId === undefined
   ) {
     throw createAppError_('V2_NOT_CONFIGURED', 'v2 columns missing');
@@ -138,20 +144,26 @@ function readV2PublishedPage_(siteCode) {
     throw createAppError_('V2_NOT_PUBLISHED', 'pageStatus not published');
   }
 
+  var pageSchemaVersion = String(
+    getField_(siteRow, 'pageSchemaVersion') || ''
+  ).trim();
+  if (!pageSchemaVersion) {
+    throw createAppError_('V2_NOT_CONFIGURED', 'pageSchemaVersion empty');
+  }
+
   var publishedRevisionId = String(
     getField_(siteRow, 'publishedRevisionId') || ''
   ).trim();
   if (!publishedRevisionId) {
     throw createAppError_('V2_NOT_PUBLISHED', 'publishedRevisionId empty');
   }
-  if (publishedRevisionId.indexOf('pub-') !== 0) {
-    throw createAppError_('V2_NOT_PUBLISHED', 'publishedRevisionId not pub-');
+  var pubPrefix = 'pub-' + siteCode + '-';
+  if (publishedRevisionId.indexOf(pubPrefix) !== 0) {
+    throw createAppError_(
+      'V2_NOT_PUBLISHED',
+      'publishedRevisionId site mismatch'
+    );
   }
-
-  var pageSchemaVersion = String(
-    getField_(siteRow, 'pageSchemaVersion') || ''
-  ).trim();
-  if (!pageSchemaVersion) pageSchemaVersion = '1';
 
   var blockSheet = getSheetOptional_(SHEET_NAMES.V2_BLOCK);
   if (!blockSheet) {
@@ -189,6 +201,15 @@ function readV2PublishedPage_(siteCode) {
       contents: contents
     }
   };
+}
+
+/**
+ * V2 공개 사이트 활성 여부.
+ * isActive 파싱은 ynToBool_(…, true) — 제출용 isSiteSubmissionEnabled_와 동일 규칙,
+ * 공개 게이트 전용 이름 (폼/popup과 결합하지 않음).
+ */
+function isV2PublicSiteActive_(siteRow) {
+  return ynToBool_(getField_(siteRow, 'isActive'), true);
 }
 
 function sheetObjectsFromSheet_(sheet) {
