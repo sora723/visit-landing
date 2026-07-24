@@ -15,15 +15,16 @@ alwaysApply: true
 
 1. siteCode V1 · rendererVersion · V2 스키마/경계 · media 컬럼 계약
 2. V2 noindex metadata
-3. 읽기 전용 `v2.page.published` + Next `loadV2PublishedPage` / `fetchV2PublishedPage`
-4. idempotent V2 Sheet schema inspect/ensure (Apps Script 수동)
-5. **page.tsx**: `rendererVersion===v2` → Published loader → `V2PublishedPageShell` / `V2SafeStatePage`  
-   (블록 디자인 미구현 · Preview/Publish 없음)
+3. 읽기 전용 `v2.page.published` + Next `loadV2PublishedPage`
+4. idempotent V2 Sheet schema inspect/ensure (수동)
+5. page.tsx: v2 → Published loader → Shell / SafeState
+6. **정적 블록 렌더러** (hero/notice/richText/featureCards/media/location/ctaBand/footerInfo)  
+   form·liveFeed·stickyPromo·popup 제외 · 렌더가능 0개 → SafeState
 
 ## 다음에 하면 안 되는 것
 
-clasp push · Netlify 배포 · Preview · Draft · Publish · Rollback · 실제 블록 UI 렌더러 — **별도 지시 전 금지**
+clasp push · Netlify 배포 · Preview · Draft · Publish · Rollback · form/liveFeed/popup 인터랙션 — **별도 지시 전 금지**
 
 ## 재개 시
 
-V2 블록 컴포넌트 레지스트리 → `V2PublishedPageShell`에 연결 — 사용자 지시 대기
+form Headless / liveFeed / overlay / 시스템 법적 footer — 사용자 지시 대기

@@ -13,6 +13,7 @@ import { LandingPage } from "@/components/LandingPage";
 import { PromoStickyBar } from "@/components/PromoStickyBar";
 import { V2PublishedPageShell } from "@/components/v2/V2PublishedPageShell";
 import { V2SafeStatePage } from "@/components/v2/V2SafeStatePage";
+import { hasRenderableV2Blocks } from "@/v2/renderable-v2-blocks";
 import { loadV2PublishedPage } from "@/v2/server/fetch-v2-published-page";
 
 export const dynamic = "force-dynamic";
@@ -49,10 +50,10 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const renderer = resolveRendererVersion(config.rendererVersion);
 
-  /** 정확히 v2만 Published loader — 실패 시 V1 fallback 금지 */
+  /** 정확히 v2만 Published loader — 실패·렌더가능 0개 시 V1 fallback 금지 */
   if (renderer === "v2") {
     const published = await loadV2PublishedPage(siteCode);
-    if (published.ok) {
+    if (published.ok && hasRenderableV2Blocks(published.page)) {
       return (
         <V2PublishedPageShell
           page={published.page}

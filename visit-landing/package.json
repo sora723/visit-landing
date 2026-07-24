@@ -18,6 +18,7 @@
     "verify:v2-published-read": "npx --yes tsx scripts/verify-v2-published-read.ts",
     "verify:v2-sheet-schema": "npx --yes tsx scripts/verify-v2-sheet-schema.ts",
     "verify:v2-page-runtime": "npx --yes tsx scripts/verify-v2-page-runtime.ts",
+    "verify:v2-block-renderer": "npx --yes tsx scripts/verify-v2-block-renderer.ts",
     "verify:notification": "node scripts/verify-notification.mjs",
     "verify:tracking": "node scripts/verify-site-tracking.mjs",
     "capture:mobile": "node scripts/capture-mobile-screenshots.mjs",

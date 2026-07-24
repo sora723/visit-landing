@@ -48,14 +48,23 @@ const samplePage: ValidatedV2Page = {
       sectionId: "s1",
       order: 1,
       componentType: "hero",
-      variant: "default",
+      variant: "fullBleed",
       contentGroup: "g1",
       layout: {
         desktopVisible: true,
         mobileVisible: true,
         backgroundType: "none",
       },
-      items: [],
+      items: [
+        {
+          itemId: "root",
+          order: 1,
+          role: "root",
+          title: "런타임히어로",
+          imagePc: "https://cdn.example.com/h.jpg",
+          extra: {},
+        },
+      ],
       options: {},
     },
   ],
@@ -195,7 +204,8 @@ assert(resolveV2HomeBranch("V2") === "v2", "V2 case → V2 branch");
       siteName: "성공현장",
     })
   );
-  assert(html.includes("성공현장"), "shell: siteName");
+  assert(html.includes("런타임히어로"), "shell: renders hero title");
+  assert(!html.includes("성공현장"), "shell: siteName not required in body");
   assert(!html.includes("pub-L001-secret-rev"), "shell: revisionId not in HTML");
   assert(!html.includes("revisionId"), "shell: no revisionId label");
   assert(!html.includes('"blocks"'), "shell: no page JSON dump");
