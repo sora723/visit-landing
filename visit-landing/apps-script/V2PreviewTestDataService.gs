@@ -1,22 +1,16 @@
 /**
- * V2PreviewTestDataService.gs
- * TEST_SITE_CODE 전용 V2 Draft Preview 테스트 데이터 생성·삭제.
+ * TEST_SITE_CODE Draft Preview 테스트 데이터 생성·삭제.
  *
  * Apps Script 편집기에서 관리자만 수동 실행:
  *   setupV2PreviewTestData()
  *   cleanupV2PreviewTestData()
  *   createTestV2PreviewUrl()
  *   createTestV2PreviewShortUrl()
+ *   ensureV2PreviewTestPopupRows()
  *
- * Web App action / doGet / doPost / 트리거에 연결하지 않음.
- * 운영 siteCode 행·콘텐츠관리·접수관리·Published pointer는 수정하지 않음.
- *
- * Preview URL 확인 (토큰 로그 금지):
- *   1. 함수 선택: createTestV2PreviewUrl 또는 createTestV2PreviewShortUrl → Run
- *   2. 실행 로그/Logger에 URL을 출력하지 않음 (토큰 포함)
- *   3. Return 값 확인:
- *      - 디버거 중단점 후 return 값 검사
- *      - 또는 Executions(실행 기록)에서 Return value 확인
+ * Web App (TEST only):
+ *   action=setup.v2PreviewTestData
+ *   action=setup.v2PreviewTestPopupEnsure
  */
 
 var V2_PREVIEW_TEST_SITE_CODE_ = 'TEST_SITE_CODE';
@@ -141,6 +135,182 @@ function createTestV2PreviewUrl() {
 
 function createTestV2PreviewShortUrl() {
   return createV2PreviewShortUrl(V2_PREVIEW_TEST_SITE_CODE_);
+}
+
+/**
+ * 기존 TEST draft가 계약과 달라도 popup 행만 보정 (운영 siteCode 미변경).
+ * Web: action=setup.v2PreviewTestPopupEnsure
+ */
+function ensureV2PreviewTestPopupRows() {
+  var lock = LockService.getScriptLock();
+  var locked = false;
+  try {
+    locked = lock.tryLock(10000);
+  } catch (e) {
+    locked = false;
+  }
+  if (!locked) {
+    return {
+      ok: false,
+      changed: false,
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      message: 'lock_not_acquired'
+    };
+  }
+  try {
+    return ensureV2PreviewTestPopupRowsUnlocked_();
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (e2) {}
+  }
+}
+
+function ensureV2PreviewTestPopupRowsUnlocked_() {
+  getSpreadsheet_();
+  var siteSheet = getSheet_(SHEET_NAMES.SITE);
+  var blockSheet = getSheet_(SHEET_NAMES.V2_BLOCK);
+  var contentSheet = getSheet_(SHEET_NAMES.V2_CONTENT);
+  assertV2PreviewTestHeaders_(siteSheet, blockSheet, contentSheet);
+
+  var existingSite = findSiteByCode_(V2_PREVIEW_TEST_SITE_CODE_);
+  if (!existingSite) {
+    throw createAppError_(
+      'VALIDATION_ERROR',
+      'TEST_SITE_CODE site row missing — run setupV2PreviewTestData first'
+    );
+  }
+  assertV2PreviewTestSiteMatches_(existingSite, siteSheet);
+
+  var existingBlocks = readV2PreviewTestRowsBySite_(
+    blockSheet,
+    V2_PREVIEW_TEST_SITE_CODE_
+  );
+  var existingContents = readV2PreviewTestRowsBySite_(
+    contentSheet,
+    V2_PREVIEW_TEST_SITE_CODE_
+  );
+
+  var wantBlocks = buildV2PreviewTestPopupBlockSpecs_();
+  var wantContents = buildV2PreviewTestPopupContentSpecs_();
+  var popupBlocks = [];
+  for (var i = 0; i < existingBlocks.length; i++) {
+    if (
+      normalizeV2PreviewTestCell_(existingBlocks[i].componentType) === 'popup' ||
+      normalizeV2PreviewTestCell_(existingBlocks[i].sectionId) ===
+        'popup-preview' ||
+      normalizeV2PreviewTestCell_(existingBlocks[i].contentGroup) ===
+        'cg-popup-preview'
+    ) {
+      popupBlocks.push(existingBlocks[i]);
+    }
+  }
+  var popupContents = [];
+  for (var j = 0; j < existingContents.length; j++) {
+    if (
+      normalizeV2PreviewTestCell_(existingContents[j].contentGroup) ===
+        'cg-popup-preview' ||
+      String(existingContents[j].itemId || '').indexOf('popup-') === 0
+    ) {
+      popupContents.push(existingContents[j]);
+    }
+  }
+
+  if (
+    v2PreviewTestRowsMatchSpecs_(
+      popupBlocks,
+      wantBlocks,
+      V2_BLOCK_PUBLIC_COLUMNS
+    ) &&
+    v2PreviewTestRowsMatchSpecs_(
+      popupContents,
+      wantContents,
+      V2_CONTENT_PUBLIC_COLUMNS
+    )
+  ) {
+    return {
+      ok: true,
+      changed: false,
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      blocksCreated: 0,
+      contentsCreated: 0,
+      message: 'popup test rows already match'
+    };
+  }
+
+  // 잘못된/부분 popup 행만 삭제 후 재삽입
+  var deletedBlocks = deleteV2PreviewTestPopupRowsOnly_(blockSheet, true);
+  var deletedContents = deleteV2PreviewTestPopupRowsOnly_(contentSheet, false);
+  for (var b = 0; b < wantBlocks.length; b++) {
+    appendExactRowByHeaders_(blockSheet, wantBlocks[b]);
+  }
+  for (var c = 0; c < wantContents.length; c++) {
+    appendExactRowByHeaders_(contentSheet, wantContents[c]);
+  }
+  SpreadsheetApp.flush();
+  return {
+    ok: true,
+    changed: true,
+    siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+    draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+    blocksCreated: wantBlocks.length,
+    contentsCreated: wantContents.length,
+    deletedBlocks: deletedBlocks,
+    deletedContents: deletedContents,
+    message: 'popup test rows ensured on TEST_SITE_CODE draft'
+  };
+}
+
+/** popup 관련 TEST 행만 삭제. isBlock=true → 블록관리 기준 */
+function deleteV2PreviewTestPopupRowsOnly_(sheet, isBlock) {
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return 0;
+  var headers = data[0].map(function (h) {
+    return String(h).trim();
+  });
+  var codeCol = headers.indexOf('siteCode');
+  if (codeCol < 0) return 0;
+  var typeCol = headers.indexOf('componentType');
+  var sidCol = headers.indexOf('sectionId');
+  var cgCol = headers.indexOf('contentGroup');
+  var itemCol = headers.indexOf('itemId');
+  var toDelete = [];
+  for (var r = 1; r < data.length; r++) {
+    if (String(data[r][codeCol] || '').trim() !== V2_PREVIEW_TEST_SITE_CODE_) {
+      continue;
+    }
+    var hit = false;
+    if (isBlock) {
+      if (
+        (typeCol >= 0 && String(data[r][typeCol] || '').trim() === 'popup') ||
+        (sidCol >= 0 &&
+          String(data[r][sidCol] || '').trim() === 'popup-preview') ||
+        (cgCol >= 0 &&
+          String(data[r][cgCol] || '').trim() === 'cg-popup-preview')
+      ) {
+        hit = true;
+      }
+    } else {
+      if (
+        (cgCol >= 0 &&
+          String(data[r][cgCol] || '').trim() === 'cg-popup-preview') ||
+        (itemCol >= 0 &&
+          String(data[r][itemCol] || '').indexOf('popup-') === 0)
+      ) {
+        hit = true;
+      }
+    }
+    if (hit) toDelete.push(r + 1);
+  }
+  toDelete.sort(function (a, b) {
+    return b - a;
+  });
+  for (var i = 0; i < toDelete.length; i++) {
+    sheet.deleteRow(toDelete[i]);
+  }
+  return toDelete.length;
 }
 
 function setupV2PreviewTestDataUnlocked_() {

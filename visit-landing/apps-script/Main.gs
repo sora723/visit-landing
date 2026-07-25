@@ -87,6 +87,13 @@ function routeAction_(action, params) {
     case 'setup.siteConversion':
       return handleSetupSiteConversion(params);
 
+    /** TEST_SITE_CODE Draft Preview 테스트 행만 — 운영 siteCode 미변경 */
+    case 'setup.v2PreviewTestData':
+      return setupV2PreviewTestData();
+
+    case 'setup.v2PreviewTestPopupEnsure':
+      return ensureV2PreviewTestPopupRows();
+
     /** 레거시 _알림큐 잔여분 소진용 (신규 enqueue 없음) */
     case 'notify.flush':
       return handleNotifyFlush(params);
