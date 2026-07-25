@@ -130,7 +130,11 @@ assert(V2_BLOCK_RENDERERS.form === V2FormBlock, "1. form registered in renderer"
 assert(isV2RenderableBlockType("form"), "2. form is renderable");
 assert(isV2RenderableBlockType("liveFeed"), "3a. liveFeed renderable");
 assert(!isV2RenderableBlockType("stickyPromo"), "3b. stickyPromo not document-renderable");
-assert(!isV2RenderableBlockType("popup"), "3c. popup excluded");
+assert(!isV2RenderableBlockType("popup"), "3c. popup not document-renderable");
+assert(
+  read("src/v2/renderable-v2-overlays.ts").includes('"popup"'),
+  "3c2. popup overlay renderable"
+);
 assert(isV2StaticBlockType("hero"), "3d. static types still static");
 assert(!isV2StaticBlockType("form"), "3e. form is not static-only type");
 assert(!isV2StaticBlockType("liveFeed"), "3f. liveFeed is not static-only type");
@@ -416,8 +420,14 @@ assert(guardV2PrivacyConsent({ agreed: true }) === null, "20. consent allows");
     for (const name of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, name.name);
       if (name.isDirectory()) {
-        // client island 허용: forms, live-feed (sticky uses shared PromoStickyBar)
-        if (name.name === "forms" || name.name === "live-feed") continue;
+        // client island 허용: forms, live-feed, overlays(popup)
+        // sticky overlay는 서버 컴포넌트 + PromoStickyBar
+        if (
+          name.name === "forms" ||
+          name.name === "live-feed" ||
+          name.name === "overlays"
+        )
+          continue;
         walk(p);
         continue;
       }

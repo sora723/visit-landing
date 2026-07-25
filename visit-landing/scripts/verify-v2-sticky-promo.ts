@@ -160,7 +160,10 @@ assert(
   "4. stickyPromo overlay renderable"
 );
 assert(!isV2RenderableBlockType("stickyPromo"), "5. not document renderable");
-assert(!isV2RenderableOverlayType("popup"), "6. popup still excluded");
+assert(
+  isV2RenderableOverlayType("popup"),
+  "6. popup overlay also renderable (sibling)"
+);
 
 {
   const page = pageWithSticky();
@@ -241,9 +244,10 @@ assert(
   "20. TEST_SITE_CODE setup includes stickyPromo"
 );
 assert(
-  testData.includes("stickyPromo test rows appended") &&
-    testData.includes("liveFeed+stickyPromo test rows appended"),
-  "21. legacy upgrade paths for sticky"
+  testData.includes("stickyPromo+popup test rows appended") &&
+    testData.includes("liveFeed+stickyPromo+popup test rows appended") &&
+    testData.includes("popup test rows appended"),
+  "21. legacy upgrade paths for sticky+popup"
 );
 
 const v1Page = read("src/app/page.tsx");

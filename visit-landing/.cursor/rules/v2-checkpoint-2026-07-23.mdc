@@ -3,7 +3,7 @@ description: V2 freeform landing — 작업 체크포인트 (재개용)
 alwaysApply: true
 ---
 
-# V2 작업 체크포인트 (2026-07-24)
+# V2 작업 체크포인트 (2026-07-25)
 
 브랜치: **`feature/v2-freeform-landing`**
 
@@ -18,13 +18,15 @@ alwaysApply: true
 3. 읽기 전용 `v2.page.published` + Next `loadV2PublishedPage`
 4. idempotent V2 Sheet schema inspect/ensure (수동)
 5. page.tsx: v2 → Published loader → Shell / SafeState
-6. **정적 블록 렌더러** (hero/notice/richText/featureCards/media/location/ctaBand/footerInfo)  
-   form·liveFeed·stickyPromo·popup 제외 · 렌더가능 0개 → SafeState
+6. 정적 블록 렌더러 + form · liveFeed · stickyPromo · **popup** overlays
+7. Draft Preview (enter 상대 Location) + **짧은 URL `/p/{code}`** (AS CacheService)
+8. Preview: 폼 제출 차단 · liveFeed 폴링 차단 · 시스템 footer
 
 ## 다음에 하면 안 되는 것
 
-clasp push · Netlify 배포 · Preview · Draft · Publish · Rollback · form/liveFeed/popup 인터랙션 — **별도 지시 전 금지**
+clasp push · Production(main) 배포 · Publish · Rollback — **별도 지시 전 금지**  
+(Deploy Preview push는 사용자 「진행」/배포 지시 시에만)
 
-## 재개 시
+## 재개 시 (대기)
 
-form Headless / liveFeed / overlay / 시스템 법적 footer — 사용자 지시 대기
+Publish / Rollback · 광고주 메뉴에서 short URL 발급 UI · clasp로 AS short.resolve 배포

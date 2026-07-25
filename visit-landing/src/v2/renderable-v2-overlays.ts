@@ -1,11 +1,10 @@
 /**
- * V2 overlay 렌더 가능 타입.
- * popup 은 이번 단계 제외. stickyPromo 만.
+ * V2 overlay 렌더 가능 타입 — stickyPromo + popup.
  */
 
 import type { ValidatedV2Block, ValidatedV2Page } from "@/v2/types";
 
-export const V2_RENDERABLE_OVERLAY_TYPES = ["stickyPromo"] as const;
+export const V2_RENDERABLE_OVERLAY_TYPES = ["stickyPromo", "popup"] as const;
 
 export type V2RenderableOverlayType =
   (typeof V2_RENDERABLE_OVERLAY_TYPES)[number];
@@ -34,5 +33,14 @@ export function getRenderableV2StickyPromo(
     getRenderableV2Overlays(page).find(
       (o) => o.componentType === "stickyPromo"
     ) ?? null
+  );
+}
+
+export function getRenderableV2Popup(
+  page: ValidatedV2Page
+): ValidatedV2Block | null {
+  return (
+    getRenderableV2Overlays(page).find((o) => o.componentType === "popup") ??
+    null
   );
 }

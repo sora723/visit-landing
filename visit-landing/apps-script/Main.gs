@@ -3,7 +3,8 @@
  * VisitLanding Web App 진입점
  *
  * Actions: submit | reservations.recent | site.provision | site.config |
- *          site.domains | site.resolve | v2.page.published | v2.page.preview
+ *          site.domains | site.resolve | v2.page.published | v2.page.preview |
+ *          v2.preview.short.resolve
  */
 
 function doGet(e) {
@@ -61,6 +62,9 @@ function routeAction_(action, params) {
 
     case 'formToken.issue':
       return handleFormTokenIssue(params);
+
+    case 'v2.preview.short.resolve':
+      return handleV2PreviewShortResolve(params);
 
     case 'reservations.recent':
       return getRecentReservations(params.siteCode, params.limit);

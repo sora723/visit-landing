@@ -6,12 +6,13 @@
  *   setupV2PreviewTestData()
  *   cleanupV2PreviewTestData()
  *   createTestV2PreviewUrl()
+ *   createTestV2PreviewShortUrl()
  *
  * Web App action / doGet / doPost / 트리거에 연결하지 않음.
  * 운영 siteCode 행·콘텐츠관리·접수관리·Published pointer는 수정하지 않음.
  *
  * Preview URL 확인 (토큰 로그 금지):
- *   1. 함수 선택: createTestV2PreviewUrl → Run
+ *   1. 함수 선택: createTestV2PreviewUrl 또는 createTestV2PreviewShortUrl → Run
  *   2. 실행 로그/Logger에 URL을 출력하지 않음 (토큰 포함)
  *   3. Return 값 확인:
  *      - 디버거 중단점 후 return 값 검사
@@ -131,12 +132,15 @@ function cleanupV2PreviewTestData() {
 }
 
 /**
- * TEST_SITE_CODE Preview enter URL 반환.
- * 토큰이 포함되므로 console/Logger에 URL을 출력하지 않음.
- * @returns {string}
+ * TEST_SITE_CODE Preview URL — 토큰 포함, Logger 출력 금지.
+ * Editor: createTestV2PreviewUrl / createTestV2PreviewShortUrl → Run → 반환값 확인
  */
 function createTestV2PreviewUrl() {
   return createV2PreviewUrl(V2_PREVIEW_TEST_SITE_CODE_);
+}
+
+function createTestV2PreviewShortUrl() {
+  return createV2PreviewShortUrl(V2_PREVIEW_TEST_SITE_CODE_);
 }
 
 function setupV2PreviewTestDataUnlocked_() {
@@ -187,6 +191,45 @@ function setupV2PreviewTestDataUnlocked_() {
       };
     }
 
+    var withStickyBlocks = buildV2PreviewTestLegacyBlockSpecs_()
+      .concat(buildV2PreviewTestLiveFeedBlockSpecs_())
+      .concat(buildV2PreviewTestStickyPromoBlockSpecs_());
+    var withStickyContents = buildV2PreviewTestLegacyContentSpecs_()
+      .concat(buildV2PreviewTestLiveFeedContentSpecs_())
+      .concat(buildV2PreviewTestStickyPromoContentSpecs_());
+    if (
+      v2PreviewTestRowsMatchSpecs_(
+        existingBlocks,
+        withStickyBlocks,
+        V2_BLOCK_PUBLIC_COLUMNS
+      ) &&
+      v2PreviewTestRowsMatchSpecs_(
+        existingContents,
+        withStickyContents,
+        V2_CONTENT_PUBLIC_COLUMNS
+      )
+    ) {
+      var popupBlocks = buildV2PreviewTestPopupBlockSpecs_();
+      var popupContents = buildV2PreviewTestPopupContentSpecs_();
+      for (var pb = 0; pb < popupBlocks.length; pb++) {
+        appendExactRowByHeaders_(blockSheet, popupBlocks[pb]);
+      }
+      for (var pc = 0; pc < popupContents.length; pc++) {
+        appendExactRowByHeaders_(contentSheet, popupContents[pc]);
+      }
+      SpreadsheetApp.flush();
+      return {
+        ok: true,
+        changed: true,
+        siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+        draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+        siteRow: 'unchanged',
+        blocksCreated: popupBlocks.length,
+        contentsCreated: popupContents.length,
+        message: 'popup test rows appended to TEST_SITE_CODE draft'
+      };
+    }
+
     var withLiveBlocks = buildV2PreviewTestLegacyBlockSpecs_().concat(
       buildV2PreviewTestLiveFeedBlockSpecs_()
     );
@@ -205,13 +248,17 @@ function setupV2PreviewTestDataUnlocked_() {
         V2_CONTENT_PUBLIC_COLUMNS
       )
     ) {
-      var stickyBlocks = buildV2PreviewTestStickyPromoBlockSpecs_();
-      var stickyContents = buildV2PreviewTestStickyPromoContentSpecs_();
-      for (var sb = 0; sb < stickyBlocks.length; sb++) {
-        appendExactRowByHeaders_(blockSheet, stickyBlocks[sb]);
+      var stickyPopupBlocks = buildV2PreviewTestStickyPromoBlockSpecs_().concat(
+        buildV2PreviewTestPopupBlockSpecs_()
+      );
+      var stickyPopupContents = buildV2PreviewTestStickyPromoContentSpecs_().concat(
+        buildV2PreviewTestPopupContentSpecs_()
+      );
+      for (var sb = 0; sb < stickyPopupBlocks.length; sb++) {
+        appendExactRowByHeaders_(blockSheet, stickyPopupBlocks[sb]);
       }
-      for (var sc = 0; sc < stickyContents.length; sc++) {
-        appendExactRowByHeaders_(contentSheet, stickyContents[sc]);
+      for (var sc = 0; sc < stickyPopupContents.length; sc++) {
+        appendExactRowByHeaders_(contentSheet, stickyPopupContents[sc]);
       }
       SpreadsheetApp.flush();
       return {
@@ -220,9 +267,9 @@ function setupV2PreviewTestDataUnlocked_() {
         siteCode: V2_PREVIEW_TEST_SITE_CODE_,
         draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
         siteRow: 'unchanged',
-        blocksCreated: stickyBlocks.length,
-        contentsCreated: stickyContents.length,
-        message: 'stickyPromo test rows appended to TEST_SITE_CODE draft'
+        blocksCreated: stickyPopupBlocks.length,
+        contentsCreated: stickyPopupContents.length,
+        message: 'stickyPromo+popup test rows appended to TEST_SITE_CODE draft'
       };
     }
 
@@ -240,12 +287,12 @@ function setupV2PreviewTestDataUnlocked_() {
         V2_CONTENT_PUBLIC_COLUMNS
       )
     ) {
-      var addBlocks = buildV2PreviewTestLiveFeedBlockSpecs_().concat(
-        buildV2PreviewTestStickyPromoBlockSpecs_()
-      );
-      var addContents = buildV2PreviewTestLiveFeedContentSpecs_().concat(
-        buildV2PreviewTestStickyPromoContentSpecs_()
-      );
+      var addBlocks = buildV2PreviewTestLiveFeedBlockSpecs_()
+        .concat(buildV2PreviewTestStickyPromoBlockSpecs_())
+        .concat(buildV2PreviewTestPopupBlockSpecs_());
+      var addContents = buildV2PreviewTestLiveFeedContentSpecs_()
+        .concat(buildV2PreviewTestStickyPromoContentSpecs_())
+        .concat(buildV2PreviewTestPopupContentSpecs_());
       for (var ab = 0; ab < addBlocks.length; ab++) {
         appendExactRowByHeaders_(blockSheet, addBlocks[ab]);
       }
@@ -261,7 +308,8 @@ function setupV2PreviewTestDataUnlocked_() {
         siteRow: 'unchanged',
         blocksCreated: addBlocks.length,
         contentsCreated: addContents.length,
-        message: 'liveFeed+stickyPromo test rows appended to legacy TEST_SITE_CODE draft'
+        message:
+          'liveFeed+stickyPromo+popup test rows appended to legacy TEST_SITE_CODE draft'
       };
     }
 
@@ -521,10 +569,36 @@ function buildV2PreviewTestStickyPromoBlockSpecs_() {
   ];
 }
 
+function buildV2PreviewTestPopupBlockSpecs_() {
+  return [
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      sectionId: 'popup-preview',
+      sectionOrder: 5,
+      componentType: 'popup',
+      variant: 'form',
+      contentGroup: 'cg-popup-preview',
+      enabled: 'Y',
+      desktopVisible: 'Y',
+      mobileVisible: 'Y',
+      backgroundType: 'none',
+      backgroundColor: '',
+      backgroundPc: '',
+      backgroundMobile: '',
+      themeVariant: 'default',
+      paddingPreset: 'md',
+      animationPreset: 'none',
+      optionsJson: '{}'
+    }
+  ];
+}
+
 function buildV2PreviewTestBlockSpecs_() {
   return buildV2PreviewTestLegacyBlockSpecs_()
     .concat(buildV2PreviewTestLiveFeedBlockSpecs_())
-    .concat(buildV2PreviewTestStickyPromoBlockSpecs_());
+    .concat(buildV2PreviewTestStickyPromoBlockSpecs_())
+    .concat(buildV2PreviewTestPopupBlockSpecs_());
 }
 
 function buildV2PreviewTestLegacyContentSpecs_() {
@@ -680,10 +754,85 @@ function buildV2PreviewTestStickyPromoContentSpecs_() {
   ];
 }
 
+function buildV2PreviewTestPopupContentSpecs_() {
+  return [
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      contentGroup: 'cg-popup-preview',
+      itemId: 'popup-root-1',
+      itemOrder: 1,
+      role: 'root',
+      eyebrow: '',
+      title: '방문예약 팝업 테스트',
+      subtitle: '미리보기에서는 접수되지 않습니다.',
+      description: '',
+      value: '',
+      badge: '',
+      icon: '',
+      imagePc: '',
+      imageMobile: '',
+      videoUrl: '',
+      actionType: '',
+      actionLabel: '',
+      actionValue: '',
+      extraJson: '{}',
+      enabled: 'Y'
+    },
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      contentGroup: 'cg-popup-preview',
+      itemId: 'popup-form-1',
+      itemOrder: 2,
+      role: 'form',
+      eyebrow: '',
+      title: '',
+      subtitle: '',
+      description: '',
+      value: '',
+      badge: '',
+      icon: '',
+      imagePc: '',
+      imageMobile: '',
+      videoUrl: '',
+      actionType: '',
+      actionLabel: '',
+      actionValue: '',
+      extraJson: '{}',
+      enabled: 'Y'
+    },
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      contentGroup: 'cg-popup-preview',
+      itemId: 'popup-cta-1',
+      itemOrder: 3,
+      role: 'cta',
+      eyebrow: '',
+      title: '',
+      subtitle: '',
+      description: '',
+      value: '',
+      badge: '',
+      icon: '',
+      imagePc: '',
+      imageMobile: '',
+      videoUrl: '',
+      actionType: 'submit',
+      actionLabel: '방문예약하기',
+      actionValue: '',
+      extraJson: '{}',
+      enabled: 'Y'
+    }
+  ];
+}
+
 function buildV2PreviewTestContentSpecs_() {
   return buildV2PreviewTestLegacyContentSpecs_()
     .concat(buildV2PreviewTestLiveFeedContentSpecs_())
-    .concat(buildV2PreviewTestStickyPromoContentSpecs_());
+    .concat(buildV2PreviewTestStickyPromoContentSpecs_())
+    .concat(buildV2PreviewTestPopupContentSpecs_());
 }
 
 function v2PreviewTestRowsMatchSpecs_(rows, expected, columns) {

@@ -32,6 +32,9 @@ type Props = {
   buttonText: string;
   source?: string;
   isPreview?: boolean;
+  /** popup 등 — 성공 후 페이지 이동 없이 콜백 */
+  redirect?: boolean;
+  onSuccess?: () => void;
 };
 
 /** 동의 미체크 시 제출 차단 — buildReservationPayload 호출 전 */
@@ -72,6 +75,8 @@ export function V2ReservationFormAdapter({
   buttonText,
   source = "v2_form",
   isPreview = false,
+  redirect = true,
+  onSuccess,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -81,9 +86,10 @@ export function V2ReservationFormAdapter({
   const navigate = useCallback(
     (url: string) => {
       if (isPreview) return;
+      if (!redirect) return;
       router.push(url);
     },
-    [router, isPreview]
+    [router, isPreview, redirect]
   );
 
   const { submit, submitting } = useReservationSubmit({
@@ -117,12 +123,14 @@ export function V2ReservationFormAdapter({
         security?.buildSubmitExtras() ?? {},
         source
       ),
-      { redirect: true }
+      { redirect }
     );
 
     if (!result.success) {
       setError(result.message ?? "접수에 실패했습니다.");
+      return;
     }
+    onSuccess?.();
   }
 
   return (

@@ -7,6 +7,7 @@
  *
  * 수동:
  *   createV2PreviewUrl('L001')
+ *   createV2PreviewShortUrl('L001')
  *   createV2PreviewUrl('L001', 'https://allowed.example')
  *
  * Script Properties:
@@ -206,12 +207,10 @@ function resolveAllowedPreviewOrigin_(requestedOrigin) {
 }
 
 /**
- * 관리자 수동 호출 — Preview URL 반환. Sheet 미변경.
- * @param {string} siteCode
- * @param {string=} previewOrigin allowlist 내 origin (생략 시 allowlist 첫 항목)
- * @returns {string} Preview enter URL
+ * 관리자 수동 호출 — Preview 토큰 발급 공통.
+ * @returns {{origin:string,siteCode:string,token:string,expiresAt:number,longUrl:string}}
  */
-function createV2PreviewUrl(siteCode, previewOrigin) {
+function mintV2PreviewEnterBundle_(siteCode, previewOrigin) {
   var code = String(siteCode || '').trim();
   if (!code) {
     throw createAppError_('VALIDATION_ERROR', 'siteCode is required');
@@ -275,13 +274,96 @@ function createV2PreviewUrl(siteCode, previewOrigin) {
     throw createAppError_('INTERNAL_ERROR', 'failed to mint preview token');
   }
 
-  return (
-    origin +
-    '/api/preview/enter?siteCode=' +
-    encodeURIComponent(code) +
-    '&t=' +
-    encodeURIComponent(token)
+  return {
+    origin: origin,
+    siteCode: code,
+    token: token,
+    expiresAt: expiresAt,
+    longUrl:
+      origin +
+      '/api/preview/enter?siteCode=' +
+      encodeURIComponent(code) +
+      '&t=' +
+      encodeURIComponent(token)
+  };
+}
+
+/**
+ * 관리자 수동 호출 — Preview URL 반환. Sheet 미변경.
+ * @param {string} siteCode
+ * @param {string=} previewOrigin allowlist 내 origin (생략 시 allowlist 첫 항목)
+ * @returns {string} Preview enter URL (긴 토큰)
+ */
+function createV2PreviewUrl(siteCode, previewOrigin) {
+  return mintV2PreviewEnterBundle_(siteCode, previewOrigin).longUrl;
+}
+
+/**
+ * 광고주용 짧은 Preview URL — CacheService 단축 코드.
+ * @returns {string} `{origin}/p/{code}`
+ */
+function createV2PreviewShortUrl(siteCode, previewOrigin) {
+  var bundle = mintV2PreviewEnterBundle_(siteCode, previewOrigin);
+  var shortCode = issueV2PreviewShortCode_(
+    bundle.token,
+    bundle.siteCode,
+    bundle.expiresAt
   );
+  return bundle.origin + '/p/' + shortCode;
+}
+
+var V2_PREVIEW_SHORT_CACHE_PREFIX_ = 'pv:';
+var V2_PREVIEW_SHORT_CODE_RE_ = /^[A-Za-z0-9]{16,32}$/;
+
+function issueV2PreviewShortCode_(token, siteCode, expiresAt) {
+  var code = Utilities.getUuid().replace(/-/g, '');
+  var now = Math.floor(Date.now() / 1000);
+  var remaining = Number(expiresAt) - now;
+  if (!isFinite(remaining) || remaining <= 0) {
+    throw createAppError_('VALIDATION_ERROR', 'preview token already expired');
+  }
+  var ttl = Math.min(V2_PREVIEW_TTL_SECONDS_, Math.floor(remaining));
+  var payload = JSON.stringify({
+    siteCode: String(siteCode || '').trim(),
+    token: String(token || '').trim(),
+    expiresAt: Number(expiresAt)
+  });
+  CacheService.getScriptCache().put(
+    V2_PREVIEW_SHORT_CACHE_PREFIX_ + code,
+    payload,
+    ttl
+  );
+  return code;
+}
+
+function resolveV2PreviewShortCode_(code) {
+  var trimmed = String(code || '').trim();
+  if (!V2_PREVIEW_SHORT_CODE_RE_.test(trimmed)) return null;
+  var raw = CacheService.getScriptCache().get(
+    V2_PREVIEW_SHORT_CACHE_PREFIX_ + trimmed
+  );
+  if (!raw) return null;
+  try {
+    var parsed = JSON.parse(raw);
+    var siteCode = String(parsed.siteCode || '').trim();
+    var token = String(parsed.token || '').trim();
+    var expiresAt = Number(parsed.expiresAt);
+    if (!siteCode || !token) return null;
+    if (!isFinite(expiresAt) || expiresAt <= 0) return null;
+    if (expiresAt < Math.floor(Date.now() / 1000)) return null;
+    return { siteCode: siteCode, token: token, expiresAt: expiresAt };
+  } catch (err) {
+    return null;
+  }
+}
+
+/** Web: action=v2.preview.short.resolve&code=… */
+function handleV2PreviewShortResolve(params) {
+  var resolved = resolveV2PreviewShortCode_(params && params.code);
+  if (!resolved) {
+    throw createAppError_('VALIDATION_ERROR', 'Preview short code invalid');
+  }
+  return resolved;
 }
 
 function v2PreviewFail_(code) {
