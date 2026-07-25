@@ -54,13 +54,22 @@ export async function GET(request: NextRequest) {
   if (maxAge <= 0) return forbidden();
 
   const redirectPath = buildV2PreviewSafeRedirectPath(payload.siteCode);
-  // open redirect 금지 — 동일 origin 상대 경로만
-  const response = NextResponse.redirect(new URL(redirectPath, request.url), {
-    status: 303,
-  });
+  // open redirect 금지 — path-only (`/?siteCode=…`). Absolute Location via
+  // `new URL(..., request.url)` can rewrite Host to Netlify's `{deployId}--`
+  // origin while the browser (and host-only cookie) stay on `deploy-preview-N--`,
+  // so Preview cookie is dropped → SafeState on Chrome/Safari alike.
+  if (!redirectPath.startsWith("/") || redirectPath.startsWith("//")) {
+    return forbidden();
+  }
 
-  response.headers.set("Cache-Control", "no-store");
-  response.headers.set("CDN-Cache-Control", "no-store");
+  const response = new NextResponse(null, {
+    status: 303,
+    headers: {
+      Location: redirectPath,
+      "Cache-Control": "no-store",
+      "CDN-Cache-Control": "no-store",
+    },
+  });
 
   const isProd = process.env.NODE_ENV === "production";
   response.cookies.set(V2_PREVIEW_COOKIE_NAME, token, {

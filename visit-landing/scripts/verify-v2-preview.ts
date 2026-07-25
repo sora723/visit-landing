@@ -345,8 +345,10 @@ assert(
   assert(
     enter.includes("buildV2PreviewSafeRedirectPath") &&
       enter.includes("V2_PREVIEW_QUERY_PARAM") &&
-      !enter.includes("returnUrl"),
-    "16. redirect strips token (path builder, no returnUrl)"
+      !enter.includes("returnUrl") &&
+      !enter.includes("new URL(redirectPath, request.url)") &&
+      enter.includes('Location: redirectPath'),
+    "16. redirect strips token (relative Location, no returnUrl)"
   );
   assert(
     enter.includes("siteCode") &&
