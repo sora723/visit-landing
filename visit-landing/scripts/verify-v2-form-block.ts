@@ -128,11 +128,12 @@ console.log("\n[verify:v2-form-block] V2 form + system footer\n");
 
 assert(V2_BLOCK_RENDERERS.form === V2FormBlock, "1. form registered in renderer");
 assert(isV2RenderableBlockType("form"), "2. form is renderable");
-assert(!isV2RenderableBlockType("liveFeed"), "3a. liveFeed excluded");
+assert(isV2RenderableBlockType("liveFeed"), "3a. liveFeed renderable");
 assert(!isV2RenderableBlockType("stickyPromo"), "3b. stickyPromo excluded");
 assert(!isV2RenderableBlockType("popup"), "3c. popup excluded");
 assert(isV2StaticBlockType("hero"), "3d. static types still static");
 assert(!isV2StaticBlockType("form"), "3e. form is not static-only type");
+assert(!isV2StaticBlockType("liveFeed"), "3f. liveFeed is not static-only type");
 
 {
   const onlyForm = pageWith([formBlock()]);
@@ -415,7 +416,8 @@ assert(guardV2PrivacyConsent({ agreed: true }) === null, "20. consent allows");
     for (const name of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, name.name);
       if (name.isDirectory()) {
-        if (name.name === "forms") continue;
+        // Client islands only: forms + live-feed
+        if (name.name === "forms" || name.name === "live-feed") continue;
         walk(p);
         continue;
       }
@@ -431,6 +433,15 @@ assert(guardV2PrivacyConsent({ agreed: true }) === null, "20. consent allows");
   assert(
     staticClients.length === 0,
     "38. static V2 blocks remain server components"
+  );
+  const liveFeedClient = read(
+    "src/components/v2/live-feed/V2LiveFeedClient.tsx"
+  );
+  const liveFeedBlock = read("src/components/v2/blocks/V2LiveFeedBlock.tsx");
+  assert(
+    liveFeedClient.includes('"use client"') &&
+      !liveFeedBlock.includes('"use client"'),
+    "38b. liveFeed client island only"
   );
 }
 

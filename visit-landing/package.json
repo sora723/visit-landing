@@ -21,6 +21,7 @@
     "verify:v2-page-runtime": "npx --yes tsx scripts/verify-v2-page-runtime.ts",
     "verify:v2-block-renderer": "npx --yes tsx scripts/verify-v2-block-renderer.ts",
     "verify:v2-form-block": "npx --yes tsx scripts/verify-v2-form-block.ts",
+    "verify:v2-live-feed": "npx --yes tsx scripts/verify-v2-live-feed.ts",
     "verify:v2-preview": "npx --yes tsx scripts/verify-v2-preview.ts",
     "verify:v2-preview-test-data": "npx --yes tsx scripts/verify-v2-preview-test-data.ts",
     "verify:shared-reservation-submit": "npx --yes tsx scripts/verify-shared-reservation-submit.ts",

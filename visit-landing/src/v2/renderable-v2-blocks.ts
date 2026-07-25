@@ -1,7 +1,7 @@
 /**
  * 이번 단계 렌더 가능 componentType.
- * liveFeed / stickyPromo / popup 제외.
- * form 은 클라이언트 island 포함 (정적 블록과 구분).
+ * stickyPromo / popup 제외.
+ * form · liveFeed 는 클라이언트 island 포함 (정적 블록과 구분).
  */
 
 import type { ValidatedV2Block, ValidatedV2Page } from "@/v2/types";
@@ -24,6 +24,7 @@ export type V2StaticBlockType = (typeof V2_STATIC_BLOCK_TYPES)[number];
 export const V2_RENDERABLE_BLOCK_TYPES = [
   ...V2_STATIC_BLOCK_TYPES,
   "form",
+  "liveFeed",
 ] as const;
 
 export type V2RenderableBlockType =

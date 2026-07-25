@@ -53,7 +53,8 @@ export type ComponentRegistryEntry = {
   allowsVideo: boolean;
   /**
    * 실질 콘텐츠 블록 여부.
-   * footerInfo·liveFeed·overlay는 false — 이들만으로는 페이지 유효하지 않음.
+   * footerInfo·overlay는 false — 이들만으로는 페이지 유효하지 않음.
+   * liveFeed·form 은 renderable 이므로 단독으로도 페이지 유효.
    */
   contributesToPageValidity: boolean;
   /** optionsJson 허용 키 (문서 정의분만). 미정의면 빈 배열 */
@@ -153,7 +154,7 @@ export const COMPONENT_REGISTRY: Readonly<
     isOverlay: false,
     maxPerPage: Number.POSITIVE_INFINITY,
     allowsVideo: false,
-    contributesToPageValidity: false,
+    contributesToPageValidity: true,
     defaultOptions: {},
   }),
   richText: entry({

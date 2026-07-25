@@ -160,18 +160,72 @@ function setupV2PreviewTestDataUnlocked_() {
 
   if (existingSite) {
     assertV2PreviewTestSiteMatches_(existingSite, siteSheet);
-    assertV2PreviewTestBlocksMatch_(existingBlocks);
-    assertV2PreviewTestContentsMatch_(existingContents);
-    return {
-      ok: true,
-      changed: false,
-      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
-      draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
-      siteRow: 'unchanged',
-      blocksCreated: 0,
-      contentsCreated: 0,
-      message: 'test data already matches contract'
-    };
+
+    var fullBlocks = buildV2PreviewTestBlockSpecs_();
+    var fullContents = buildV2PreviewTestContentSpecs_();
+    if (
+      v2PreviewTestRowsMatchSpecs_(
+        existingBlocks,
+        fullBlocks,
+        V2_BLOCK_PUBLIC_COLUMNS
+      ) &&
+      v2PreviewTestRowsMatchSpecs_(
+        existingContents,
+        fullContents,
+        V2_CONTENT_PUBLIC_COLUMNS
+      )
+    ) {
+      return {
+        ok: true,
+        changed: false,
+        siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+        draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+        siteRow: 'unchanged',
+        blocksCreated: 0,
+        contentsCreated: 0,
+        message: 'test data already matches contract'
+      };
+    }
+
+    var legacyBlocks = buildV2PreviewTestLegacyBlockSpecs_();
+    var legacyContents = buildV2PreviewTestLegacyContentSpecs_();
+    if (
+      v2PreviewTestRowsMatchSpecs_(
+        existingBlocks,
+        legacyBlocks,
+        V2_BLOCK_PUBLIC_COLUMNS
+      ) &&
+      v2PreviewTestRowsMatchSpecs_(
+        existingContents,
+        legacyContents,
+        V2_CONTENT_PUBLIC_COLUMNS
+      )
+    ) {
+      var addBlocks = buildV2PreviewTestLiveFeedBlockSpecs_();
+      var addContents = buildV2PreviewTestLiveFeedContentSpecs_();
+      for (var ab = 0; ab < addBlocks.length; ab++) {
+        appendExactRowByHeaders_(blockSheet, addBlocks[ab]);
+      }
+      for (var ac = 0; ac < addContents.length; ac++) {
+        appendExactRowByHeaders_(contentSheet, addContents[ac]);
+      }
+      SpreadsheetApp.flush();
+      return {
+        ok: true,
+        changed: true,
+        siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+        draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+        siteRow: 'unchanged',
+        blocksCreated: addBlocks.length,
+        contentsCreated: addContents.length,
+        message: 'liveFeed test rows appended to legacy TEST_SITE_CODE draft'
+      };
+    }
+
+    throw createAppError_(
+      'VALIDATION_ERROR',
+      'TEST_SITE_CODE V2 rows conflict with current test contract'
+    );
   }
 
   if (existingBlocks.length > 0 || existingContents.length > 0) {
@@ -329,7 +383,7 @@ function buildV2PreviewTestSiteRowData_(siteSheet) {
   return row;
 }
 
-function buildV2PreviewTestBlockSpecs_() {
+function buildV2PreviewTestLegacyBlockSpecs_() {
   return [
     {
       siteCode: V2_PREVIEW_TEST_SITE_CODE_,
@@ -374,7 +428,38 @@ function buildV2PreviewTestBlockSpecs_() {
   ];
 }
 
-function buildV2PreviewTestContentSpecs_() {
+function buildV2PreviewTestLiveFeedBlockSpecs_() {
+  return [
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      sectionId: 'live-feed-preview',
+      sectionOrder: 3,
+      componentType: 'liveFeed',
+      variant: 'default',
+      contentGroup: 'cg-live-feed-preview',
+      enabled: 'Y',
+      desktopVisible: 'Y',
+      mobileVisible: 'Y',
+      backgroundType: 'none',
+      backgroundColor: '',
+      backgroundPc: '',
+      backgroundMobile: '',
+      themeVariant: 'default',
+      paddingPreset: 'md',
+      animationPreset: 'none',
+      optionsJson: '{}'
+    }
+  ];
+}
+
+function buildV2PreviewTestBlockSpecs_() {
+  return buildV2PreviewTestLegacyBlockSpecs_().concat(
+    buildV2PreviewTestLiveFeedBlockSpecs_()
+  );
+}
+
+function buildV2PreviewTestLegacyContentSpecs_() {
   return [
     {
       siteCode: V2_PREVIEW_TEST_SITE_CODE_,
@@ -469,6 +554,56 @@ function buildV2PreviewTestContentSpecs_() {
       enabled: 'Y'
     }
   ];
+}
+
+function buildV2PreviewTestLiveFeedContentSpecs_() {
+  return [
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      contentGroup: 'cg-live-feed-preview',
+      itemId: 'live-feed-root-1',
+      itemOrder: 1,
+      role: 'root',
+      eyebrow: '',
+      title: '실시간 관심등록 현황',
+      subtitle: '',
+      description: '최근 관심고객 등록 현황을 안내합니다.',
+      value: '',
+      badge: '',
+      icon: '',
+      imagePc: '',
+      imageMobile: '',
+      videoUrl: '',
+      actionType: '',
+      actionLabel: '',
+      actionValue: '',
+      extraJson: '{}',
+      enabled: 'Y'
+    }
+  ];
+}
+
+function buildV2PreviewTestContentSpecs_() {
+  return buildV2PreviewTestLegacyContentSpecs_().concat(
+    buildV2PreviewTestLiveFeedContentSpecs_()
+  );
+}
+
+function v2PreviewTestRowsMatchSpecs_(rows, expected, columns) {
+  if (!rows || rows.length !== expected.length) return false;
+  for (var i = 0; i < expected.length; i++) {
+    for (var c = 0; c < columns.length; c++) {
+      var key = columns[c];
+      if (
+        normalizeV2PreviewTestCell_(rows[i][key]) !==
+        normalizeV2PreviewTestCell_(expected[i][key])
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 function assertV2PreviewTestSiteMatches_(siteRow, siteSheet) {

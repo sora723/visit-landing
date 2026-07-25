@@ -16,6 +16,7 @@ import { V2LocationBlock } from "@/components/v2/blocks/V2LocationBlock";
 import { V2CtaBandBlock } from "@/components/v2/blocks/V2CtaBandBlock";
 import { V2FooterInfoBlock } from "@/components/v2/blocks/V2FooterInfoBlock";
 import { V2FormBlock } from "@/components/v2/blocks/V2FormBlock";
+import { V2LiveFeedBlock } from "@/components/v2/blocks/V2LiveFeedBlock";
 
 type StaticBlockProps = { block: ValidatedV2Block };
 
@@ -33,10 +34,11 @@ export const V2_STATIC_BLOCK_RENDERERS: Record<
   footerInfo: V2FooterInfoBlock,
 };
 
-/** form 포함 — 검증·레지스트리 조회용 */
+/** form · liveFeed 포함 — 검증·레지스트리 조회용 */
 export const V2_BLOCK_RENDERERS = {
   ...V2_STATIC_BLOCK_RENDERERS,
   form: V2FormBlock,
+  liveFeed: V2LiveFeedBlock,
 } as const;
 
 type Props = {
@@ -64,6 +66,17 @@ export function V2BlockRenderer({
               block={block}
               site={site}
               conversionTracking={conversionTracking}
+              isPreview={isPreview}
+            />
+          );
+        }
+
+        if (block.componentType === "liveFeed") {
+          return (
+            <V2LiveFeedBlock
+              key={block.sectionId}
+              block={block}
+              siteCode={site.siteCode}
               isPreview={isPreview}
             />
           );

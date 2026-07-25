@@ -449,7 +449,8 @@ assert(parseSafeSectionTarget("bad id!") === null, "13b. bad scroll rejected");
 
 assert(isV2RenderableBlockType("form"), "21. form renderable");
 assert(!isV2StaticBlockType("form"), "21a. form not in static-only list");
-assert(!isV2RenderableBlockType("liveFeed"), "21b. liveFeed excluded");
+assert(isV2RenderableBlockType("liveFeed"), "21b. liveFeed renderable");
+assert(!isV2StaticBlockType("liveFeed"), "21b2. liveFeed not static-only");
 assert(!isV2RenderableBlockType("stickyPromo"), "21c. stickyPromo excluded");
 assert(!isV2RenderableBlockType("popup"), "21d. popup excluded");
 
@@ -533,8 +534,8 @@ assert(!isV2RenderableBlockType("popup"), "21d. popup excluded");
     for (const name of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, name.name);
       if (name.isDirectory()) {
-        // form client island 허용
-        if (name.name === "forms") continue;
+        // client island 허용: forms, live-feed
+        if (name.name === "forms" || name.name === "live-feed") continue;
         walk(p);
         continue;
       }
@@ -555,7 +556,7 @@ assert(!isV2RenderableBlockType("popup"), "21d. popup excluded");
       }
     }
   }
-  if (!bad) ok("25. no unnecessary use client outside v2/forms");
+  if (!bad) ok("25. no unnecessary use client outside forms/live-feed");
 }
 
 {

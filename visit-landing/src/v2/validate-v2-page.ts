@@ -472,7 +472,7 @@ export function validateV2Page(
     fatalErrors.push({
       code: "no_valid_document_blocks",
       message:
-        "no substantive content blocks (footerInfo/liveFeed/overlay alone are insufficient)",
+        "no substantive content blocks (footerInfo/overlay alone are insufficient)",
     });
     return { ok: false, fatalErrors, warnings };
   }

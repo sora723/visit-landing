@@ -1258,7 +1258,7 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
   );
 }
 
-// 34. liveFeed only → fatal
+// 34. liveFeed only → ok (renderable → avoids SafeState)
 {
   const blocks = [
     block({
@@ -1270,13 +1270,13 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
   const contents: V2ContentRow[] = [];
   const result = validateV2Page({ ...SCOPE, blocks, contents });
   assert(
-    result.ok === false &&
-      result.fatalErrors.some((e) => e.code === "no_valid_document_blocks"),
-    "34. liveFeed only → fatal"
+    result.ok === true &&
+      result.page.blocks.some((b) => b.componentType === "liveFeed"),
+    "34. liveFeed only → ok"
   );
 }
 
-// 35. footerInfo + liveFeed only → fatal
+// 35. footerInfo + liveFeed only → ok (liveFeed contributes)
 {
   const blocks = [
     block({
@@ -1303,9 +1303,10 @@ console.log("\n[verify:v2-schema] V2 contract / registry / validation\n");
   ];
   const result = validateV2Page({ ...SCOPE, blocks, contents });
   assert(
-    result.ok === false &&
-      result.fatalErrors.some((e) => e.code === "no_valid_document_blocks"),
-    "35. footerInfo + liveFeed only → fatal"
+    result.ok === true &&
+      result.page.blocks.some((b) => b.componentType === "liveFeed") &&
+      result.page.blocks.some((b) => b.componentType === "footerInfo"),
+    "35. footerInfo + liveFeed only → ok"
   );
 }
 
