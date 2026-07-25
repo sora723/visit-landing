@@ -1,6 +1,6 @@
 /**
- * 이번 단계 렌더 가능 componentType.
- * stickyPromo / popup 제외.
+ * 이번 단계 렌더 가능 document componentType.
+ * overlay(stickyPromo/popup)는 renderable-v2-overlays 참고.
  * form · liveFeed 는 클라이언트 island 포함 (정적 블록과 구분).
  */
 

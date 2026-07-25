@@ -187,6 +187,45 @@ function setupV2PreviewTestDataUnlocked_() {
       };
     }
 
+    var withLiveBlocks = buildV2PreviewTestLegacyBlockSpecs_().concat(
+      buildV2PreviewTestLiveFeedBlockSpecs_()
+    );
+    var withLiveContents = buildV2PreviewTestLegacyContentSpecs_().concat(
+      buildV2PreviewTestLiveFeedContentSpecs_()
+    );
+    if (
+      v2PreviewTestRowsMatchSpecs_(
+        existingBlocks,
+        withLiveBlocks,
+        V2_BLOCK_PUBLIC_COLUMNS
+      ) &&
+      v2PreviewTestRowsMatchSpecs_(
+        existingContents,
+        withLiveContents,
+        V2_CONTENT_PUBLIC_COLUMNS
+      )
+    ) {
+      var stickyBlocks = buildV2PreviewTestStickyPromoBlockSpecs_();
+      var stickyContents = buildV2PreviewTestStickyPromoContentSpecs_();
+      for (var sb = 0; sb < stickyBlocks.length; sb++) {
+        appendExactRowByHeaders_(blockSheet, stickyBlocks[sb]);
+      }
+      for (var sc = 0; sc < stickyContents.length; sc++) {
+        appendExactRowByHeaders_(contentSheet, stickyContents[sc]);
+      }
+      SpreadsheetApp.flush();
+      return {
+        ok: true,
+        changed: true,
+        siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+        draftRevisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+        siteRow: 'unchanged',
+        blocksCreated: stickyBlocks.length,
+        contentsCreated: stickyContents.length,
+        message: 'stickyPromo test rows appended to TEST_SITE_CODE draft'
+      };
+    }
+
     var legacyBlocks = buildV2PreviewTestLegacyBlockSpecs_();
     var legacyContents = buildV2PreviewTestLegacyContentSpecs_();
     if (
@@ -201,8 +240,12 @@ function setupV2PreviewTestDataUnlocked_() {
         V2_CONTENT_PUBLIC_COLUMNS
       )
     ) {
-      var addBlocks = buildV2PreviewTestLiveFeedBlockSpecs_();
-      var addContents = buildV2PreviewTestLiveFeedContentSpecs_();
+      var addBlocks = buildV2PreviewTestLiveFeedBlockSpecs_().concat(
+        buildV2PreviewTestStickyPromoBlockSpecs_()
+      );
+      var addContents = buildV2PreviewTestLiveFeedContentSpecs_().concat(
+        buildV2PreviewTestStickyPromoContentSpecs_()
+      );
       for (var ab = 0; ab < addBlocks.length; ab++) {
         appendExactRowByHeaders_(blockSheet, addBlocks[ab]);
       }
@@ -218,7 +261,7 @@ function setupV2PreviewTestDataUnlocked_() {
         siteRow: 'unchanged',
         blocksCreated: addBlocks.length,
         contentsCreated: addContents.length,
-        message: 'liveFeed test rows appended to legacy TEST_SITE_CODE draft'
+        message: 'liveFeed+stickyPromo test rows appended to legacy TEST_SITE_CODE draft'
       };
     }
 
@@ -453,10 +496,35 @@ function buildV2PreviewTestLiveFeedBlockSpecs_() {
   ];
 }
 
+function buildV2PreviewTestStickyPromoBlockSpecs_() {
+  return [
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      sectionId: 'sticky-promo-preview',
+      sectionOrder: 4,
+      componentType: 'stickyPromo',
+      variant: 'default',
+      contentGroup: 'cg-sticky-promo-preview',
+      enabled: 'Y',
+      desktopVisible: 'Y',
+      mobileVisible: 'Y',
+      backgroundType: 'none',
+      backgroundColor: '',
+      backgroundPc: '',
+      backgroundMobile: '',
+      themeVariant: 'default',
+      paddingPreset: 'md',
+      animationPreset: 'none',
+      optionsJson: '{}'
+    }
+  ];
+}
+
 function buildV2PreviewTestBlockSpecs_() {
-  return buildV2PreviewTestLegacyBlockSpecs_().concat(
-    buildV2PreviewTestLiveFeedBlockSpecs_()
-  );
+  return buildV2PreviewTestLegacyBlockSpecs_()
+    .concat(buildV2PreviewTestLiveFeedBlockSpecs_())
+    .concat(buildV2PreviewTestStickyPromoBlockSpecs_());
 }
 
 function buildV2PreviewTestLegacyContentSpecs_() {
@@ -584,10 +652,38 @@ function buildV2PreviewTestLiveFeedContentSpecs_() {
   ];
 }
 
+function buildV2PreviewTestStickyPromoContentSpecs_() {
+  return [
+    {
+      siteCode: V2_PREVIEW_TEST_SITE_CODE_,
+      revisionId: V2_PREVIEW_TEST_DRAFT_REVISION_ID_,
+      contentGroup: 'cg-sticky-promo-preview',
+      itemId: 'sticky-promo-root-1',
+      itemOrder: 1,
+      role: 'root',
+      eyebrow: '',
+      title: '지금 방문예약 시 특별 혜택',
+      subtitle: '',
+      description: '',
+      value: '',
+      badge: '',
+      icon: '',
+      imagePc: '',
+      imageMobile: '',
+      videoUrl: '',
+      actionType: '',
+      actionLabel: '',
+      actionValue: '',
+      extraJson: '{}',
+      enabled: 'Y'
+    }
+  ];
+}
+
 function buildV2PreviewTestContentSpecs_() {
-  return buildV2PreviewTestLegacyContentSpecs_().concat(
-    buildV2PreviewTestLiveFeedContentSpecs_()
-  );
+  return buildV2PreviewTestLegacyContentSpecs_()
+    .concat(buildV2PreviewTestLiveFeedContentSpecs_())
+    .concat(buildV2PreviewTestStickyPromoContentSpecs_());
 }
 
 function v2PreviewTestRowsMatchSpecs_(rows, expected, columns) {

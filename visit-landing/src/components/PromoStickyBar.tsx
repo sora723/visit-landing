@@ -1,6 +1,6 @@
 "use client";
 
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -24,10 +24,15 @@ export function PromoStickyBar({
   siteCode,
   initialText,
   serverMobile = false,
+  /** V1 기본 true. V2 overlay는 Sheet 스냅샷 문구만 쓰고 폴링 안 함 */
+  livePoll = true,
+  compact = false,
 }: {
   siteCode: string;
   initialText: string | null;
   serverMobile?: boolean;
+  livePoll?: boolean;
+  compact?: boolean;
 }) {
   const [text, setText] = useState(() => sanitizePromoText(initialText));
   const [useCanvas, setUseCanvas] = useState(() =>
@@ -124,6 +129,7 @@ export function PromoStickyBar({
   }, [siteCode]);
 
   useEffect(() => {
+    if (!livePoll) return;
     const timer = setInterval(fetchLivePromo, POLL_MS);
 
     const onVisible = () => {
@@ -135,12 +141,13 @@ export function PromoStickyBar({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [fetchLivePromo]);
+  }, [fetchLivePromo, livePoll]);
 
   if (!text) return null;
 
   const barClassName =
-    "promo-sticky-bar pointer-events-none fixed inset-x-0 z-[199] box-border w-full max-w-[100vw] px-1 pb-1.5 sm:px-3 md:px-6 md:pb-2";
+    "promo-sticky-bar pointer-events-none fixed inset-x-0 z-[199] box-border w-full max-w-[100vw] px-1 pb-1.5 sm:px-3 md:px-6 md:pb-2" +
+    (compact ? " promo-sticky-bar--compact" : "");
 
   if (useCanvas) {
     return (

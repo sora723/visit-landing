@@ -129,7 +129,7 @@ console.log("\n[verify:v2-form-block] V2 form + system footer\n");
 assert(V2_BLOCK_RENDERERS.form === V2FormBlock, "1. form registered in renderer");
 assert(isV2RenderableBlockType("form"), "2. form is renderable");
 assert(isV2RenderableBlockType("liveFeed"), "3a. liveFeed renderable");
-assert(!isV2RenderableBlockType("stickyPromo"), "3b. stickyPromo excluded");
+assert(!isV2RenderableBlockType("stickyPromo"), "3b. stickyPromo not document-renderable");
 assert(!isV2RenderableBlockType("popup"), "3c. popup excluded");
 assert(isV2StaticBlockType("hero"), "3d. static types still static");
 assert(!isV2StaticBlockType("form"), "3e. form is not static-only type");
@@ -416,7 +416,7 @@ assert(guardV2PrivacyConsent({ agreed: true }) === null, "20. consent allows");
     for (const name of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, name.name);
       if (name.isDirectory()) {
-        // Client islands only: forms + live-feed
+        // client island 허용: forms, live-feed (sticky uses shared PromoStickyBar)
         if (name.name === "forms" || name.name === "live-feed") continue;
         walk(p);
         continue;

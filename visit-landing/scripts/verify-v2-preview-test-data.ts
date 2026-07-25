@@ -478,12 +478,12 @@ function main() {
     assert(String(row.metaPixelId ?? "") === "", "conversion blank");
   });
 
-  check("7. hero/form/liveFeed blocks exact header order values", () => {
+  check("7. hero/form/liveFeed/stickyPromo blocks exact header order values", () => {
     const ss = new MockSpreadsheet();
     seedBase(ss, headers);
     createSandbox(ss).setupV2PreviewTestData();
     const blocks = ss.getSheetByName("V2_블록관리")!.rowsForSite("TEST_SITE_CODE");
-    assert(blocks.length === 3, "3 blocks");
+    assert(blocks.length === 4, "4 blocks");
     assert(String(blocks[0].sectionId) === "hero-preview", "hero section");
     assert(String(blocks[0].componentType) === "hero", "hero type");
     assert(String(blocks[0].variant) === "fullBleed", "hero variant");
@@ -496,7 +496,9 @@ function main() {
     assert(String(blocks[2].componentType) === "liveFeed", "liveFeed type");
     assert(String(blocks[2].variant) === "default", "liveFeed variant");
     assert(String(blocks[2].optionsJson) === "{}", "liveFeed options");
-    // header order matches constant
+    assert(String(blocks[3].sectionId) === "sticky-promo-preview", "sticky section");
+    assert(String(blocks[3].componentType) === "stickyPromo", "sticky type");
+    assert(String(blocks[3].variant) === "default", "sticky variant");
     assert(
       JSON.stringify(ss.getSheetByName("V2_블록관리")!.headerRow()) ===
         JSON.stringify(BLOCK),
@@ -504,12 +506,12 @@ function main() {
     );
   });
 
-  check("8. content 5 rows exact roles", () => {
+  check("8. content 6 rows exact roles", () => {
     const ss = new MockSpreadsheet();
     seedBase(ss, headers);
     createSandbox(ss).setupV2PreviewTestData();
     const rows = ss.getSheetByName("V2_콘텐츠")!.rowsForSite("TEST_SITE_CODE");
-    assert(rows.length === 5, "5 contents");
+    assert(rows.length === 6, "6 contents");
     assert(String(rows[0].role) === "root" && String(rows[0].itemId) === "hero-root-1", "hero root");
     assert(String(rows[1].role) === "root" && String(rows[1].itemId) === "form-root-1", "form root");
     assert(String(rows[2].role) === "form" && String(rows[2].itemId) === "form-body-1", "form body");
@@ -524,6 +526,12 @@ function main() {
         String(rows[4].itemId) === "live-feed-root-1" &&
         String(rows[4].title) === "실시간 관심등록 현황",
       "liveFeed root"
+    );
+    assert(
+      String(rows[5].role) === "root" &&
+        String(rows[5].itemId) === "sticky-promo-root-1" &&
+        String(rows[5].title) === "지금 방문예약 시 특별 혜택",
+      "sticky root"
     );
     assert(
       JSON.stringify(ss.getSheetByName("V2_콘텐츠")!.headerRow()) ===
@@ -556,8 +564,8 @@ function main() {
     assert(result.changed === true, "cleanup changed");
     const deleted = result.deleted as { site: number; blocks: number; contents: number };
     assert(deleted.site === 1, "site deleted");
-    assert(deleted.blocks === 3, "blocks deleted");
-    assert(deleted.contents === 5, "contents deleted");
+    assert(deleted.blocks === 4, "blocks deleted");
+    assert(deleted.contents === 6, "contents deleted");
     assert(ss.getSheetByName("현장관리")!.rowsForSite("TEST_SITE_CODE").length === 0, "test gone");
     assert(ss.getSheetByName("현장관리")!.rowsForSite("L001").length === 1, "ops kept");
     assert(ss.getSheetByName("콘텐츠관리")!.rowsForSite("L001").length === 1, "content mgmt kept");
@@ -599,7 +607,7 @@ function main() {
     assert(api.__log.releaseLockCount >= 2, "releaseLock");
   });
 
-  check("14b. legacy draft upgrades with liveFeed only", () => {
+  check("14b. legacy draft upgrades with liveFeed+stickyPromo", () => {
     const ss = new MockSpreadsheet();
     seedBase(ss, headers);
     const api = createSandbox(ss);
@@ -609,14 +617,16 @@ function main() {
     const blockHeaders = block.headerRow();
     const sectionIdx = blockHeaders.indexOf("sectionId");
     for (let r = block.getLastRow(); r >= 2; r--) {
-      if (String(block._get(r, sectionIdx + 1)).trim() === "live-feed-preview") {
+      const sid = String(block._get(r, sectionIdx + 1)).trim();
+      if (sid === "live-feed-preview" || sid === "sticky-promo-preview") {
         block.deleteRow(r);
       }
     }
     const contentHeaders = content.headerRow();
     const cgIdx = contentHeaders.indexOf("contentGroup");
     for (let r = content.getLastRow(); r >= 2; r--) {
-      if (String(content._get(r, cgIdx + 1)).trim() === "cg-live-feed-preview") {
+      const cg = String(content._get(r, cgIdx + 1)).trim();
+      if (cg === "cg-live-feed-preview" || cg === "cg-sticky-promo-preview") {
         content.deleteRow(r);
       }
     }
@@ -624,12 +634,42 @@ function main() {
     assert(content.rowsForSite("TEST_SITE_CODE").length === 4, "legacy 4 contents");
     const upgraded = api.setupV2PreviewTestData();
     assert(upgraded.changed === true, "upgrade changed");
-    assert(Number(upgraded.blocksCreated) === 1, "one block added");
-    assert(Number(upgraded.contentsCreated) === 1, "one content added");
-    assert(block.rowsForSite("TEST_SITE_CODE").length === 3, "now 3 blocks");
-    assert(content.rowsForSite("TEST_SITE_CODE").length === 5, "now 5 contents");
+    assert(Number(upgraded.blocksCreated) === 2, "two blocks added");
+    assert(Number(upgraded.contentsCreated) === 2, "two contents added");
+    assert(block.rowsForSite("TEST_SITE_CODE").length === 4, "now 4 blocks");
+    assert(content.rowsForSite("TEST_SITE_CODE").length === 6, "now 6 contents");
+  });
+
+  check("14c. liveFeed-only draft upgrades with stickyPromo", () => {
+    const ss = new MockSpreadsheet();
+    seedBase(ss, headers);
+    const api = createSandbox(ss);
+    api.setupV2PreviewTestData();
+    const block = ss.getSheetByName("V2_블록관리")!;
+    const content = ss.getSheetByName("V2_콘텐츠")!;
+    const blockHeaders = block.headerRow();
+    const sectionIdx = blockHeaders.indexOf("sectionId");
+    for (let r = block.getLastRow(); r >= 2; r--) {
+      if (String(block._get(r, sectionIdx + 1)).trim() === "sticky-promo-preview") {
+        block.deleteRow(r);
+      }
+    }
+    const contentHeaders = content.headerRow();
+    const cgIdx = contentHeaders.indexOf("contentGroup");
+    for (let r = content.getLastRow(); r >= 2; r--) {
+      if (String(content._get(r, cgIdx + 1)).trim() === "cg-sticky-promo-preview") {
+        content.deleteRow(r);
+      }
+    }
+    assert(block.rowsForSite("TEST_SITE_CODE").length === 3, "3 blocks before sticky");
+    const upgraded = api.setupV2PreviewTestData();
+    assert(upgraded.changed === true, "sticky upgrade changed");
+    assert(Number(upgraded.blocksCreated) === 1, "one sticky block");
+    assert(Number(upgraded.contentsCreated) === 1, "one sticky content");
+    assert(block.rowsForSite("TEST_SITE_CODE").length === 4, "now 4 blocks");
+    assert(content.rowsForSite("TEST_SITE_CODE").length === 6, "now 6 contents");
     const again = api.setupV2PreviewTestData();
-    assert(again.changed === false, "idempotent after upgrade");
+    assert(again.changed === false, "idempotent after sticky upgrade");
   });
 
   check("14. conflicting test row aborts setup", () => {

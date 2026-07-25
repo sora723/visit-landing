@@ -156,7 +156,14 @@ assert(
   (V2_RENDERABLE_BLOCK_TYPES as readonly string[]).includes("liveFeed"),
   "3b. in RENDERABLE list"
 );
-assert(!(V2_RENDERABLE_BLOCK_TYPES as readonly string[]).includes("stickyPromo"), "5a. stickyPromo excluded");
+assert(
+  !isV2RenderableBlockType("stickyPromo"),
+  "5a. stickyPromo not document-renderable"
+);
+assert(
+  read("src/v2/renderable-v2-overlays.ts").includes('"stickyPromo"'),
+  "5a2. stickyPromo overlay renderable module"
+);
 assert(!(V2_RENDERABLE_BLOCK_TYPES as readonly string[]).includes("popup"), "5b. popup excluded");
 
 {
@@ -363,7 +370,8 @@ assert(
 );
 assert(
   testDataGs.includes("buildV2PreviewTestLegacyBlockSpecs_") &&
-    testDataGs.includes("liveFeed test rows appended"),
+    (testDataGs.includes("liveFeed test rows appended") ||
+      testDataGs.includes("liveFeed+stickyPromo test rows appended")),
   "30. legacy upgrade path for idempotent liveFeed add"
 );
 assert(

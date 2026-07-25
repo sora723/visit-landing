@@ -77,6 +77,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const renderer = resolveRendererVersion(config.rendererVersion);
   const previewSession = await readV2PreviewSession(siteCode);
+  const hdrs = await headers();
+  const serverMobile = isMobileUserAgent(hdrs.get("user-agent") ?? "");
 
   /**
    * Preview: cookie가 현재 siteCode와 일치하고 renderer가 v2일 때만.
@@ -98,6 +100,7 @@ export default async function Home({ searchParams }: HomeProps) {
           site={site}
           conversionTracking={live.conversionTracking}
           isPreview
+          serverMobile={serverMobile}
         />
       );
     }
@@ -116,6 +119,7 @@ export default async function Home({ searchParams }: HomeProps) {
           page={published.page}
           site={site}
           conversionTracking={live.conversionTracking}
+          serverMobile={serverMobile}
         />
       );
     }
@@ -124,8 +128,6 @@ export default async function Home({ searchParams }: HomeProps) {
     );
   }
 
-  const hdrs = await headers();
-  const serverMobile = isMobileUserAgent(hdrs.get("user-agent") ?? "");
   const heroSources = resolveHeroImageSources(config.hero);
   const heroPreloadUrl = serverMobile
     ? heroSources.mobile || heroSources.desktop
