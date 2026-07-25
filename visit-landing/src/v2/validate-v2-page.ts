@@ -144,6 +144,20 @@ function validatePopupVariantRoles(
   return false;
 }
 
+/** variant 미충족 시 콘텐츠로 가능한 variant 추론 (없으면 null → exclude) */
+function coercePopupVariantFromContent(
+  items: NormalizedV2Content[]
+): "image" | "form" | "imageForm" | null {
+  const hasImage = items.some(
+    (i) => i.role === "image" && (i.imagePc || i.imageMobile)
+  );
+  const hasForm = items.some((i) => i.role === "form");
+  if (hasImage && hasForm) return "imageForm";
+  if (hasForm) return "form";
+  if (hasImage) return "image";
+  return null;
+}
+
 function mediaHasRequiredContent(
   block: NormalizedV2Block,
   items: NormalizedV2Content[]
@@ -427,12 +441,22 @@ export function validateV2Page(
 
     if (working.componentType === "popup") {
       if (!validatePopupVariantRoles(working.variant, kept)) {
-        warnings.push({
-          code: "popup_variant_unmet",
-          message: `popup variant "${working.variant}" requirements unmet; excluded`,
-          sectionId: working.sectionId,
-        });
-        continue;
+        const coerced = coercePopupVariantFromContent(kept);
+        if (coerced) {
+          warnings.push({
+            code: "popup_variant_coerced",
+            message: `popup variant "${working.variant}" unmet; using "${coerced}" from content`,
+            sectionId: working.sectionId,
+          });
+          working = { ...working, variant: coerced };
+        } else {
+          warnings.push({
+            code: "popup_variant_unmet",
+            message: `popup variant "${working.variant}" requirements unmet; excluded`,
+            sectionId: working.sectionId,
+          });
+          continue;
+        }
       }
     }
 

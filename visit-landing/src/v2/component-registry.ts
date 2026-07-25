@@ -321,7 +321,8 @@ export const COMPONENT_REGISTRY: Readonly<
   popup: entry({
     componentType: "popup",
     variants: ["image", "form", "imageForm"],
-    defaultVariant: "image",
+    // 예약 랜딩 기본은 form. 빈 variant→image 이면 이미지 없을 때 통째로 제외됨.
+    defaultVariant: "form",
     allowedRoles: ["root", "image", "form", "cta"],
     requiredRoles: [{ role: "root", min: 1 }],
     roleFieldRequirements: {

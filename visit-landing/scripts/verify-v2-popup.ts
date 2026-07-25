@@ -180,8 +180,9 @@ assert(
   !!reg &&
     reg.variants.includes("image") &&
     reg.variants.includes("form") &&
-    reg.variants.includes("imageForm"),
-  "2. variants image|form|imageForm"
+    reg.variants.includes("imageForm") &&
+    reg.defaultVariant === "form",
+  "2. variants image|form|imageForm, default form"
 );
 assert(!!reg && reg.maxPerPage === 1, "3. maxPerPage 1");
 
@@ -206,6 +207,69 @@ assert(!isV2RenderableBlockType("popup"), "5. not document renderable");
   assert(
     resolveV2PopupButtonText(block) === "방문예약하기",
     "12. button from cta"
+  );
+}
+
+{
+  // variant=image 이지만 form만 있으면 coerce → overlay 유지
+  const result = validateV2Page({
+    siteCode: "L010",
+    revisionId: "pub-L010-20260725120000",
+    pageSchemaVersion: 1,
+    blocks: [
+      blockRow({
+        sectionId: "hero-1",
+        contentGroup: "cg-hero",
+        componentType: "hero",
+        variant: "fullBleed",
+        sectionOrder: 0,
+        revisionId: "pub-L010-20260725120000",
+      }),
+      blockRow({
+        sectionId: "popup-coerce",
+        contentGroup: "cg-popup-c",
+        componentType: "popup",
+        variant: "image",
+        sectionOrder: 9,
+        revisionId: "pub-L010-20260725120000",
+      }),
+    ],
+    contents: [
+      contentRow({
+        contentGroup: "cg-hero",
+        itemId: "hr",
+        role: "root",
+        title: "Hero",
+        revisionId: "pub-L010-20260725120000",
+      }),
+      contentRow({
+        contentGroup: "cg-popup-c",
+        itemId: "pr",
+        role: "root",
+        title: "폼만 있는 팝업",
+        revisionId: "pub-L010-20260725120000",
+      }),
+      contentRow({
+        contentGroup: "cg-popup-c",
+        itemId: "pf",
+        role: "form",
+        itemOrder: 2,
+        revisionId: "pub-L010-20260725120000",
+      }),
+    ],
+  });
+  assert(result.ok === true, "12b. coerce validate ok");
+  assert(
+    result.ok &&
+      result.page.overlays.some((o) => o.sectionId === "popup-coerce") &&
+      result.page.overlays.find((o) => o.sectionId === "popup-coerce")
+        ?.variant === "form",
+    "12c. image+form-only coerced to form"
+  );
+  assert(
+    result.ok &&
+      result.warnings.some((w) => w.code === "popup_variant_coerced"),
+    "12d. coerce warning"
   );
 }
 
