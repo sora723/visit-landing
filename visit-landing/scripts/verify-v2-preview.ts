@@ -28,6 +28,19 @@ import { V2PublishedPageShell } from "../src/components/v2/V2PublishedPageShell.
 import { V2PreviewBanner } from "../src/components/v2/V2PreviewBanner.tsx";
 import { V2_PREVIEW_SUBMIT_BLOCKED_MESSAGE } from "../src/components/v2/forms/V2ReservationFormAdapter.tsx";
 import type { ValidatedV2Block, ValidatedV2Page } from "../src/v2/types.ts";
+import {
+  isPubRevisionIdForSite,
+  parseV2PublishedRemoteResponse,
+} from "../src/v2/server/parse-v2-published-response.ts";
+import {
+  isDraftRevisionIdForSite,
+  parseV2DraftPreviewRemoteResponse,
+} from "../src/v2/server/parse-v2-draft-preview-response.ts";
+import {
+  loadV2DraftPreviewPageCore,
+  loadV2PublishedPageCore,
+} from "../src/v2/server/load-v2-published-page-core.ts";
+import { hasRenderableV2Blocks } from "../src/v2/renderable-v2-blocks.ts";
 import type { V2RuntimeSiteContext } from "../src/v2/v2-runtime-site-context.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -585,5 +598,296 @@ assert(
   );
 }
 
-console.log(`\n[verify:v2-preview] ${passed} passed, ${failed} failed\n`);
-process.exit(failed > 0 ? 1 : 0);
+// --- Draft vs Published revision parse boundary ---
+async function verifyDraftPublishedBoundary() {
+  const SITE = "TEST_SITE_CODE";
+  const DRAFT_REV = "draft-TEST_SITE_CODE-001";
+  const PUB_REV = "pub-TEST_SITE_CODE-20260725120000";
+  const OTHER_DRAFT = "draft-TEST_SITE_CODE-999";
+  const OTHER_SITE_DRAFT = "draft-L001-001";
+
+  function draftPayload(overrides: Record<string, unknown> = {}) {
+    return {
+      ok: true,
+      data: {
+        siteCode: SITE,
+        revisionId: DRAFT_REV,
+        pageSchemaVersion: "1",
+        blocks: [
+          {
+            siteCode: SITE,
+            revisionId: DRAFT_REV,
+            sectionId: "hero-1",
+            sectionOrder: 1,
+            componentType: "hero",
+            variant: "fullBleed",
+            contentGroup: "cg-hero",
+            enabled: "Y",
+            desktopVisible: "Y",
+            mobileVisible: "Y",
+            backgroundType: "none",
+            optionsJson: "{}",
+          },
+        ],
+        contents: [
+          {
+            siteCode: SITE,
+            revisionId: DRAFT_REV,
+            contentGroup: "cg-hero",
+            itemId: "h1",
+            itemOrder: 1,
+            role: "root",
+            title: "Hero",
+            enabled: "Y",
+            extraJson: "{}",
+          },
+        ],
+        ...overrides,
+      },
+    };
+  }
+
+  assert(
+    isPubRevisionIdForSite(PUB_REV, SITE) === true &&
+      parseV2PublishedRemoteResponse(
+        {
+          ok: true,
+          data: {
+            siteCode: SITE,
+            revisionId: PUB_REV,
+            pageSchemaVersion: "1",
+            blocks: [],
+            contents: [],
+          },
+        },
+        SITE
+      ).ok === true,
+    "41. Published parser accepts valid pub revision"
+  );
+
+  assert(
+    isPubRevisionIdForSite(DRAFT_REV, SITE) === false &&
+      parseV2PublishedRemoteResponse(draftPayload(), SITE).ok === false,
+    "42. Published parser rejects draft revision"
+  );
+
+  const pubSrc = read("src/v2/server/parse-v2-published-response.ts");
+  assert(
+    pubSrc.includes("isPubRevisionIdForSite") &&
+      pubSrc.includes("pub-${code}-") &&
+      !pubSrc.includes("draft-${code}-"),
+    "43. Published parser contract unchanged (pub- only)"
+  );
+
+  assert(
+    parseV2DraftPreviewRemoteResponse(draftPayload(), {
+      expectedSiteCode: SITE,
+      expectedDraftRevisionId: DRAFT_REV,
+    }).ok === true,
+    "44. Draft parser accepts exact expected draftRevisionId"
+  );
+
+  assert(
+    parseV2DraftPreviewRemoteResponse(
+      draftPayload({ revisionId: PUB_REV }),
+      { expectedSiteCode: SITE, expectedDraftRevisionId: DRAFT_REV }
+    ).ok === false,
+    "45. Draft parser rejects pub revision"
+  );
+
+  assert(
+    parseV2DraftPreviewRemoteResponse(
+      draftPayload({
+        siteCode: "L001",
+        revisionId: OTHER_SITE_DRAFT,
+      }),
+      { expectedSiteCode: SITE, expectedDraftRevisionId: DRAFT_REV }
+    ).ok === false,
+    "46. Draft parser rejects other siteCode draft"
+  );
+
+  assert(
+    parseV2DraftPreviewRemoteResponse(
+      draftPayload({ revisionId: OTHER_DRAFT }),
+      { expectedSiteCode: SITE, expectedDraftRevisionId: DRAFT_REV }
+    ).ok === false,
+    "47. Draft parser rejects same-site other draftRevisionId"
+  );
+
+  assert(
+    parseV2DraftPreviewRemoteResponse(draftPayload(), {
+      expectedSiteCode: SITE,
+      expectedDraftRevisionId: "",
+    }).ok === false,
+    "48. Draft parser rejects empty expectedRevisionId"
+  );
+
+  assert(
+    parseV2DraftPreviewRemoteResponse(
+      draftPayload({ siteCode: "L010" }),
+      { expectedSiteCode: SITE, expectedDraftRevisionId: DRAFT_REV }
+    ).ok === false,
+    "49. Draft parser rejects siteCode mismatch"
+  );
+
+  assert(
+    isDraftRevisionIdForSite("draft-only", SITE) === false &&
+      parseV2DraftPreviewRemoteResponse(
+        draftPayload({ revisionId: "draft-only" }),
+        { expectedSiteCode: SITE, expectedDraftRevisionId: "draft-only" }
+      ).ok === false,
+    "50. Draft parser rejects malformed revisionId"
+  );
+
+  const draftLoader = read("src/v2/server/load-v2-draft-preview-page.ts");
+  assert(
+    draftLoader.includes("loadV2DraftPreviewPageCore") &&
+      !draftLoader.includes("loadV2PublishedPageCore") &&
+      !draftLoader.includes("parseV2PublishedRemoteResponse"),
+    "51. Draft loader does not use Published parser/core"
+  );
+
+  const pageSrc = read("src/app/page.tsx");
+  assert(
+    pageSrc.includes("previewSession.draftRevisionId") &&
+      pageSrc.includes("previewSession.token"),
+    "51b. page passes verified draftRevisionId into draft loader"
+  );
+
+  {
+    const body = JSON.stringify(draftPayload());
+    const result = await loadV2DraftPreviewPageCore({
+      siteCode: SITE,
+      expectedDraftRevisionId: DRAFT_REV,
+      requestUrl: "https://example.invalid/exec?action=v2.page.preview",
+      httpFetcher: async () => ({ ok: true, status: 200, bodyText: body }),
+    });
+    assert(result.ok === true, "52. valid Draft Preview is not invalid-response");
+    if (result.ok) {
+      assert(
+        hasRenderableV2Blocks(result.page) === true,
+        "53. valid Draft Preview has renderable blocks (avoids SafeState)"
+      );
+      assert(
+        result.revisionId === DRAFT_REV,
+        "53b. draft revisionId preserved"
+      );
+    }
+  }
+
+  {
+    const body = JSON.stringify(draftPayload({ revisionId: OTHER_DRAFT }));
+    const result = await loadV2DraftPreviewPageCore({
+      siteCode: SITE,
+      expectedDraftRevisionId: DRAFT_REV,
+      requestUrl: "https://example.invalid/exec?action=v2.page.preview",
+      httpFetcher: async () => ({ ok: true, status: 200, bodyText: body }),
+    });
+    assert(
+      result.ok === false && result.reason === "invalid-response",
+      "54. invalid Draft Preview stays SafeState path (invalid-response)"
+    );
+  }
+
+  {
+    const pubBody = JSON.stringify({
+      ok: true,
+      data: {
+        siteCode: SITE,
+        revisionId: PUB_REV,
+        pageSchemaVersion: "1",
+        blocks: [
+          {
+            siteCode: SITE,
+            revisionId: PUB_REV,
+            sectionId: "hero-1",
+            sectionOrder: 1,
+            componentType: "hero",
+            variant: "fullBleed",
+            contentGroup: "cg-hero",
+            enabled: "Y",
+            desktopVisible: "Y",
+            mobileVisible: "Y",
+            backgroundType: "none",
+            optionsJson: "{}",
+          },
+        ],
+        contents: [
+          {
+            siteCode: SITE,
+            revisionId: PUB_REV,
+            contentGroup: "cg-hero",
+            itemId: "h1",
+            itemOrder: 1,
+            role: "root",
+            title: "Hero",
+            enabled: "Y",
+            extraJson: "{}",
+          },
+        ],
+      },
+    });
+    const pubResult = await loadV2PublishedPageCore({
+      siteCode: SITE,
+      requestUrl: "https://example.invalid/exec?action=v2.page.published",
+      httpFetcher: async () => ({
+        ok: true,
+        status: 200,
+        bodyText: pubBody,
+      }),
+    });
+    assert(
+      pubResult.ok === true,
+      "55. Published public read unaffected"
+    );
+
+    const draftAsPub = await loadV2PublishedPageCore({
+      siteCode: SITE,
+      requestUrl: "https://example.invalid/exec?action=v2.page.published",
+      httpFetcher: async () => ({
+        ok: true,
+        status: 200,
+        bodyText: JSON.stringify(draftPayload()),
+      }),
+    });
+    assert(
+      draftAsPub.ok === false,
+      "55b. Published core still rejects draft revision"
+    );
+  }
+
+  const adapter = read("src/components/v2/forms/V2ReservationFormAdapter.tsx");
+  assert(
+    adapter.includes(V2_PREVIEW_SUBMIT_BLOCKED_MESSAGE) &&
+      adapter.includes("isPreview"),
+    "56. Preview form submit blocked"
+  );
+
+  const liveClient = read("src/components/v2/live-feed/V2LiveFeedClient.tsx");
+  assert(
+    liveClient.includes("isPreview") &&
+      liveClient.includes("V2_LIVE_FEED_PREVIEW_MESSAGE") &&
+      /if\s*\(\s*isPreview/.test(liveClient),
+    "57. Preview liveFeed API/polling blocked"
+  );
+
+  assert(
+    !read("src/components/LiveReservationSection.tsx").includes(
+      "parseV2DraftPreviewRemoteResponse"
+    ) &&
+      !read("src/components/LandingPage.tsx").includes(
+        "loadV2DraftPreviewPageCore"
+      ),
+    "58. V1 unchanged by draft parser"
+  );
+}
+
+verifyDraftPublishedBoundary()
+  .then(() => {
+    console.log(`\n[verify:v2-preview] ${passed} passed, ${failed} failed\n`);
+    process.exit(failed > 0 ? 1 : 0);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

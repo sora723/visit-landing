@@ -85,7 +85,11 @@ export default async function Home({ searchParams }: HomeProps) {
    */
   if (previewSession && renderer === "v2") {
     noStore();
-    const draft = await loadV2DraftPreviewPage(siteCode, previewSession.token);
+    const draft = await loadV2DraftPreviewPage(
+      siteCode,
+      previewSession.token,
+      previewSession.draftRevisionId
+    );
     if (draft.ok && hasRenderableV2Blocks(draft.page)) {
       const site = buildV2RuntimeSiteContext(siteCode, config);
       return (

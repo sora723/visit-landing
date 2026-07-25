@@ -1,5 +1,6 @@
 /**
- * V2 Draft Preview 로드 — env/URL 구성 후 published core 재사용.
+ * V2 Draft Preview 로드 — env/URL 구성 후 Draft Preview core 사용.
+ * Published parser / published revision 정책 사용 금지.
  * Published 60s cache / React cache 사용 금지. no-store only.
  */
 
@@ -10,7 +11,7 @@ import {
   maskAppsScriptUrl,
 } from "@/lib/apps-script-env";
 import {
-  loadV2PublishedPageCore,
+  loadV2DraftPreviewPageCore,
   type V2PublishedHttpFetcher,
 } from "@/v2/server/load-v2-published-page-core";
 import type { FetchV2PublishedPageResult } from "@/v2/server/types";
@@ -36,15 +37,20 @@ export const defaultV2PreviewHttpFetcher: V2PublishedHttpFetcher = async (
 
 /**
  * GET action=v2.page.preview&siteCode=…&t=… (임의 revisionId 쿼리 없음)
+ * expectedDraftRevisionId: Preview cookie/token에서 이미 검증된 값.
  */
 export async function loadV2DraftPreviewPageUncached(
   siteCodeInput: string,
   previewToken: string,
+  expectedDraftRevisionIdInput: string,
   httpFetcher: V2PublishedHttpFetcher = defaultV2PreviewHttpFetcher
 ): Promise<FetchV2PublishedPageResult> {
   const siteCode = String(siteCodeInput ?? "").trim();
   const token = String(previewToken ?? "").trim();
-  if (!siteCode || !token) {
+  const expectedDraftRevisionId = String(
+    expectedDraftRevisionIdInput ?? ""
+  ).trim();
+  if (!siteCode || !token || !expectedDraftRevisionId) {
     return {
       ok: false,
       reason: "invalid-response",
@@ -75,8 +81,9 @@ export async function loadV2DraftPreviewPageUncached(
     };
   }
 
-  return loadV2PublishedPageCore({
+  return loadV2DraftPreviewPageCore({
     siteCode,
+    expectedDraftRevisionId,
     requestUrl,
     httpFetcher,
     maskedBaseUrl: maskAppsScriptUrl(appsScriptUrl),

@@ -18,17 +18,28 @@ export { defaultV2PreviewHttpFetcher };
 /** page.tsx Preview 경로 — 캐시 없음 */
 export async function loadV2DraftPreviewPage(
   siteCode: string,
-  previewToken: string
+  previewToken: string,
+  expectedDraftRevisionId: string
 ): Promise<FetchV2PublishedPageResult> {
   noStore();
-  return loadV2DraftPreviewPageUncached(siteCode, previewToken);
+  return loadV2DraftPreviewPageUncached(
+    siteCode,
+    previewToken,
+    expectedDraftRevisionId
+  );
 }
 
 /** 테스트용 */
 export function loadV2DraftPreviewPageForTest(
   siteCode: string,
   previewToken: string,
+  expectedDraftRevisionId: string,
   httpFetcher: V2PublishedHttpFetcher
 ): Promise<FetchV2PublishedPageResult> {
-  return loadV2DraftPreviewPageUncached(siteCode, previewToken, httpFetcher);
+  return loadV2DraftPreviewPageUncached(
+    siteCode,
+    previewToken,
+    expectedDraftRevisionId,
+    httpFetcher
+  );
 }
