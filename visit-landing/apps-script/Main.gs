@@ -2,7 +2,9 @@
  * Main.gs
  * VisitLanding Web App 진입점
  *
- * Actions: submit | reservations.recent | site.provision | site.config | site.domains | site.resolve
+ * Actions: submit | reservations.recent | site.provision | site.config |
+ *          site.domains | site.resolve | v2.page.published | v2.page.preview |
+ *          v2.preview.short.resolve
  */
 
 function doGet(e) {
@@ -25,6 +27,14 @@ function handleRequest_(e, method) {
         data: null,
         error: { code: 'VALIDATION_ERROR', message: 'action은 필수입니다' }
       });
+    }
+
+    /** V2 공개 계약: { ok, data|code,message } — success 래퍼 없이 반환 */
+    if (action === 'v2.page.published') {
+      return buildJsonResponse_(getV2PublishedPagePublic_(params));
+    }
+    if (action === 'v2.page.preview') {
+      return buildJsonResponse_(getV2PreviewPagePublic_(params));
     }
 
     var result = routeAction_(action, params);
@@ -53,6 +63,9 @@ function routeAction_(action, params) {
     case 'formToken.issue':
       return handleFormTokenIssue(params);
 
+    case 'v2.preview.short.resolve':
+      return handleV2PreviewShortResolve(params);
+
     case 'reservations.recent':
       return getRecentReservations(params.siteCode, params.limit);
 
@@ -73,6 +86,13 @@ function routeAction_(action, params) {
 
     case 'setup.siteConversion':
       return handleSetupSiteConversion(params);
+
+    /** TEST_SITE_CODE Draft Preview 테스트 행만 — 운영 siteCode 미변경 */
+    case 'setup.v2PreviewTestData':
+      return setupV2PreviewTestData();
+
+    case 'setup.v2PreviewTestPopupEnsure':
+      return ensureV2PreviewTestPopupRows();
 
     /** 레거시 _알림큐 잔여분 소진용 (신규 enqueue 없음) */
     case 'notify.flush':

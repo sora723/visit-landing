@@ -12,6 +12,22 @@
     "verify:apps-script": "node scripts/verify-apps-script.mjs",
     "verify:ops": "node scripts/verify-ops.mjs",
     "verify:surnames": "npx --yes tsx scripts/verify-surname-policy.ts",
+    "verify:site-code": "node --experimental-strip-types scripts/verify-site-code.ts",
+    "verify:renderer-version": "node --experimental-strip-types scripts/verify-renderer-version.ts",
+    "verify:site-config-renderer": "npx --yes tsx scripts/verify-site-config-renderer.ts",
+    "verify:v2-schema": "npx --yes tsx scripts/verify-v2-schema.ts",
+    "verify:v2-published-read": "npx --yes tsx scripts/verify-v2-published-read.ts",
+    "verify:v2-sheet-schema": "npx --yes tsx scripts/verify-v2-sheet-schema.ts",
+    "verify:v2-page-runtime": "npx --yes tsx scripts/verify-v2-page-runtime.ts",
+    "verify:v2-block-renderer": "npx --yes tsx scripts/verify-v2-block-renderer.ts",
+    "verify:v2-form-block": "npx --yes tsx scripts/verify-v2-form-block.ts",
+    "verify:v2-live-feed": "npx --yes tsx scripts/verify-v2-live-feed.ts",
+    "verify:v2-sticky-promo": "npx --yes tsx scripts/verify-v2-sticky-promo.ts",
+    "verify:v2-popup": "npx --yes tsx scripts/verify-v2-popup.ts",
+    "verify:v2-preview": "npx --yes tsx scripts/verify-v2-preview.ts",
+    "verify:v2-preview-short": "npx --yes tsx scripts/verify-v2-preview-short.ts",
+    "verify:v2-preview-test-data": "npx --yes tsx scripts/verify-v2-preview-test-data.ts",
+    "verify:shared-reservation-submit": "npx --yes tsx scripts/verify-shared-reservation-submit.ts",
     "verify:notification": "node scripts/verify-notification.mjs",
     "verify:tracking": "node scripts/verify-site-tracking.mjs",
     "capture:mobile": "node scripts/capture-mobile-screenshots.mjs",
@@ -23,7 +39,8 @@
     "lucide-react": "^1.18.0",
     "next": "15.5.19",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -36,6 +53,7 @@
     "eslint-config-next": "15.5.19",
     "playwright": "^1.60.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

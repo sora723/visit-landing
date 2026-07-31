@@ -106,6 +106,16 @@ textarea {
   color-scheme: light only;
 }
 
+.promo-sticky-bar--compact {
+  padding-bottom: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .promo-sticky-bar--compact {
+    padding-bottom: 0.35rem;
+  }
+}
+
 .promo-sticky-text {
   display: flex;
   width: 100%;

@@ -6,6 +6,8 @@
 var SHEET_NAMES = {
   SITE: '현장관리',
   CONTENT: '콘텐츠관리',
+  V2_BLOCK: 'V2_블록관리',
+  V2_CONTENT: 'V2_콘텐츠',
   SUBMISSION: '접수관리',
   VERIFICATION_LOG: '_검증로그',
   IP_BLOCK: '_IP차단',

@@ -9,6 +9,7 @@ import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
 import { mergeSiteTheme } from "./site-theme";
+import { pickRendererVersionFromSources } from "./resolve-renderer-version";
 import type { CtaPromoImageSection } from "./types";
 
 function parseCtaTexts(raw: string | undefined): string[] {
@@ -125,8 +126,13 @@ export function buildSiteConfigFromApi(
   const seoTitleSource = seoFromExt?.title ?? fallback.seo.title;
   const { faviconUrl, headerLogoUrl } = resolveBrandingFromExtended(ext);
 
+  const rendererVersion =
+    pickRendererVersionFromSources(api.rendererVersion, ext) ||
+    fallback.rendererVersion;
+
   return {
     siteCode: api.siteCode,
+    rendererVersion,
     siteName,
     phone: api.phone?.trim() || fallback.phone,
     managerName: api.managerName?.trim() || fallback.managerName,

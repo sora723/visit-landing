@@ -1202,6 +1202,12 @@ function buildPageContentFromContentRow_(contentRow, ext) {
 
 /**
  * GET action=site.config&siteCode=L001
+ *
+ * rendererVersion Source of Truth: 현장관리.rendererVersion
+ * (Next는 현장관리 값이 빈칸일 때만 extendedData.rendererVersion fallback)
+ *
+ * V2(현장관리 rendererVersion===v2): 콘텐츠관리 행 없어도 최소 runtime config 반환
+ * V1/blank: 기존처럼 콘텐츠관리 행 필수
  */
 function getSiteLiveConfig(siteCode) {
   var code = String(siteCode || '').trim();
@@ -1212,8 +1218,16 @@ function getSiteLiveConfig(siteCode) {
   ensureContentSchemaColumns_();
   ensureSiteManagementSchemaColumns_();
 
+  var siteRow = findSiteByCode_(code);
   var contentRow = findContentBySiteCode_(code);
+  var siteRendererVersion = siteRow
+    ? String(getField_(siteRow, 'rendererVersion') || '').trim()
+    : '';
+
   if (!contentRow) {
+    if (siteRow && siteRendererVersion.toLowerCase() === 'v2') {
+      return buildV2MinimalSiteLiveConfig_(code, siteRow, siteRendererVersion);
+    }
     throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리에 현장 없음: ' + code);
   }
 
@@ -1258,7 +1272,6 @@ function getSiteLiveConfig(siteCode) {
     LOCATION_TITLE_COLOR_ALIASES,
     'locationTitleColor'
   );
-  var siteRow = findSiteByCode_(code);
   var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);
   var ownershipVerification = getOwnershipVerificationFromSiteRow_(siteRow);
   var siteMeta = buildSiteMetaFromSiteRow_(siteRow);
@@ -1266,6 +1279,8 @@ function getSiteLiveConfig(siteCode) {
 
   return {
     siteCode: code,
+    /** 현장관리 값 그대로 (빈칸 가능). Next가 extendedData fallback 적용 */
+    rendererVersion: siteRendererVersion || null,
     siteName: siteMeta.siteName,
     domain: siteMeta.domain || null,
     phone: siteMeta.phone,
@@ -1327,6 +1342,44 @@ function getSiteLiveConfig(siteCode) {
     community: pageContent.community,
     footer: pageContent.footer,
     extendedData: pageContent.extendedData,
+    conversionTracking: conversionTracking,
+    ownershipVerification: ownershipVerification,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * V2 전용 최소 runtime — 콘텐츠관리 없이 현장관리 필드만.
+ * 추측·가짜 값 없음. 폼 옵션/푸터 항목은 비움 (Next fallback으로 L001 폼을 채우지 않도록 enabled=false).
+ */
+function buildV2MinimalSiteLiveConfig_(siteCode, siteRow, siteRendererVersion) {
+  var siteMeta = buildSiteMetaFromSiteRow_(siteRow);
+  var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);
+  var ownershipVerification = getOwnershipVerificationFromSiteRow_(siteRow);
+
+  return {
+    siteCode: siteCode,
+    rendererVersion: siteRendererVersion,
+    siteName: siteMeta.siteName,
+    domain: siteMeta.domain || null,
+    phone: siteMeta.phone,
+    managerName: siteMeta.managerName,
+    notificationPhone: siteMeta.notificationPhone,
+    settings: {
+      popupEnabled: siteMeta.settings.popupEnabled,
+      popupReservationEnabled: false,
+      liveStatusEnabled: siteMeta.settings.liveStatusEnabled,
+      virtualReservationsEnabled: siteMeta.settings.virtualReservationsEnabled,
+      duplicateBlockMinutes: siteMeta.settings.duplicateBlockMinutes
+    },
+    stickyPromoText: null,
+    unitTypeOptions: [],
+    visitDateDays: 30,
+    visitDateOptions: null,
+    unitTypeEnabled: false,
+    visitDateEnabled: false,
+    footer: { items: [] },
+    extendedData: {},
     conversionTracking: conversionTracking,
     ownershipVerification: ownershipVerification,
     updatedAt: new Date().toISOString()

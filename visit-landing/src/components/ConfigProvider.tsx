@@ -10,22 +10,14 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { ConversionTrackingConfig } from "@/lib/conversion-tracking";
-import { hasAnyConversionTracking } from "@/lib/conversion-tracking";
-import { prefersCompletePageConversion } from "@/lib/conversion-once";
-import { runConversionAfterSubmit } from "@/lib/run-conversion-tracking";
 import type { ReservationSubmitInput, SiteConfig } from "@/lib/types";
-import {
-  getTrackingContext,
-  notifyReservationSubmitted,
-  submitReservation,
-} from "@/lib/api";
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
-import { normalizeMobilePhone } from "@/lib/phone";
 import { buildSitePageTitle } from "@/lib/site-page-title";
 import { pickCtaText } from "@/lib/utils";
 import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
 import { CallClickTracking } from "@/components/CallClickTracking";
+import { useReservationSubmit } from "@/features/reservation/useReservationSubmit";
 
 const POLL_MS = 15_000;
 
@@ -69,9 +61,22 @@ export function ConfigProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState(initialConfig);
   const [contentSource, setContentSource] = useState(initialSource);
+
+  const navigate = useCallback(
+    (url: string) => {
+      router.push(url);
+    },
+    [router]
+  );
+
+  const { submit, submitting } = useReservationSubmit({
+    siteCode,
+    conversionTracking,
+    navigate,
+    returnPath: pathname || "/",
+  });
 
   useEffect(() => {
     setConfig(initialConfig);
@@ -123,87 +128,6 @@ export function ConfigProvider({
   const ctaText = useMemo(
     () => pickCtaText(config.cta.texts),
     [config.cta.texts]
-  );
-
-  const submit = useCallback(
-    async (input: ReservationSubmitInput, options?: { redirect?: boolean }) => {
-      setSubmitting(true);
-      try {
-        const result = await submitReservation(
-          {
-            name: input.name.trim(),
-            phone: normalizeMobilePhone(input.phone),
-            privacyAgreed: true,
-            unitType: input.unitType,
-            visitDate: input.visitDate,
-            source: input.source,
-            company: input.company,
-            formToken: input.formToken,
-            pageLoadedAt: input.pageLoadedAt,
-            napm: input.napm,
-            utmContent: input.utmContent,
-            landingUrl: input.landingUrl,
-            inputFocusCount: input.inputFocusCount,
-            inputChangeCount: input.inputChangeCount,
-            clickCount: input.clickCount,
-            scrollDepth: input.scrollDepth,
-            firstInputAt: input.firstInputAt,
-            lastInputAt: input.lastInputAt,
-            userAgent: input.userAgent,
-            screenWidth: input.screenWidth,
-            screenHeight: input.screenHeight,
-            timezone: input.timezone,
-            language: input.language,
-            ...getTrackingContext(),
-          },
-          siteCode
-        );
-
-        const allowConversion = result.allowConversion === true;
-        notifyReservationSubmitted(input.name.trim(), {
-          unitType: input.unitType,
-          visitDate: input.visitDate,
-          isDuplicate: result.isDuplicate,
-          includeInLiveFeed: result.includeInLiveFeed === true,
-        });
-
-        if (result.submissionId) {
-          const conversionOnComplete =
-            allowConversion &&
-            hasAnyConversionTracking(conversionTracking) &&
-            prefersCompletePageConversion(conversionTracking);
-
-          if (allowConversion) {
-            runConversionAfterSubmit({
-              siteCode,
-              submissionId: result.submissionId,
-              tracking: conversionTracking,
-              navigate: (url) => router.push(url),
-              returnPath: pathname || "/",
-            });
-          }
-
-          if (options?.redirect !== false && !conversionOnComplete) {
-            const verified = allowConversion ? "1" : "0";
-            const completeUrl =
-              appendSiteCodeQuery("/complete", siteCode) +
-              `&submissionId=${encodeURIComponent(result.submissionId)}` +
-              `&verified=${verified}`;
-            router.push(completeUrl);
-          }
-        }
-
-        return { success: true, isDuplicate: result.isDuplicate === true };
-      } catch (err) {
-        return {
-          success: false,
-          message: err instanceof Error ? err.message : "접수에 실패했습니다",
-        };
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [router, siteCode, conversionTracking, pathname]
   );
 
   return (

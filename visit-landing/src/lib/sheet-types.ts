@@ -7,6 +7,8 @@
 export interface SiteManagementRow {
   siteCode: string;
   siteName: string;
+  /** optional — 시트에 컬럼이 있을 때만 */
+  rendererVersion?: string;
   phone: string;
   managerName: string;
   managerPhone: string;
