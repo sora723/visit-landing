@@ -61,6 +61,13 @@ export function ReservationForm({
       setError("개인정보 수집 및 이용에 동의해주세요.");
       return;
     }
+    let submitExtras = {};
+    try {
+      submitExtras = security ? await security.buildSubmitExtras() : {};
+    } catch {
+      setError("접수 보안 확인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
     const result = await submit(
       {
         name,
@@ -69,7 +76,7 @@ export function ReservationForm({
         visitDate: showVisitDate ? visitDate || undefined : undefined,
         source,
         company,
-        ...(security?.buildSubmitExtras() ?? {}),
+        ...submitExtras,
       },
       { redirect }
     );
