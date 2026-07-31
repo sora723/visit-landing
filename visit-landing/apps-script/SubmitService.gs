@@ -111,6 +111,23 @@ function handleSubmitPostProcess(params) {
     skipTokenConsume: true,
     skipHoneypot: true
   });
+  var longStaySeconds =
+    Number(
+      SUBMIT_VALIDATION_CONFIG &&
+        SUBMIT_VALIDATION_CONFIG.LONG_STAY_MARK_SECONDS
+    ) || 1800;
+  if (
+    validation.elapsedSeconds != null &&
+    validation.elapsedSeconds >= longStaySeconds
+  ) {
+    var existingReasons = String(validation.suspicionReasons || '').trim();
+    var longStayReason = '체류30분이상';
+    if (existingReasons.indexOf(longStayReason) < 0) {
+      validation.suspicionReasons = existingReasons
+        ? existingReasons + ',' + longStayReason
+        : longStayReason;
+    }
+  }
 
   updateVerificationLogBySubmissionId_(submissionId, {
     '검증상태': validation.validationStatus,

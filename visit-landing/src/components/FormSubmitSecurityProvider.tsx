@@ -13,6 +13,8 @@ import {
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
 
 const AD_STORAGE_PREFIX = "vl_ad_";
+/** 서버 토큰 TTL(10분) 직전 갱신해 오래 열린 탭의 정상 접수를 보호 */
+const FORM_TOKEN_REFRESH_AFTER_MS = 9 * 60 * 1000;
 
 type BehaviorStats = {
   inputFocusCount: number;
@@ -36,7 +38,9 @@ type AdContext = {
 type FormSubmitSecurityContextValue = {
   formToken: string;
   pageLoadedAt: number;
-  buildSubmitExtras: () => Record<string, string | number | null | undefined>;
+  buildSubmitExtras: () => Promise<
+    Record<string, string | number | null | undefined>
+  >;
   registerFormRoot: (el: HTMLElement | null) => void;
 };
 
@@ -86,21 +90,31 @@ export function FormSubmitSecurityProvider({
   });
   const formRootRef = useRef<HTMLElement | null>(null);
 
+  const issueFormToken = useCallback(async () => {
+    const res = await fetch(appendSiteCodeQuery("/api/form-token", siteCode), {
+      cache: "no-store",
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success || !json.data?.formToken) {
+      throw new Error(json.error?.message || "토큰 발급 실패");
+    }
+    const nextToken = String(json.data.formToken);
+    setFormToken(nextToken);
+    return nextToken;
+  }, [siteCode]);
+
   useEffect(() => {
     adContext.current = readAdContext();
     let cancelled = false;
-    fetch(appendSiteCodeQuery("/api/form-token", siteCode), { cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => {
-        if (!cancelled && json.success && json.data?.formToken) {
-          setFormToken(String(json.data.formToken));
-        }
+    issueFormToken()
+      .then((token) => {
+        if (!cancelled) setFormToken(token);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [siteCode]);
+  }, [issueFormToken]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -166,11 +180,18 @@ export function FormSubmitSecurityProvider({
     };
   }, []);
 
-  const buildSubmitExtras = useCallback(() => {
+  const buildSubmitExtras = useCallback(async () => {
     const stats = statsRef.current;
     const ad = adContext.current;
+    const elapsedMs = Date.now() - pageLoadedAt.current;
+    let submitToken = formToken;
+
+    if (!submitToken || elapsedMs >= FORM_TOKEN_REFRESH_AFTER_MS) {
+      submitToken = await issueFormToken();
+    }
+
     return {
-      formToken,
+      formToken: submitToken,
       pageLoadedAt: pageLoadedAt.current,
       napm: ad.napm,
       utmSource: ad.utmSource,
@@ -191,7 +212,7 @@ export function FormSubmitSecurityProvider({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       language: typeof navigator !== "undefined" ? navigator.language : undefined,
     };
-  }, [formToken]);
+  }, [formToken, issueFormToken]);
 
   const value = useMemo(
     () => ({
