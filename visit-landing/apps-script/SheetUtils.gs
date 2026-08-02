@@ -326,6 +326,51 @@ function updateSiteFieldsByCode_(siteCode, updates) {
   throw createAppError_('SITE_NOT_FOUND', '현장 없음: ' + code);
 }
 
+/** 콘텐츠관리 행 필드 업데이트 (헤더명 기준) */
+function updateContentFieldsByCode_(siteCode, updates) {
+  var code = String(siteCode || '').trim();
+  var sheet = getSheet_(SHEET_NAMES.CONTENT);
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리 데이터 없음');
+  }
+
+  var headers = data[0].map(function (h) { return String(h).trim(); });
+  var codeCol = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (headers[h] === 'siteCode' || headers[h] === '현장코드') {
+      codeCol = h;
+      break;
+    }
+  }
+  if (codeCol < 0) {
+    throw createAppError_('INTERNAL_ERROR', '콘텐츠관리 siteCode 컬럼 없음');
+  }
+
+  for (var r = 1; r < data.length; r++) {
+    if (String(data[r][codeCol]).trim() !== code) continue;
+
+    Object.keys(updates || {}).forEach(function (field) {
+      var col = headers.indexOf(field);
+      if (col < 0) {
+        throw createAppError_(
+          'INTERNAL_ERROR',
+          '콘텐츠관리 컬럼 없음: ' + field + ' — ensureReservationFormColumns() 실행 필요'
+        );
+      }
+      data[r][col] = updates[field];
+    });
+
+    sheet.getRange(1, 1, data.length, headers.length).setValues(data);
+    try {
+      CacheService.getScriptCache().remove('sc:v1:' + code);
+    } catch (err) {}
+    return true;
+  }
+
+  throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리에 현장 없음: ' + code);
+}
+
 function getLogSheetName_() {
   var ss = getSpreadsheet_();
   if (ss.getSheetByName(SHEET_NAMES.LOG)) return SHEET_NAMES.LOG;

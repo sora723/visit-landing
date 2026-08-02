@@ -74,6 +74,9 @@ function routeAction_(action, params) {
     case 'setup.siteConversion':
       return handleSetupSiteConversion(params);
 
+    case 'setup.enableVisitTime':
+      return handleSetupEnableVisitTime(params);
+
     /** 레거시 _알림큐 잔여분 소진용 (신규 enqueue 없음) */
     case 'notify.flush':
       return handleNotifyFlush(params);

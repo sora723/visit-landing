@@ -589,6 +589,70 @@ function ensureReservationFormColumns() {
   };
 }
 
+/**
+ * 콘텐츠관리 visitTimeEnabled = Y
+ * Web App: GET/POST ?action=setup.enableVisitTime&siteCode=L010
+ * siteCode 생략 시 콘텐츠관리 전체 현장
+ */
+function handleSetupEnableVisitTime(params) {
+  var ensure = ensureReservationFormColumns();
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) {
+    throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리 데이터 없음');
+  }
+
+  var headers = data[0].map(function (h) {
+    return String(h).trim();
+  });
+  var codeCol = headers.indexOf('siteCode');
+  if (codeCol < 0) codeCol = headers.indexOf('현장코드');
+  var timeCol = -1;
+  for (var a = 0; a < VISIT_TIME_ENABLED_ALIASES.length; a++) {
+    var idx = headers.indexOf(VISIT_TIME_ENABLED_ALIASES[a]);
+    if (idx >= 0) {
+      timeCol = idx;
+      break;
+    }
+  }
+  if (codeCol < 0 || timeCol < 0) {
+    throw createAppError_(
+      'INTERNAL_ERROR',
+      'visitTimeEnabled 컬럼 없음 — ensureReservationFormColumns 실패'
+    );
+  }
+
+  var only = String((params && params.siteCode) || '').trim();
+  var enabled = [];
+  for (var r = 1; r < data.length; r++) {
+    var code = String(data[r][codeCol] || '').trim();
+    if (!code) continue;
+    if (only && code !== only) continue;
+    data[r][timeCol] = 'Y';
+    enabled.push(code);
+    try {
+      CacheService.getScriptCache().remove('sc:v1:' + code);
+    } catch (err) {}
+  }
+
+  if (!enabled.length) {
+    throw createAppError_(
+      'SITE_NOT_FOUND',
+      only ? '콘텐츠관리에 현장 없음: ' + only : '업데이트할 현장 없음'
+    );
+  }
+
+  sheet.getRange(1, 1, data.length, headers.length).setValues(data);
+  writeLog_('SETUP', only || '*', 'visitTimeEnabled=Y → ' + enabled.join(','));
+
+  return {
+    ok: true,
+    ensure: ensure,
+    enabled: enabled,
+    visitTimeEnabled: 'Y'
+  };
+}
+
 /** 브랜드 컬러 컬럼 — extendedData 앞 (없으면 맨 뒤) */
 function ensureSiteThemeColumns() {
   var sheet = getSheet_(CONTENT_SHEET_NAME);
