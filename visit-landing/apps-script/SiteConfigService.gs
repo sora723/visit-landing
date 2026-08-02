@@ -1215,8 +1215,17 @@ function getSiteLiveConfig(siteCode) {
     throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
   }
 
-  ensureContentSchemaColumns_();
-  ensureSiteManagementSchemaColumns_();
+  var cacheKey = 'sc:v1:' + code;
+  var cached = cacheGetJson_(cacheKey);
+  if (cached) return cached;
+
+  /** 스키마 ensure는 시간당 1회면 충분 — 매 요청 컬럼 점검 제거 */
+  var schemaCache = CacheService.getScriptCache();
+  if (!schemaCache.get('schema:content_site')) {
+    ensureContentSchemaColumns_();
+    ensureSiteManagementSchemaColumns_();
+    schemaCache.put('schema:content_site', '1', SCRIPT_CACHE_TTL_SCHEMA);
+  }
 
   var siteRow = findSiteByCode_(code);
   var contentRow = findContentBySiteCode_(code);
@@ -1226,7 +1235,9 @@ function getSiteLiveConfig(siteCode) {
 
   if (!contentRow) {
     if (siteRow && siteRendererVersion.toLowerCase() === 'v2') {
-      return buildV2MinimalSiteLiveConfig_(code, siteRow, siteRendererVersion);
+      var minimal = buildV2MinimalSiteLiveConfig_(code, siteRow, siteRendererVersion);
+      cachePutJson_(cacheKey, minimal, SCRIPT_CACHE_TTL_SITE_CONFIG);
+      return minimal;
     }
     throw createAppError_('SITE_NOT_FOUND', '콘텐츠관리에 현장 없음: ' + code);
   }
@@ -1277,7 +1288,7 @@ function getSiteLiveConfig(siteCode) {
   var siteMeta = buildSiteMetaFromSiteRow_(siteRow);
   var pageContent = buildPageContentFromContentRow_(contentRow, ext);
 
-  return {
+  var result = {
     siteCode: code,
     /** 현장관리 값 그대로 (빈칸 가능). Next가 extendedData fallback 적용 */
     rendererVersion: siteRendererVersion || null,
@@ -1346,6 +1357,8 @@ function getSiteLiveConfig(siteCode) {
     ownershipVerification: ownershipVerification,
     updatedAt: new Date().toISOString()
   };
+  cachePutJson_(cacheKey, result, SCRIPT_CACHE_TTL_SITE_CONFIG);
+  return result;
 }
 
 /**

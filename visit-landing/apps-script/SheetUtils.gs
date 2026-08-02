@@ -19,6 +19,34 @@ var SHEET_NAMES = {
 /** VisitLanding_Master — config/master-sheet.json 과 동일 */
 var MASTER_SPREADSHEET_ID = '1rRLKLBIyZPjw1e4a14MPzaTNBib0vTKEpHEqfQg3pyA';
 
+/** Apps Script CacheService — site.config / domains 단기 캐시 */
+var SCRIPT_CACHE_TTL_SITE_CONFIG = 60;
+var SCRIPT_CACHE_TTL_DOMAIN_MAP = 60;
+var SCRIPT_CACHE_TTL_SCHEMA = 3600;
+
+function cacheGetJson_(key) {
+  try {
+    var raw = CacheService.getScriptCache().get(String(key || ''));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+function cachePutJson_(key, value, ttlSeconds) {
+  try {
+    var json = JSON.stringify(value);
+    /** CacheService 항목 한도 ~100KB */
+    if (!json || json.length > 90000) return false;
+    var ttl = Math.min(21600, Math.max(1, Number(ttlSeconds) || 60));
+    CacheService.getScriptCache().put(String(key || ''), json, ttl);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 function getMasterSpreadsheetId_() {
   var fromProps = PropertiesService.getScriptProperties().getProperty('MASTER_SPREADSHEET_ID');
   return String(fromProps || MASTER_SPREADSHEET_ID).trim();

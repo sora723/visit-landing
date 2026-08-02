@@ -41,8 +41,15 @@ export async function middleware(request: NextRequest) {
   const fromQuery = request.nextUrl.searchParams.get("siteCode");
   const fromCookie = request.cookies.get("siteCode")?.value;
   const hostname = getRequestHostname(request);
-  const domainMap = await fetchDomainSiteCodeMap();
-  const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
+  /**
+   * ?siteCode= 가 있으면 도메인 맵(Apps Script) 조회를 건너뛴다.
+   * L010처럼 쿼리로 여는 진입의 TTFB에서 site.domains 왕복을 제거.
+   */
+  let domainSiteCode: string | null = null;
+  if (!fromQuery?.trim()) {
+    const domainMap = await fetchDomainSiteCodeMap();
+    domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
+  }
 
   const siteCode = resolveSiteCodeInput({
     querySiteCode: fromQuery,

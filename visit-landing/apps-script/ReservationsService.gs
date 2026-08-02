@@ -7,6 +7,8 @@
  */
 
 var LIVE_FEED_MAX_MINUTES = 20;
+/** 실시간 현황 — 전체 접수관리 스캔 대신 최근 N행만 */
+var LIVE_FEED_RECENT_SUBMISSION_ROWS = 400;
 
 function getRecentReservations(siteCode, limit) {
   var code = String(siteCode || '').trim();
@@ -30,7 +32,10 @@ function getRecentReservations(siteCode, limit) {
 }
 
 function buildRealReservationItems_(siteCode, limit) {
-  var rows = sheetToObjects_(SHEET_NAMES.SUBMISSION);
+  var rows = readRecentSheetObjects_(
+    SHEET_NAMES.SUBMISSION,
+    LIVE_FEED_RECENT_SUBMISSION_ROWS
+  );
   var filtered = [];
 
   for (var i = rows.length - 1; i >= 0; i--) {
