@@ -19,7 +19,7 @@ import {
   notifyReservationSubmitted,
   submitReservation,
 } from "@/lib/api";
-import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { appendSiteCodeQuery, siteContentApiPath } from "@/lib/resolve-site-code";
 import { normalizeMobilePhone } from "@/lib/phone";
 import { buildSitePageTitle } from "@/lib/site-page-title";
 import { pickCtaText } from "@/lib/utils";
@@ -82,9 +82,7 @@ export function ConfigProvider({
     let cancelled = false;
 
     const refresh = () => {
-      fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
-        cache: "no-store",
-      })
+      fetch(siteContentApiPath(siteCode))
         .then((res) => res.json())
         .then((json) => {
           if (cancelled || !json.success || !json.data) return;

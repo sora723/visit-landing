@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 성능 스모크 테스트 — API 응답·캐시 헤더·빌드 크기
+ * 성능 스모크 테스트 — API 응답·캐시 헤더
  * Usage: node scripts/verify-performance.mjs [baseUrl]
  */
 
@@ -11,6 +11,9 @@ async function timedFetch(path, init) {
   const res = await fetch(`${baseUrl}${path}`, init);
   const ms = Math.round(performance.now() - start);
   const cacheControl = res.headers.get("cache-control") ?? "(none)";
+  const cdnCacheControl = res.headers.get("cdn-cache-control") ?? "(none)";
+  const netlifyCdn =
+    res.headers.get("netlify-cdn-cache-control") ?? "(none)";
   let bodyBytes = 0;
   try {
     const buf = await res.arrayBuffer();
@@ -18,22 +21,35 @@ async function timedFetch(path, init) {
   } catch {
     /* ignore */
   }
-  return { status: res.status, ms, cacheControl, bodyBytes };
+  return {
+    status: res.status,
+    ms,
+    cacheControl,
+    cdnCacheControl,
+    netlifyCdn,
+    bodyBytes,
+  };
 }
 
 async function main() {
   console.log("=== Performance smoke test ===");
   console.log(`Base URL: ${baseUrl}\n`);
 
-  const siteContent1 = await timedFetch("/api/site-content?siteCode=L001");
-  const siteContent2 = await timedFetch("/api/site-content?siteCode=L001");
+  const siteContent1 = await timedFetch("/api/site-content/L001");
+  const siteContent2 = await timedFetch("/api/site-content/L001");
 
-  console.log("1. /api/site-content (1st request)");
-  console.log(`   status=${siteContent1.status} time=${siteContent1.ms}ms size=${siteContent1.bodyBytes}B`);
+  console.log("1. /api/site-content/L001 (1st request)");
+  console.log(
+    `   status=${siteContent1.status} time=${siteContent1.ms}ms size=${siteContent1.bodyBytes}B`
+  );
   console.log(`   Cache-Control: ${siteContent1.cacheControl}`);
+  console.log(`   CDN-Cache-Control: ${siteContent1.cdnCacheControl}`);
+  console.log(`   Netlify-CDN-Cache-Control: ${siteContent1.netlifyCdn}`);
 
-  console.log("\n2. /api/site-content (2nd request — server cache expected faster)");
-  console.log(`   status=${siteContent2.status} time=${siteContent2.ms}ms size=${siteContent2.bodyBytes}B`);
+  console.log("\n2. /api/site-content/L001 (2nd request — cache expected faster)");
+  console.log(
+    `   status=${siteContent2.status} time=${siteContent2.ms}ms size=${siteContent2.bodyBytes}B`
+  );
   console.log(`   Cache-Control: ${siteContent2.cacheControl}`);
 
   const submit = await timedFetch("/api/submit", {
@@ -47,9 +63,8 @@ async function main() {
   console.log(`   Cache-Control: ${submit.cacheControl}`);
 
   console.log("\n--- Expected ---");
-  console.log("site-content: private, no-store (현장별 CDN 교차오염 방지)");
-  console.log("submit:       no-store");
-  console.log("2nd site-content may still be faster via server memory cache (60s)\n");
+  console.log("site-content path: s-maxage=60 (CDN), siteCode in URL path");
+  console.log("submit: no-store\n");
 }
 
 main().catch((err) => {

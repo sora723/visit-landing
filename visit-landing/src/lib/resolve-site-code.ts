@@ -92,3 +92,16 @@ export function appendSiteCodeQuery(url: string, siteCode: string): string {
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}${siteCodeQueryParam(siteCode)}`;
 }
+
+/** siteCode path segment — CDN 캐시 키 분리용 */
+const SITE_CODE_PATH_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/;
+
+export function isValidSiteCodePathSegment(siteCode: string): boolean {
+  return SITE_CODE_PATH_RE.test(String(siteCode || "").trim());
+}
+
+/** /api/site-content/L010 — 쿼리 방식 대신 경로로 현장 구분 */
+export function siteContentApiPath(siteCode: string): string {
+  const code = String(siteCode || "").trim();
+  return `/api/site-content/${encodeURIComponent(code)}`;
+}

@@ -234,19 +234,18 @@ async function main() {
   console.log("\n[7] Next.js /api/site-content (로컬 서버 필요)");
   const base = process.env.BASE_URL || "http://127.0.0.1:3000";
   try {
-    const res = await fetch(`${base}/api/site-content`, {
-      cache: "no-store",
+    const res = await fetch(`${base}/api/site-content/L001`, {
       signal: AbortSignal.timeout(5000),
     });
     const json = await res.json();
     if (json.success && json.data?.source === "sheet" && json.data?.hero) {
-      ok(`/api/site-content OK — hero + overview 포함`);
+      ok(`/api/site-content/L001 OK — hero + overview 포함`);
     } else if (json.success && json.data) {
-      note(`/api/site-content 200 — keys: ${Object.keys(json.data).join(", ")}`);
+      note(`/api/site-content/L001 200 — keys: ${Object.keys(json.data).join(", ")}`);
     } else if (res.status === 503) {
-      note("/api/site-content 503 — Sheet 연결 확인 (.env.local APPS_SCRIPT_URL)");
+      note("/api/site-content/L001 503 — Sheet 연결 확인 (.env.local APPS_SCRIPT_URL)");
     } else {
-      bad(`/api/site-content unexpected: ${res.status}`);
+      bad(`/api/site-content/L001 unexpected: ${res.status}`);
     }
   } catch {
     note(`${base} 미실행 — npm run start 후 재검증 가능`);

@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { siteContentApiPath } from "@/lib/resolve-site-code";
 import {
   fitPromoTextToContainer,
   sanitizePromoText,
@@ -107,12 +107,10 @@ export function PromoStickyBar({
 
   const fetchLivePromo = useCallback(async () => {
     try {
-      const res = await fetch(appendSiteCodeQuery("/api/site-content", siteCode), {
-        cache: "no-store",
-      });
+      const res = await fetch(siteContentApiPath(siteCode));
       const json = await res.json();
       if (!json.success || json.data?.source !== "sheet") return;
-      // CDN/중간 캐시가 다른 현장 응답을 주면 stickyPromo 가 교차 오염됨
+      // 경로·응답 siteCode 불일치 시 stickyPromo 교차 오염 차단
       const returnedSiteCode = String(
         json.data?.siteCode ?? json.data?._requestedSiteCode ?? ""
       ).trim();
