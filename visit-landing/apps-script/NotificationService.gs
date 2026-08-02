@@ -81,7 +81,12 @@ function buildSubmissionNotificationPayload_(params) {
 }
 
 function buildReserveDisplay_(formType, reserveDate, reserveTime) {
-  return formatVisitDateDisplay_(reserveDate);
+  var datePart = formatVisitDateDisplay_(reserveDate);
+  var timePart = String(reserveTime || '').trim();
+  if (!timePart) return datePart;
+  if (!reserveDate) return timePart;
+  if (datePart === '미정') return timePart;
+  return datePart + ' ' + timePart;
 }
 
 function testNotificationProvider() {
