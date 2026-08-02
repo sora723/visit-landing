@@ -61,6 +61,15 @@ export async function resolveRequestSiteCode(
     return headerSiteCode;
   }
 
+  /** query/body siteCode 가 있으면 domains Apps Script 호출 생략 */
+  if (fromQuery?.trim() || bodySiteCode?.trim()) {
+    return resolveSiteCodeInput({
+      querySiteCode: fromQuery,
+      bodySiteCode,
+      headerSiteCode: request.headers.get("x-site-code"),
+    });
+  }
+
   const hostname = getRequestHostname(request);
   const { fetchDomainSiteCodeMap, resolveSiteCodeFromDomainMap } =
     await import("@/lib/fetch-domain-site-code-map");

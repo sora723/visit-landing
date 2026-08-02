@@ -113,11 +113,21 @@ function findSiteCodeByDomain_(hostname) {
 
 /** GET action=site.domains */
 function getSiteDomains() {
-  ensureSiteManagementSchemaColumns_();
-  return {
+  var cached = cacheGetJson_('domains:v1');
+  if (cached) return cached;
+
+  var schemaCache = CacheService.getScriptCache();
+  if (!schemaCache.get('schema:site_mgmt')) {
+    ensureSiteManagementSchemaColumns_();
+    schemaCache.put('schema:site_mgmt', '1', SCRIPT_CACHE_TTL_SCHEMA);
+  }
+
+  var result = {
     domains: buildDomainSiteCodeMap_(),
     updatedAt: new Date().toISOString()
   };
+  cachePutJson_('domains:v1', result, SCRIPT_CACHE_TTL_DOMAIN_MAP);
+  return result;
 }
 
 /** GET action=site.resolve&domain=wonju-hanyang.com */
