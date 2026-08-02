@@ -6,6 +6,7 @@ import { useConfig } from "./ConfigProvider";
 import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { ReservationCard } from "./ReservationCard";
 import { fetchRecentReservations } from "@/lib/api";
+import { scheduleAfterFirstPaint } from "@/lib/schedule-after-first-paint";
 import {
   buildInitialFeedStack,
   createInjectionItemAtIndex,
@@ -333,11 +334,48 @@ export function LiveReservationSection() {
     initializeStack([]);
   }, [initializeStack]);
 
+  // 첫 페인트·히어로와 GAS 경쟁하지 않도록 reservations는 idle/가시화 후 로드
   useEffect(() => {
-    loadItems();
-    const refresh = setInterval(loadItems, 45000);
-    return () => clearInterval(refresh);
-  }, [loadItems]);
+    if (!config.settings.liveStatusEnabled) return;
+
+    let started = false;
+    let refresh: ReturnType<typeof setInterval> | null = null;
+    let cancelIdle: (() => void) | null = null;
+    let observer: IntersectionObserver | null = null;
+
+    const start = () => {
+      if (started) return;
+      started = true;
+      cancelIdle?.();
+      cancelIdle = null;
+      observer?.disconnect();
+      observer = null;
+      loadItems();
+      refresh = setInterval(loadItems, 45_000);
+    };
+
+    cancelIdle = scheduleAfterFirstPaint(start, {
+      timeoutMs: 2500,
+      minDelayMs: 400,
+    });
+
+    const section = document.getElementById("live-reservations");
+    if (section && typeof IntersectionObserver !== "undefined") {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) start();
+        },
+        { rootMargin: "240px 0px" }
+      );
+      observer.observe(section);
+    }
+
+    return () => {
+      cancelIdle?.();
+      observer?.disconnect();
+      if (refresh) clearInterval(refresh);
+    };
+  }, [loadItems, config.settings.liveStatusEnabled]);
 
   useEffect(() => {
     scheduleDeterministicInject();

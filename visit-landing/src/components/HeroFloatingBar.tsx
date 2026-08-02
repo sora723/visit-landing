@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useConfig } from "./ConfigProvider";
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { scheduleAfterFirstPaint } from "@/lib/schedule-after-first-paint";
 
 export function HeroFloatingBar() {
   const { config, siteCode } = useConfig();
@@ -12,27 +13,33 @@ export function HeroFloatingBar() {
   const [activeCount, setActiveCount] = useState(stats.activeConsultations);
 
   useEffect(() => {
-    fetch(appendSiteCodeQuery("/api/reservations?limit=50", siteCode), {
-      cache: "no-store",
-    })
-      .then((r) => r.json())
-      .then((json) => {
-        if (!json.success) return;
-        const realCount = json.data?.realCount ?? 0;
-        const items: { minutesAgo: number; isVirtual: boolean }[] =
-          json.data?.items ?? [];
-        const recentActive = items.filter(
-          (i) => !i.isVirtual && i.minutesAgo <= 30
-        ).length;
+    const cancel = scheduleAfterFirstPaint(
+      () => {
+        fetch(appendSiteCodeQuery("/api/reservations?limit=50", siteCode), {
+          cache: "no-store",
+        })
+          .then((r) => r.json())
+          .then((json) => {
+            if (!json.success) return;
+            const realCount = json.data?.realCount ?? 0;
+            const items: { minutesAgo: number; isVirtual: boolean }[] =
+              json.data?.items ?? [];
+            const recentActive = items.filter(
+              (i) => !i.isVirtual && i.minutesAgo <= 30
+            ).length;
 
-        if (realCount > 0) {
-          setTodayCount(stats.todayReservations + realCount);
-        }
-        if (recentActive > 0) {
-          setActiveCount(Math.max(stats.activeConsultations, recentActive));
-        }
-      })
-      .catch(() => {});
+            if (realCount > 0) {
+              setTodayCount(stats.todayReservations + realCount);
+            }
+            if (recentActive > 0) {
+              setActiveCount(Math.max(stats.activeConsultations, recentActive));
+            }
+          })
+          .catch(() => {});
+      },
+      { timeoutMs: 2500, minDelayMs: 400 }
+    );
+    return cancel;
   }, [stats.todayReservations, stats.activeConsultations, siteCode]);
 
   return (
