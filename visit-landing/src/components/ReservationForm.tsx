@@ -8,8 +8,10 @@ import { ScrollableSelect } from "./ScrollableSelect";
 import {
   isUnitTypeFieldEnabled,
   isVisitDateFieldEnabled,
+  isVisitTimeFieldEnabled,
   resolveUnitTypeOptions,
   resolveVisitDateOptions,
+  resolveVisitTimeOptions,
 } from "@/lib/reservation-form-options";
 
 export type ReservationFormVariant = "default" | "compact" | "sheet" | "inline";
@@ -42,17 +44,20 @@ export function ReservationForm({
   const [phone, setPhone] = useState("");
   const [unitType, setUnitType] = useState("");
   const [visitDate, setVisitDate] = useState("");
+  const [visitTime, setVisitTime] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [error, setError] = useState("");
 
   const visitDates = useMemo(() => resolveVisitDateOptions(config), [config]);
+  const visitTimes = useMemo(() => resolveVisitTimeOptions(config), [config]);
   const unitOptions = useMemo(
     () => resolveUnitTypeOptions(config),
     [config]
   );
   const showUnitType = isUnitTypeFieldEnabled(config);
   const showVisitDate = isVisitDateFieldEnabled(config);
+  const showVisitTime = isVisitTimeFieldEnabled(config);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,6 +79,7 @@ export function ReservationForm({
         phone,
         unitType: showUnitType ? unitType || undefined : undefined,
         visitDate: showVisitDate ? visitDate || undefined : undefined,
+        visitTime: showVisitTime ? visitTime || undefined : undefined,
         source,
         company,
         ...submitExtras,
@@ -88,6 +94,7 @@ export function ReservationForm({
     setPhone("");
     setUnitType("");
     setVisitDate("");
+    setVisitTime("");
     setAgreed(false);
     onSuccess?.();
   }
@@ -139,6 +146,17 @@ export function ReservationForm({
             }))}
             placeholder="일자(선택)"
             className="h-10 w-[110px]"
+            listMaxHeight={180}
+            dropUp
+          />
+        )}
+        {showVisitTime && (
+          <ScrollableSelect
+            value={visitTime}
+            onChange={setVisitTime}
+            options={visitTimes}
+            placeholder="시간(선택)"
+            className="h-10 w-[100px]"
             listMaxHeight={180}
             dropUp
           />
@@ -229,6 +247,22 @@ export function ReservationForm({
               onChange={setVisitDate}
               options={visitDates}
               placeholder="일자 선택"
+              className="w-full"
+              listMaxHeight={200}
+              dropUp={variant === "sheet"}
+            />
+          </div>
+        )}
+        {showVisitTime && (
+          <div>
+            <label className={labelBase}>
+              방문예약 시간 <span className="font-normal text-[#b0a898]">(선택)</span>
+            </label>
+            <ScrollableSelect
+              value={visitTime}
+              onChange={setVisitTime}
+              options={visitTimes}
+              placeholder="시간 선택"
               className="w-full"
               listMaxHeight={200}
               dropUp={variant === "sheet"}

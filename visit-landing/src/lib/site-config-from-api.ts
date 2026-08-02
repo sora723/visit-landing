@@ -242,6 +242,7 @@ export function buildSiteConfigFromApi(
       visitDateOptions: api.visitDateOptions ?? undefined,
       unitTypeEnabled: api.unitTypeEnabled,
       visitDateEnabled: api.visitDateEnabled,
+      visitTimeEnabled: api.visitTimeEnabled,
     },
   };
 }

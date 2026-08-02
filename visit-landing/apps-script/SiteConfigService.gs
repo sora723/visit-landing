@@ -56,6 +56,12 @@ var VISIT_DATE_ENABLED_ALIASES = [
   '방문예약일자노출'
 ];
 
+var VISIT_TIME_ENABLED_ALIASES = [
+  'visitTimeEnabled',
+  '방문시간노출',
+  '방문예약시간노출'
+];
+
 var POPUP_RESERVATION_ENABLED_ALIASES = [
   'popupReservationEnabled',
   '팝업방문예약노출',
@@ -385,6 +391,17 @@ function getVisitDateEnabledFromContentRow_(row, ext) {
   return true;
 }
 
+function getVisitTimeEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, VISIT_TIME_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, false);
+  }
+  if (ext && ext.reservationForm && ext.reservationForm.visitTimeEnabled !== undefined) {
+    return parseBoolField_(ext.reservationForm.visitTimeEnabled, false);
+  }
+  return false;
+}
+
 function getPopupReservationEnabledFromContentRow_(row, ext) {
   var raw = getSiteField_(row, POPUP_RESERVATION_ENABLED_ALIASES);
   if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
@@ -507,6 +524,7 @@ function ensureReservationFormColumns() {
 
   if (!hasUnit) {
     insertColumnBeforeHeader_(sheet, 'extendedData', 'popupReservationEnabled');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'visitTimeEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateOptions');
@@ -514,17 +532,22 @@ function ensureReservationFormColumns() {
     insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeOptions');
     added.push(
       'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
-      'unitTypeEnabled', 'visitDateEnabled', 'popupReservationEnabled'
+      'unitTypeEnabled', 'visitDateEnabled', 'visitTimeEnabled',
+      'popupReservationEnabled'
     );
   } else {
     var hasUnitEnabled = false;
     var hasDateEnabled = false;
+    var hasTimeEnabled = false;
     var hasPopupReservationEnabled = false;
     for (var i = 0; i < UNIT_TYPE_ENABLED_ALIASES.length; i++) {
       if (map[UNIT_TYPE_ENABLED_ALIASES[i]] !== undefined) hasUnitEnabled = true;
     }
     for (var j = 0; j < VISIT_DATE_ENABLED_ALIASES.length; j++) {
       if (map[VISIT_DATE_ENABLED_ALIASES[j]] !== undefined) hasDateEnabled = true;
+    }
+    for (var vt = 0; vt < VISIT_TIME_ENABLED_ALIASES.length; vt++) {
+      if (map[VISIT_TIME_ENABLED_ALIASES[vt]] !== undefined) hasTimeEnabled = true;
     }
     for (var p = 0; p < POPUP_RESERVATION_ENABLED_ALIASES.length; p++) {
       if (map[POPUP_RESERVATION_ENABLED_ALIASES[p]] !== undefined) {
@@ -539,6 +562,11 @@ function ensureReservationFormColumns() {
     if (!hasDateEnabled) {
       insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
       added.push('visitDateEnabled');
+      map = getHeaderIndexMap_(sheet);
+    }
+    if (!hasTimeEnabled) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'visitTimeEnabled');
+      added.push('visitTimeEnabled');
       map = getHeaderIndexMap_(sheet);
     }
     if (!hasPopupReservationEnabled) {
@@ -1233,6 +1261,7 @@ function getSiteLiveConfig(siteCode) {
   var visitDateOptions = buildVisitDateOptionsFromContent_(contentRow, ext);
   var unitTypeEnabled = getUnitTypeEnabledFromContentRow_(contentRow, ext);
   var visitDateEnabled = getVisitDateEnabledFromContentRow_(contentRow, ext);
+  var visitTimeEnabled = getVisitTimeEnabledFromContentRow_(contentRow, ext);
   var popupReservationEnabled = getPopupReservationEnabledFromContentRow_(contentRow, ext);
   var mainColor = getThemeColorFromContentRow_(
     contentRow, ext, MAIN_COLOR_ALIASES, 'mainColor', DEFAULT_MAIN_COLOR
@@ -1293,6 +1322,7 @@ function getSiteLiveConfig(siteCode) {
     visitDateOptions: visitDateOptions,
     unitTypeEnabled: unitTypeEnabled,
     visitDateEnabled: visitDateEnabled,
+    visitTimeEnabled: visitTimeEnabled,
     mainColor: mainColor,
     subColor: subColor,
     accentColor: accentColor,

@@ -90,6 +90,7 @@ export function notifyReservationSubmitted(
   extra?: {
     unitType?: string;
     visitDate?: string;
+    visitTime?: string;
     isDuplicate?: boolean;
     includeInLiveFeed?: boolean;
   }
@@ -105,6 +106,7 @@ export function notifyReservationSubmitted(
         name,
         unitType: extra?.unitType,
         visitDate: extra?.visitDate,
+        visitTime: extra?.visitTime,
         isDuplicate: extra?.isDuplicate === true,
       },
     })

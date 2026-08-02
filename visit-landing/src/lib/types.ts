@@ -170,6 +170,8 @@ export interface SiteConfig {
     unitTypeEnabled?: boolean;
     /** false면 방문예약 일자 필드 숨김 */
     visitDateEnabled?: boolean;
+    /** true면 방문예약 시간 필드 노출 (기본 숨김) */
+    visitTimeEnabled?: boolean;
   };
 }
 
@@ -246,6 +248,7 @@ export interface ReservationSubmitInput {
   phone: string;
   unitType?: string;
   visitDate?: string;
+  visitTime?: string;
   source?: string;
   company?: string;
   formToken?: string;

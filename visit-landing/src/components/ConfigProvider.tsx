@@ -134,6 +134,7 @@ export function ConfigProvider({
             privacyAgreed: true,
             unitType: input.unitType,
             visitDate: input.visitDate,
+            visitTime: input.visitTime,
             source: input.source,
             company: input.company,
             formToken: input.formToken,
@@ -161,6 +162,7 @@ export function ConfigProvider({
         notifyReservationSubmitted(input.name.trim(), {
           unitType: input.unitType,
           visitDate: input.visitDate,
+          visitTime: input.visitTime,
           isDuplicate: result.isDuplicate,
           includeInLiveFeed: result.includeInLiveFeed === true,
         });

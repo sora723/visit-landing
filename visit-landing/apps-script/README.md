@@ -65,14 +65,15 @@ testVisitLandingSubmit()
 | visitDateOptions | `2026-06-15\|2026-06-20` (지정 시 visitDateDays 대신) |
 | unitTypeEnabled | `Y` / `N` — 관심평형 필드 노출 |
 | visitDateEnabled | `Y` / `N` — 방문예약 일자 필드 노출 |
+| visitTimeEnabled | `Y` / `N` — 방문예약 시간 필드 노출 (10:00~19:00 30분, 기본 N) |
 
 **현장별 예시**
 
-| siteCode | unitTypeEnabled | visitDateEnabled | 노출 필드 |
-|----------|-----------------|------------------|-----------|
-| L001 | Y | Y | 성함, 연락처, 관심평형, 방문예약 일자 |
-| L002 | N | N | 성함, 연락처 |
-| L003 | N | Y | 성함, 연락처, 방문예약 일자 |
+| siteCode | unitTypeEnabled | visitDateEnabled | visitTimeEnabled | 노출 필드 |
+|----------|-----------------|------------------|------------------|-----------|
+| L001 | Y | Y | N | 성함, 연락처, 관심평형, 방문예약 일자 |
+| L002 | N | N | N | 성함, 연락처 |
+| L003 | N | Y | Y | 성함, 연락처, 방문예약 일자, 방문예약 시간 |
 
 최초 1회: Apps Script 편집기 → `ensureReservationFormColumns()` 실행
 

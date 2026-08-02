@@ -221,6 +221,23 @@ function resolveVisitDateEnabledFromSheet(
   return true;
 }
 
+function resolveVisitTimeEnabledFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): boolean {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const raw = [row.visitTimeEnabled, row["방문시간노출"], row["방문예약시간노출"]]
+    .map((v) => (v === undefined || v === null ? "" : v))
+    .find((v) => String(v).trim() !== "");
+  if (raw !== undefined && String(raw).trim() !== "") {
+    return parseBool(raw as string | boolean, false);
+  }
+  if (ext.reservationForm?.visitTimeEnabled !== undefined) {
+    return parseBool(ext.reservationForm.visitTimeEnabled, false);
+  }
+  return false;
+}
+
 function resolvePopupReservationEnabledFromSheet(
   content: ContentManagementRow,
   ext: ContentExtendedData
@@ -448,6 +465,7 @@ export function buildSiteConfigFromSheet(
       visitDateOptions: resolveVisitDateOptionsFromSheet(content, ext),
       unitTypeEnabled: resolveUnitTypeEnabledFromSheet(content, ext),
       visitDateEnabled: resolveVisitDateEnabledFromSheet(content, ext),
+      visitTimeEnabled: resolveVisitTimeEnabledFromSheet(content, ext),
     },
   };
 }

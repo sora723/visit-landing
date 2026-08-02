@@ -402,12 +402,17 @@ export function LiveReservationSection() {
         name: string;
         unitType?: string;
         visitDate?: string;
+        visitTime?: string;
       }>).detail;
       const name = detail?.name?.trim();
       if (!name) return;
 
       const statusLabel = inferSubmissionStatusLabel(
-        { unitType: detail.unitType, visitDate: detail.visitDate },
+        {
+          unitType: detail.unitType,
+          visitDate: detail.visitDate,
+          visitTime: detail.visitTime,
+        },
         config
       );
       pendingLocalRef.current = createLocalSubmissionItem(
