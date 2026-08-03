@@ -31,6 +31,23 @@ export function prefersCompletePageConversion(
   );
 }
 
+/**
+ * 접수 성공 UI 직후 광고 픽셀 전환 여부.
+ * submit 동기 응답의 allowConversion(항상 false)과 분리 —
+ * 조기 차단(허니팟/토큰)만 제외하고 완료 페이지에서 전환한다.
+ */
+export function shouldFireClientConversion(result: {
+  submissionId?: string;
+  needsPostProcess?: boolean;
+  validationStatus?: string;
+}): boolean {
+  if (!result.submissionId) return false;
+  if (result.needsPostProcess === false) return false;
+  const status = String(result.validationStatus || "").trim();
+  if (status === "허니팟차단" || status === "토큰차단") return false;
+  return true;
+}
+
 /** @deprecated prefersCompletePageConversion 사용 */
 export function prefersCompletePageFallback(
   tracking: import("@/lib/conversion-tracking").ConversionTrackingConfig

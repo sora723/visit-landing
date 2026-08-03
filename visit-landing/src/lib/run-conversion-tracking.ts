@@ -13,7 +13,7 @@ export type RunConversionOptions = {
   returnPath?: string;
 };
 
-export const COMPLETE_DWELL_MS = 2500;
+export const COMPLETE_DWELL_MS = 3500;
 
 /**
  * 접수 1건당 전환 1회.

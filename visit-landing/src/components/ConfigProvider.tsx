@@ -11,7 +11,10 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import type { ConversionTrackingConfig } from "@/lib/conversion-tracking";
 import { hasAnyConversionTracking } from "@/lib/conversion-tracking";
-import { prefersCompletePageConversion } from "@/lib/conversion-once";
+import {
+  prefersCompletePageConversion,
+  shouldFireClientConversion,
+} from "@/lib/conversion-once";
 import { runConversionAfterSubmit } from "@/lib/run-conversion-tracking";
 import type { ReservationSubmitInput, SiteConfig } from "@/lib/types";
 import {
@@ -158,7 +161,7 @@ export function ConfigProvider({
           siteCode
         );
 
-        const allowConversion = result.allowConversion === true;
+        const fireClientConversion = shouldFireClientConversion(result);
         notifyReservationSubmitted(input.name.trim(), {
           unitType: input.unitType,
           visitDate: input.visitDate,
@@ -169,11 +172,11 @@ export function ConfigProvider({
 
         if (result.submissionId) {
           const conversionOnComplete =
-            allowConversion &&
+            fireClientConversion &&
             hasAnyConversionTracking(conversionTracking) &&
             prefersCompletePageConversion(conversionTracking);
 
-          if (allowConversion) {
+          if (fireClientConversion) {
             runConversionAfterSubmit({
               siteCode,
               submissionId: result.submissionId,
@@ -184,7 +187,7 @@ export function ConfigProvider({
           }
 
           if (options?.redirect !== false && !conversionOnComplete) {
-            const verified = allowConversion ? "1" : "0";
+            const verified = fireClientConversion ? "1" : "0";
             const completeUrl =
               appendSiteCodeQuery("/complete", siteCode) +
               `&submissionId=${encodeURIComponent(result.submissionId)}` +

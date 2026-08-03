@@ -35,12 +35,13 @@ export type SubmitReservationResult = {
   isDuplicate?: boolean;
   notificationSent?: boolean;
   demo?: boolean;
-  /** 내부용 — UI 미노출. postProcess 전엔 false */
+  /** 검수(postProcess)용 — 클라이언트 픽셀 전환과 분리 */
   allowConversion?: boolean;
   savedToVerificationLog?: boolean;
   savedToSubmissions?: boolean;
   includeInLiveFeed?: boolean;
   validationStatus?: string;
+  /** false면 허니팟/토큰 등 조기 차단 — 픽셀 전환 금지 */
   needsPostProcess?: boolean;
 };
 
