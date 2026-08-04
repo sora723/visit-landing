@@ -45,7 +45,7 @@ export function ScrollableSelect({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-full min-h-10 w-full items-center justify-between gap-2 rounded border border-[var(--color-navy)]/15 bg-white px-3 text-left text-[13px] text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60"
+        className="flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-navy)]/15 bg-white px-2 text-left text-xs text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60 lg:gap-1.5 lg:px-2.5 lg:text-[13px] xl:px-3"
       >
         <span className={`truncate ${selected ? "" : "text-[#7a7060]"}`}>
           {selected?.label ?? placeholder}

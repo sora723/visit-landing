@@ -104,7 +104,7 @@ export function ReservationForm({
       <form
         ref={(el) => security?.registerFormRoot(el)}
         onSubmit={handleSubmit}
-        className={`flex flex-wrap items-center gap-2.5 ${className ?? ""}`}
+        className={`relative flex min-w-0 flex-1 flex-nowrap items-center gap-1 md:gap-1.5 lg:gap-2 ${className ?? ""}`}
       >
         <HoneypotField value={company} onChange={setCompany} />
         <input
@@ -113,7 +113,7 @@ export function ReservationForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          className="h-10 w-[90px] rounded border border-[var(--color-navy)]/15 bg-white px-3 text-[13px] text-[var(--color-navy)] outline-none"
+          className="h-9 w-[52px] shrink-0 rounded border border-[var(--color-navy)]/15 bg-white px-1.5 text-xs text-[var(--color-navy)] outline-none md:h-10 md:w-[64px] md:px-2 lg:w-[76px] lg:text-[13px] xl:w-[88px] xl:px-3 2xl:w-[90px]"
         />
         <input
           type="tel"
@@ -123,15 +123,15 @@ export function ReservationForm({
             setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
           }
           required
-          className="h-10 w-[148px] rounded border border-[var(--color-navy)]/15 bg-white px-3 text-[13px] text-[var(--color-navy)] outline-none"
+          className="h-9 w-[108px] shrink-0 rounded border border-[var(--color-navy)]/15 bg-white px-1.5 text-xs text-[var(--color-navy)] outline-none md:h-10 md:w-[120px] md:px-2 lg:w-[132px] lg:text-[13px] xl:w-[148px] xl:px-3"
         />
         {showUnitType && (
           <ScrollableSelect
             value={unitType}
             onChange={setUnitType}
             options={unitOptions}
-            placeholder="평형(선택)"
-            className="h-10 w-[100px]"
+            placeholder="평형"
+            className="h-9 w-[68px] shrink-0 md:h-10 md:w-[76px] lg:w-[88px] xl:w-[96px] 2xl:w-[100px]"
             listMaxHeight={160}
             dropUp
           />
@@ -144,8 +144,8 @@ export function ReservationForm({
               value: d.value,
               label: d.label.replace(/\s/g, ""),
             }))}
-            placeholder="일자(선택)"
-            className="h-10 w-[110px]"
+            placeholder="일자"
+            className="h-9 w-[72px] shrink-0 md:h-10 md:w-[84px] lg:w-[96px] xl:w-[104px] 2xl:w-[110px]"
             listMaxHeight={180}
             dropUp
           />
@@ -155,8 +155,8 @@ export function ReservationForm({
             value={visitTime}
             onChange={setVisitTime}
             options={visitTimes}
-            placeholder="시간(선택)"
-            className="h-10 w-[100px]"
+            placeholder="시간"
+            className="h-9 w-[64px] shrink-0 md:h-10 md:w-[72px] lg:w-[80px] xl:w-[88px] 2xl:w-[96px]"
             listMaxHeight={180}
             dropUp
           />
@@ -169,14 +169,16 @@ export function ReservationForm({
         />
         <PrivacyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
         {error && (
-          <p className="w-full text-center text-xs text-red-400">{error}</p>
+          <p className="pointer-events-none absolute bottom-[calc(100%+4px)] left-0 whitespace-nowrap rounded bg-black/70 px-2 py-0.5 text-[11px] text-red-300">
+            {error}
+          </p>
         )}
         <button
           type="submit"
           disabled={submitting}
-          className="h-10 shrink-0 rounded bg-[var(--color-gold)] px-5 text-[13px] font-medium text-white disabled:opacity-60"
+          className="h-9 shrink-0 rounded bg-[var(--color-gold)] px-3 text-xs font-medium text-white disabled:opacity-60 md:h-10 md:px-3.5 lg:px-4 lg:text-[13px] xl:px-5"
         >
-          {submitting ? "처리 중..." : "신청하기"}
+          {submitting ? "처리 중..." : buttonText}
         </button>
       </form>
     );
@@ -184,6 +186,9 @@ export function ReservationForm({
 
   const inputClass = variant === "sheet" ? inputSheet : inputWhite;
   const isCompact = variant === "compact";
+  /** 5필드(성함·연락처·평형·일자·시간)일 때 평형만 한 줄 풀폭(2칸) */
+  const unitSpansFullRow =
+    !isCompact && showUnitType && showVisitDate && showVisitTime;
 
   return (
     <form
@@ -222,7 +227,7 @@ export function ReservationForm({
           />
         </div>
         {showUnitType && (
-          <div>
+          <div className={unitSpansFullRow ? "sm:col-span-2" : undefined}>
             <label className={labelBase}>
               관심평형 <span className="font-normal text-[#b0a898]">(선택)</span>
             </label>
@@ -332,31 +337,40 @@ function PrivacyAgreement({
 
   return (
     <div
-      className={`flex items-center gap-2 ${
+      className={`flex items-center ${
         isInline
-          ? "shrink-0"
+          ? "shrink-0 gap-1"
           : variant === "sheet"
-            ? "rounded-lg bg-[var(--color-bg)] px-3.5 py-3"
-            : "rounded-md bg-[var(--color-bg)] px-5 py-4"
+            ? "gap-2 rounded-lg bg-[var(--color-bg)] px-3.5 py-3"
+            : "gap-2 rounded-md bg-[var(--color-bg)] px-5 py-4"
       }`}
     >
       <input
         type="checkbox"
         checked={agreed}
         onChange={(e) => onAgreedChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-gold)]"
+        className={`shrink-0 cursor-pointer accent-[var(--color-gold)] ${
+          isInline ? "h-3.5 w-3.5" : "mt-0.5 h-4 w-4"
+        }`}
       />
       <span
-        className={`flex-1 ${isInline ? "whitespace-nowrap text-[11px] text-white/50" : "text-[13px] text-[#7a7060]"}`}
+        className={`${isInline ? "shrink-0 whitespace-nowrap text-[10px] text-white/50 lg:text-[11px]" : "flex-1 text-[13px] text-[#7a7060]"}`}
       >
         {!isInline && <span className="font-medium text-[var(--color-navy)]">[필수]</span>}{" "}
-        {isInline ? "개인정보 동의" : "개인정보 수집 및 이용에 동의합니다."}
+        {isInline ? (
+          <>
+            <span className="xl:hidden">동의</span>
+            <span className="hidden xl:inline">개인정보 동의</span>
+          </>
+        ) : (
+          "개인정보 수집 및 이용에 동의합니다."
+        )}
       </span>
       <button
         type="button"
         onClick={onView}
         className={`shrink-0 font-semibold text-[var(--color-gold)] underline ${
-          isInline ? "text-[11px]" : "text-xs"
+          isInline ? "text-[10px] lg:text-[11px]" : "text-xs"
         }`}
       >
         [보기]
