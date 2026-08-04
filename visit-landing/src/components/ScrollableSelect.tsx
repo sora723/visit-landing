@@ -12,6 +12,7 @@ export function ScrollableSelect({
   className,
   listMaxHeight = 180,
   dropUp = false,
+  compact = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -21,6 +22,8 @@ export function ScrollableSelect({
   listMaxHeight?: number;
   /** true — 목록을 트리거 위쪽으로 (하단 고정바용) */
   dropUp?: boolean;
+  /** true — PC 하단 고정바 인라인용 축소 트리거 */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -45,7 +48,11 @@ export function ScrollableSelect({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-navy)]/15 bg-white px-2 text-left text-xs text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60 lg:gap-1.5 lg:px-2.5 lg:text-[13px] xl:px-3"
+        className={
+          compact
+            ? "flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-navy)]/15 bg-white px-2 text-left text-xs text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60"
+            : "flex h-full min-h-10 w-full items-center justify-between gap-2 rounded border border-[var(--color-navy)]/15 bg-white px-3 text-left text-[13px] text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60"
+        }
       >
         <span className={`truncate ${selected ? "" : "text-[#7a7060]"}`}>
           {selected?.label ?? placeholder}

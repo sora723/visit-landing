@@ -134,6 +134,7 @@ export function ReservationForm({
             className="h-9 w-[68px] shrink-0 md:h-10 md:w-[76px] lg:w-[88px] xl:w-[96px] 2xl:w-[100px]"
             listMaxHeight={160}
             dropUp
+            compact
           />
         )}
         {showVisitDate && (
@@ -148,6 +149,7 @@ export function ReservationForm({
             className="h-9 w-[72px] shrink-0 md:h-10 md:w-[84px] lg:w-[96px] xl:w-[104px] 2xl:w-[110px]"
             listMaxHeight={180}
             dropUp
+            compact
           />
         )}
         {showVisitTime && (
@@ -159,6 +161,7 @@ export function ReservationForm({
             className="h-9 w-[64px] shrink-0 md:h-10 md:w-[72px] lg:w-[80px] xl:w-[88px] 2xl:w-[96px]"
             listMaxHeight={180}
             dropUp
+            compact
           />
         )}
         <PrivacyAgreement
