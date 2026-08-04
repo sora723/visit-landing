@@ -104,7 +104,7 @@ export function ReservationForm({
       <form
         ref={(el) => security?.registerFormRoot(el)}
         onSubmit={handleSubmit}
-        className={`relative flex min-w-0 flex-1 flex-nowrap items-center gap-1 md:gap-1.5 lg:gap-2 ${className ?? ""}`}
+        className={`relative flex w-auto max-w-full flex-nowrap items-center gap-1 md:gap-1.5 lg:gap-2 ${className ?? ""}`}
       >
         <HoneypotField value={company} onChange={setCompany} />
         <input
@@ -130,8 +130,8 @@ export function ReservationForm({
             value={unitType}
             onChange={setUnitType}
             options={unitOptions}
-            placeholder="평형"
-            className="h-9 w-[68px] shrink-0 md:h-10 md:w-[76px] lg:w-[88px] xl:w-[96px] 2xl:w-[100px]"
+            placeholder="관심평형(선택)"
+            className="h-9 min-w-0 w-[7.5rem] shrink md:h-10 lg:w-[8.5rem] xl:w-[9.5rem]"
             listMaxHeight={160}
             dropUp
             compact
@@ -145,8 +145,8 @@ export function ReservationForm({
               value: d.value,
               label: d.label.replace(/\s/g, ""),
             }))}
-            placeholder="일자"
-            className="h-9 w-[72px] shrink-0 md:h-10 md:w-[84px] lg:w-[96px] xl:w-[104px] 2xl:w-[110px]"
+            placeholder="방문일자(선택)"
+            className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
             listMaxHeight={180}
             dropUp
             compact
@@ -157,8 +157,8 @@ export function ReservationForm({
             value={visitTime}
             onChange={setVisitTime}
             options={visitTimes}
-            placeholder="시간"
-            className="h-9 w-[64px] shrink-0 md:h-10 md:w-[72px] lg:w-[80px] xl:w-[88px] 2xl:w-[96px]"
+            placeholder="방문시간(선택)"
+            className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
             listMaxHeight={180}
             dropUp
             compact

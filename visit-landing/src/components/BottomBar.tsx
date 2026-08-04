@@ -103,15 +103,15 @@ export function BottomBar() {
     <>
       {/* PC — Figma bottom-bar-pc (필드 전부도 한 줄 유지) */}
       <div className="bottom-bar-pc fixed inset-x-0 bottom-0 z-[200] hidden border-t-2 border-[var(--color-gold)] bg-[var(--color-navy)] shadow-[0_-4px_24px_rgba(0,0,0,0.25)] md:block">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-1.5 px-3 py-2 md:px-4 lg:gap-2 lg:px-5 xl:gap-2.5 xl:px-6 xl:py-[11px]">
+        <div className="flex justify-center px-3 py-2 md:px-4 lg:px-5 xl:px-6 xl:py-[11px]">
           {pcSubmitted ? (
-            <div className="flex h-10 w-full items-center justify-center">
+            <div className="flex h-10 items-center justify-center">
               <span className="text-[13px] font-medium text-[var(--color-gold)]">
                 ✓ 관심 등록이 완료되었습니다. 담당자가 연락드리겠습니다.
               </span>
             </div>
           ) : (
-            <>
+            <div className="flex max-w-full flex-nowrap items-center gap-1.5 lg:gap-2 xl:gap-2.5">
               <div className="flex shrink-0 items-center gap-1 lg:gap-1.5">
                 <IconMessageCircle className="h-3.5 w-3.5 text-[var(--color-gold)]" />
                 <span className="hidden whitespace-nowrap text-xs font-semibold tracking-[0.1em] text-[var(--color-gold)] xl:inline">
@@ -139,7 +139,7 @@ export function BottomBar() {
                   {config.phone}
                 </span>
               </a>
-            </>
+            </div>
           )}
         </div>
       </div>
