@@ -3,8 +3,9 @@
  * VisitLanding — submit
  *
  * 흐름:
- *   1) action=submit → _검증로그 저장 → 성공 UI
- *   2) action=submit.postProcess → 검수 → 알림톡 → (알림 성공 건만) 접수관리
+ *   1) Netlify가 즉시 수락(완료 UI) → after()로 action=submit
+ *   2) action=submit → _검증로그 저장 (submissionId는 Netlify 발급값 우선)
+ *   3) action=submit.postProcess → 검수 → 알림톡 → (알림 성공 건만) 접수관리
  */
 
 var DUPLICATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 기본 120분, 현장별 설정 우선
@@ -12,14 +13,16 @@ var VERIFICATION_STATUS_PENDING = '검수중';
 
 /**
  * POST action=submit
- * 필드·현장 확인 후 _검증로그에만 기록. 성공 UI는 이 시점 기준.
+ * 필드·현장 확인 후 _검증로그에만 기록.
+ * Netlify fast-ack 시 params.submissionId / submittedAt 을 그대로 사용.
  */
 function handleSubmit(params) {
   var prepared = prepareSubmitContext_(params);
   var siteCode = prepared.siteCode;
   var validated = prepared.validated;
-  var submissionId = Utilities.getUuid();
-  var submittedAt = new Date();
+  var submissionId = String(params.submissionId || '').trim() || Utilities.getUuid();
+  var submittedAt = params.submittedAt ? new Date(params.submittedAt) : new Date();
+  if (isNaN(submittedAt.getTime())) submittedAt = new Date();
   var elapsed = computeElapsedSeconds_(params);
 
   /** 저비용 게이트 — 실패해도 _검증로그는 남기고 성공 UI (접수자 미노출) */

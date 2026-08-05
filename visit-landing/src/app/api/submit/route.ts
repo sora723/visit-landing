@@ -1,20 +1,28 @@
+import { randomUUID } from "crypto";
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 import { API_NO_STORE_CACHE_CONTROL } from "@/lib/api-cache-headers";
 import { isDemoDuplicate, recordDemoSubmission } from "@/lib/demo-store";
+import {
+  FORM_TOKEN_HMAC_SECRET_ENV,
+  verifyFormToken,
+} from "@/lib/form-token";
 import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
 const NO_STORE = { "Cache-Control": API_NO_STORE_CACHE_CONTROL };
-/** _검증로그 저장만 — 검수·알림은 postProcess */
+/** 백그라운드: _검증로그 저장 */
 const APPS_SCRIPT_SUBMIT_TIMEOUT_MS = 15_000;
 const APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS = 25_000;
-/** 접수 1건 postProcess 후, 정체된 검수중 소량 추가 처리 */
 const APPS_SCRIPT_FLUSH_TIMEOUT_MS = 45_000;
 const PENDING_FLUSH_LIMIT = 5;
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
+}
+
+function getFormTokenHmacSecret() {
+  return String(process.env[FORM_TOKEN_HMAC_SECRET_ENV] || "").trim();
 }
 
 function getClientIp(request: NextRequest): string {
@@ -23,58 +31,94 @@ function getClientIp(request: NextRequest): string {
   return request.headers.get("x-real-ip") ?? "";
 }
 
+function normalizePhone(raw: unknown): string {
+  return String(raw ?? "").replace(/\D/g, "").slice(0, 11);
+}
+
 async function postAppsScriptAction(
   appsScriptUrl: string,
   body: Record<string, unknown>,
   timeoutMs: number
 ) {
-  const res = await fetch(appsScriptUrl, {
+  return fetch(appsScriptUrl, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(body),
     cache: "no-store",
     signal: AbortSignal.timeout(timeoutMs),
   });
-  return res;
 }
 
-function schedulePendingVerificationFlush(appsScriptUrl: string) {
-  after(async () => {
-    try {
-      await postAppsScriptAction(
-        appsScriptUrl,
-        { action: "notify.flush", limit: PENDING_FLUSH_LIMIT },
-        APPS_SCRIPT_FLUSH_TIMEOUT_MS
-      );
-    } catch (err) {
-      console.error("[api/submit] notify.flush after() failed", err);
-    }
-  });
-}
-
-function scheduleSubmitPostProcess(
+/**
+ * Netlify 수락 후 백그라운드:
+ * 1) GAS submit → _검증로그
+ * 2) needsPostProcess면 postProcess
+ * 3) 정체 검수중 flush
+ */
+function scheduleAcceptedSubmissionPersist(
   appsScriptUrl: string,
-  basePayload: Record<string, unknown>,
+  payload: Record<string, unknown>,
   submissionId: string,
-  submittedAt?: string
+  submittedAt: string,
+  needsPostProcess: boolean
 ) {
   after(async () => {
+    let logged = false;
+    let shouldPostProcess = needsPostProcess;
+
     try {
-      await postAppsScriptAction(
+      const res = await postAppsScriptAction(
         appsScriptUrl,
         {
-          ...basePayload,
-          action: "submit.postProcess",
+          ...payload,
+          action: "submit",
           submissionId,
-          submittedAt: submittedAt || new Date().toISOString(),
+          submittedAt,
         },
-        APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS
+        APPS_SCRIPT_SUBMIT_TIMEOUT_MS
       );
+      const json = (await res.json()) as {
+        success?: boolean;
+        data?: {
+          savedToVerificationLog?: boolean;
+          needsPostProcess?: boolean;
+          submissionId?: string;
+        };
+      };
+
+      logged =
+        json?.success === true && json?.data?.savedToVerificationLog === true;
+      if (json?.data?.needsPostProcess === false) {
+        shouldPostProcess = false;
+      }
+
+      if (!logged) {
+        console.error(
+          "[api/submit] background GAS submit did not log",
+          json?.data ?? json
+        );
+      }
     } catch (err) {
-      console.error("[api/submit] submit.postProcess after() failed", err);
+      console.error("[api/submit] background GAS submit failed", err);
     }
 
-    // 이번 건 처리 후(또는 실패 후에도) 정체 검수중을 소량 소진
+    if (logged && shouldPostProcess) {
+      try {
+        await postAppsScriptAction(
+          appsScriptUrl,
+          {
+            ...payload,
+            action: "submit.postProcess",
+            submissionId,
+            submittedAt,
+          },
+          APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS
+        );
+      } catch (err) {
+        console.error("[api/submit] background postProcess failed", err);
+      }
+    }
+
     try {
       await postAppsScriptAction(
         appsScriptUrl,
@@ -82,7 +126,7 @@ function scheduleSubmitPostProcess(
         APPS_SCRIPT_FLUSH_TIMEOUT_MS
       );
     } catch (err) {
-      console.error("[api/submit] notify.flush after postProcess failed", err);
+      console.error("[api/submit] background notify.flush failed", err);
     }
   });
 }
@@ -92,7 +136,7 @@ function handleDemoSubmit(
   body: Record<string, string | undefined>
 ) {
   const name = String(body.name ?? "").trim();
-  const phone = String(body.phone ?? "").replace(/\D/g, "");
+  const phone = normalizePhone(body.phone);
   const clientIp = getClientIp(request);
 
   if (isDemoDuplicate(name, phone, DEMO_BLOCK_MS)) {
@@ -141,6 +185,32 @@ function handleDemoSubmit(
   );
 }
 
+/**
+ * 조기 차단 여부(전환 픽셀용). 실제 차단 기록·검증로그는 GAS submit이 수행.
+ * HMAC 토큰은 Netlify에서 사전 검증 가능.
+ */
+function resolveEarlyGate(
+  body: Record<string, unknown>,
+  siteCode: string
+): { needsPostProcess: boolean; validationStatus: string } {
+  if (String(body.company ?? "").trim()) {
+    return { needsPostProcess: false, validationStatus: "허니팟차단" };
+  }
+
+  const secret = getFormTokenHmacSecret();
+  const formToken = String(body.formToken ?? "").trim();
+  if (secret && formToken) {
+    const verified = verifyFormToken(formToken, secret, siteCode);
+    if (!verified.ok) {
+      return { needsPostProcess: false, validationStatus: "토큰차단" };
+    }
+  } else if (!formToken) {
+    return { needsPostProcess: false, validationStatus: "토큰차단" };
+  }
+
+  return { needsPostProcess: true, validationStatus: "검수중" };
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const siteCode = await resolveRequestSiteCode(
@@ -168,12 +238,37 @@ export async function POST(request: NextRequest) {
     return handleDemoSubmit(request, body);
   }
 
+  const name = String(body.name ?? "").trim();
+  const phone = normalizePhone(body.phone);
+  if (!name || phone.length < 10) {
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: !name
+            ? "성함은 필수입니다"
+            : "올바른 연락처를 입력해주세요",
+        },
+      },
+      { status: 400, headers: NO_STORE }
+    );
+  }
+
   const clientIp = getClientIp(request);
+  const submissionId = randomUUID();
+  const submittedAt = new Date().toISOString();
+  const earlyGate = resolveEarlyGate(body, siteCode);
+  const needsPostProcess = earlyGate.needsPostProcess;
+
   const payload: Record<string, unknown> = {
     action: "submit",
     siteCode,
-    name: body.name,
-    phone: body.phone,
+    submissionId,
+    submittedAt,
+    name,
+    phone,
     privacyAgreed: true,
     unitType: body.unitType ?? "",
     visitDate: body.visitDate ?? "",
@@ -205,55 +300,34 @@ export async function POST(request: NextRequest) {
     clientIp,
   };
 
-  try {
-    const res = await fetch(appsScriptUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload),
-      cache: "no-store",
-      signal: AbortSignal.timeout(APPS_SCRIPT_SUBMIT_TIMEOUT_MS),
-    });
-    const json = await res.json();
+  // Netlify가 요청을 수락한 뒤 즉시 완료 UI — 시트 기입·알림은 after()
+  scheduleAcceptedSubmissionPersist(
+    appsScriptUrl,
+    payload,
+    submissionId,
+    submittedAt,
+    needsPostProcess
+  );
 
-    if (
-      json?.success === true &&
-      json?.data?.savedToVerificationLog === true &&
-      json?.data?.needsPostProcess !== false &&
-      typeof json?.data?.submissionId === "string"
-    ) {
-      scheduleSubmitPostProcess(
-        appsScriptUrl,
-        payload,
-        json.data.submissionId,
-        typeof json.data.submittedAt === "string"
-          ? json.data.submittedAt
-          : undefined
-      );
-    }
-
-    return NextResponse.json(
-      { ...json, _debug: { clientIp, mode: "live", siteCode } },
-      { status: json.success ? 200 : 400, headers: NO_STORE }
-    );
-  } catch (err) {
-    const timedOut =
-      err instanceof Error &&
-      (err.name === "TimeoutError" || err.name === "AbortError");
-    // sync 타임아웃이어도 GAS에 검수중이 남았을 수 있음 → 백그라운드 flush
-    schedulePendingVerificationFlush(appsScriptUrl);
-    return NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: {
-          code: timedOut ? "TIMEOUT" : "NETWORK_ERROR",
-          message: timedOut
-            ? "접수 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
-            : "API 서버에 연결할 수 없습니다",
-        },
-        _debug: { clientIp, mode: "live", siteCode },
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        submissionId,
+        submittedAt,
+        savedToVerificationLog: true,
+        needsPostProcess,
+        notificationQueued: needsPostProcess,
+        notificationSent: false,
+        allowConversion: false,
+        savedToSubmissions: false,
+        includeInLiveFeed: false,
+        validationStatus: earlyGate.validationStatus,
+        acceptedBy: "netlify",
       },
-      { status: 502, headers: NO_STORE }
-    );
-  }
+      error: null,
+      _debug: { clientIp, mode: "live-fast-ack", siteCode },
+    },
+    { headers: NO_STORE }
+  );
 }
