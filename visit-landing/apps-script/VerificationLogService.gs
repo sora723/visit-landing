@@ -156,6 +156,7 @@ function processPendingVerificationLogs_(limit) {
       var payload = JSON.parse(raw);
       payload.submissionId = submissionId;
       payload.action = 'submit.postProcess';
+      payload._skipPendingFlush = true;
       if (timeCol !== undefined && values[i][timeCol]) {
         var recorded = values[i][timeCol];
         payload.submittedAt =
@@ -227,4 +228,175 @@ function numOrBlank_(value) {
   if (value === '' || value === null || value === undefined) return '';
   var n = Number(value);
   return isNaN(n) ? '' : n;
+}
+
+/**
+ * 운영 점검 — 검수중 정체 / 토큰차단 / 알림·접수관리 누락
+ * action=audit.verificationLog&stuckMinutes=5&limit=50
+ */
+function auditVerificationLog_(params) {
+  var stuckMinutes = Number((params && params.stuckMinutes) || 5);
+  if (!(stuckMinutes > 0)) stuckMinutes = 5;
+  var sampleLimit = Number((params && params.limit) || 40);
+  if (!(sampleLimit > 0)) sampleLimit = 40;
+  if (sampleLimit > 100) sampleLimit = 100;
+
+  ensureVerificationLogSheet_();
+  var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
+  var map = getHeaderIndexMap_(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return {
+      total: 0,
+      byStatus: {},
+      stuckPending: [],
+      tokenBlocked: { total: 0, withTokenY: 0, withTokenN: 0, samples: [] },
+      notifyExpectedMissingSubmission: []
+    };
+  }
+
+  var width = sheet.getLastColumn();
+  var values = sheet.getRange(2, 1, lastRow, width).getValues();
+  var iTime = map['기록시간'];
+  var iStatus = map['검증상태'];
+  var iReason = map['의심사유'];
+  var iId = map.submissionId;
+  var iSite = map.siteCode;
+  var iName = map['이름'];
+  var iPhone = map['연락처'];
+  var iToken = map['form_token존재'];
+
+  var byStatus = {};
+  var stuckPending = [];
+  var tokenBlockedSamples = [];
+  var tokenY = 0;
+  var tokenN = 0;
+  var tokenTotal = 0;
+  var finalCandidates = [];
+  var now = Date.now();
+  var stuckMs = stuckMinutes * 60 * 1000;
+
+  var FINAL_EXPECT_NOTIFY = {
+    '정상접수': true,
+    '빠른접수': true,
+    '허수의심': true,
+    '광고신호없음': true,
+    '중복접수': true
+  };
+
+  for (var i = 0; i < values.length; i++) {
+    var status = String(values[i][iStatus] || '').trim();
+    byStatus[status || '(empty)'] = (byStatus[status || '(empty)'] || 0) + 1;
+
+    var recorded = iTime !== undefined ? values[i][iTime] : null;
+    var t =
+      recorded instanceof Date
+        ? recorded.getTime()
+        : recorded
+          ? new Date(recorded).getTime()
+          : NaN;
+    var ageMs = isNaN(t) ? null : now - t;
+    var row = {
+      row: i + 2,
+      time:
+        recorded instanceof Date
+          ? recorded.toISOString()
+          : String(recorded || ''),
+      ageMinutes: ageMs == null ? null : Math.round(ageMs / 60000),
+      status: status,
+      reason: String(values[i][iReason] || '').trim(),
+      submissionId: String(values[i][iId] || '').trim(),
+      siteCode: String(values[i][iSite] || '').trim(),
+      name: String(values[i][iName] || '').trim(),
+      phone: String(values[i][iPhone] || '').trim(),
+      formToken: String(values[i][iToken] || '').trim()
+    };
+
+    if (status === '검수중' && (ageMs == null || ageMs >= stuckMs)) {
+      stuckPending.push(row);
+    }
+
+    if (status === '토큰차단') {
+      tokenTotal++;
+      if (row.formToken === 'Y') tokenY++;
+      else tokenN++;
+      tokenBlockedSamples.push(row);
+    }
+
+    if (FINAL_EXPECT_NOTIFY[status] && row.submissionId) {
+      finalCandidates.push(row);
+    }
+  }
+
+  var submissionIds = loadSubmissionIdSet_();
+  var missingSubmission = [];
+  for (var j = 0; j < finalCandidates.length; j++) {
+    var c = finalCandidates[j];
+    if (!submissionIds[c.submissionId]) missingSubmission.push(c);
+  }
+
+  var skipLogs = loadRecentSystemLogMatches_([
+    'NOTIFICATION_FAIL',
+    'SUBMIT_POST_SKIP',
+    'POSTPROCESS_PENDING_FAIL',
+    'SUBMIT_BLOCKED_EARLY'
+  ], sampleLimit);
+
+  return {
+    total: values.length,
+    stuckMinutes: stuckMinutes,
+    byStatus: byStatus,
+    stuckPendingCount: stuckPending.length,
+    stuckPending: stuckPending.slice(-sampleLimit),
+    tokenBlocked: {
+      total: tokenTotal,
+      withTokenY: tokenY,
+      withTokenN: tokenN,
+      samples: tokenBlockedSamples.slice(-sampleLimit)
+    },
+    notifyExpectedMissingSubmissionCount: missingSubmission.length,
+    notifyExpectedMissingSubmission: missingSubmission.slice(-sampleLimit),
+    systemLogHits: skipLogs
+  };
+}
+
+function loadSubmissionIdSet_() {
+  var out = {};
+  var sheet = getSheetOptional_(SHEET_NAMES.SUBMISSION);
+  if (!sheet || sheet.getLastRow() < 2) return out;
+  var map = getHeaderIndexMap_(sheet);
+  var idCol = map.submissionId;
+  if (idCol === undefined) idCol = map['접수ID'];
+  if (idCol === undefined) idCol = map.id;
+  if (idCol === undefined) return out;
+  var lastRow = sheet.getLastRow();
+  var vals = sheet.getRange(2, idCol + 1, lastRow, idCol + 1).getValues();
+  for (var i = 0; i < vals.length; i++) {
+    var id = String(vals[i][0] || '').trim();
+    if (id) out[id] = true;
+  }
+  return out;
+}
+
+function loadRecentSystemLogMatches_(needles, limit) {
+  var logName = getLogSheetName_();
+  var sheet = getSheetOptional_(logName);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var lastRow = sheet.getLastRow();
+  var width = Math.min(sheet.getLastColumn(), 8);
+  var start = Math.max(2, lastRow - 400);
+  var values = sheet.getRange(start, 1, lastRow, width).getValues();
+  var hits = [];
+  for (var i = values.length - 1; i >= 0 && hits.length < limit; i--) {
+    var line = values[i].join('|');
+    for (var n = 0; n < needles.length; n++) {
+      if (line.indexOf(needles[n]) >= 0) {
+        hits.push(values[i].map(function (v) {
+          return v instanceof Date ? v.toISOString() : String(v || '');
+        }));
+        break;
+      }
+    }
+  }
+  return hits;
 }

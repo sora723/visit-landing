@@ -77,6 +77,12 @@ function routeAction_(action, params) {
     case 'setup.enableVisitTime':
       return handleSetupEnableVisitTime(params);
 
+    case 'setup.formTokenHmac':
+      return handleSetupFormTokenHmac(params);
+
+    case 'audit.verificationLog':
+      return auditVerificationLog_(params);
+
     /** 레거시 _알림큐 잔여분 소진용 (신규 enqueue 없음) */
     case 'notify.flush':
       return handleNotifyFlush(params);

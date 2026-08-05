@@ -33,6 +33,25 @@ function setFormTokenHmacSecret(secret) {
   return { ok: true, length: s.length };
 }
 
+/**
+ * Web App bootstrap — action=setup.formTokenHmac&secret=...
+ * force=1 이면 기존 값 덮어씀 (Netlify와 동일 키 맞출 때).
+ */
+function handleSetupFormTokenHmac(params) {
+  var force =
+    String((params && (params.force || params.overwrite)) || '').trim() === '1';
+  var existing = getFormTokenHmacSecret_();
+  if (existing && !force) {
+    return { ok: true, alreadySet: true, length: existing.length };
+  }
+  var secret = String(
+    (params && (params.secret || params.FORM_TOKEN_HMAC_SECRET)) || ''
+  ).trim();
+  var result = setFormTokenHmacSecret(secret);
+  result.overwritten = Boolean(existing);
+  return result;
+}
+
 function issueFormToken_(siteCode) {
   var code = String(siteCode || '').trim();
   if (!code) {

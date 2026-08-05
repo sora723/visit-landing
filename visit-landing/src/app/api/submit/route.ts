@@ -9,6 +9,9 @@ const NO_STORE = { "Cache-Control": API_NO_STORE_CACHE_CONTROL };
 /** _검증로그 저장만 — 검수·알림은 postProcess */
 const APPS_SCRIPT_SUBMIT_TIMEOUT_MS = 15_000;
 const APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS = 25_000;
+/** 접수 1건 postProcess 후, 정체된 검수중 소량 추가 처리 */
+const APPS_SCRIPT_FLUSH_TIMEOUT_MS = 45_000;
+const PENDING_FLUSH_LIMIT = 5;
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
@@ -18,6 +21,70 @@ function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]?.trim() ?? "";
   return request.headers.get("x-real-ip") ?? "";
+}
+
+async function postAppsScriptAction(
+  appsScriptUrl: string,
+  body: Record<string, unknown>,
+  timeoutMs: number
+) {
+  const res = await fetch(appsScriptUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  return res;
+}
+
+function schedulePendingVerificationFlush(appsScriptUrl: string) {
+  after(async () => {
+    try {
+      await postAppsScriptAction(
+        appsScriptUrl,
+        { action: "notify.flush", limit: PENDING_FLUSH_LIMIT },
+        APPS_SCRIPT_FLUSH_TIMEOUT_MS
+      );
+    } catch (err) {
+      console.error("[api/submit] notify.flush after() failed", err);
+    }
+  });
+}
+
+function scheduleSubmitPostProcess(
+  appsScriptUrl: string,
+  basePayload: Record<string, unknown>,
+  submissionId: string,
+  submittedAt?: string
+) {
+  after(async () => {
+    try {
+      await postAppsScriptAction(
+        appsScriptUrl,
+        {
+          ...basePayload,
+          action: "submit.postProcess",
+          submissionId,
+          submittedAt: submittedAt || new Date().toISOString(),
+        },
+        APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS
+      );
+    } catch (err) {
+      console.error("[api/submit] submit.postProcess after() failed", err);
+    }
+
+    // 이번 건 처리 후(또는 실패 후에도) 정체 검수중을 소량 소진
+    try {
+      await postAppsScriptAction(
+        appsScriptUrl,
+        { action: "notify.flush", limit: PENDING_FLUSH_LIMIT },
+        APPS_SCRIPT_FLUSH_TIMEOUT_MS
+      );
+    } catch (err) {
+      console.error("[api/submit] notify.flush after postProcess failed", err);
+    }
+  });
 }
 
 function handleDemoSubmit(
@@ -72,32 +139,6 @@ function handleDemoSubmit(
     },
     { headers: NO_STORE }
   );
-}
-
-function scheduleSubmitPostProcess(
-  appsScriptUrl: string,
-  basePayload: Record<string, unknown>,
-  submissionId: string,
-  submittedAt?: string
-) {
-  after(async () => {
-    try {
-      await fetch(appsScriptUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          ...basePayload,
-          action: "submit.postProcess",
-          submissionId,
-          submittedAt: submittedAt || new Date().toISOString(),
-        }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(APPS_SCRIPT_POST_PROCESS_TIMEOUT_MS),
-      });
-    } catch (err) {
-      console.error("[api/submit] submit.postProcess after() failed", err);
-    }
-  });
 }
 
 export async function POST(request: NextRequest) {
@@ -198,6 +239,8 @@ export async function POST(request: NextRequest) {
     const timedOut =
       err instanceof Error &&
       (err.name === "TimeoutError" || err.name === "AbortError");
+    // sync 타임아웃이어도 GAS에 검수중이 남았을 수 있음 → 백그라운드 flush
+    schedulePendingVerificationFlush(appsScriptUrl);
     return NextResponse.json(
       {
         success: false,

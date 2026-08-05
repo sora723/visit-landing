@@ -146,6 +146,18 @@ function handleSubmitPostProcess(params) {
     var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
     notificationSent = notificationResult && notificationResult.success === true;
 
+    // 일시 오류 대비 1회 재시도
+    if (!notificationSent) {
+      try {
+        Utilities.sleep(400);
+      } catch (sleepErr) {}
+      notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
+      notificationSent = notificationResult && notificationResult.success === true;
+      if (notificationSent) {
+        writeLog_('NOTIFICATION_RETRY_OK', siteCode, '접수ID=' + submissionId);
+      }
+    }
+
     if (notificationSent) {
       appendSubmissionRow_(
         siteRow,
@@ -189,6 +201,19 @@ function handleSubmitPostProcess(params) {
       ', 접수관리=' +
       (savedToSubmissions ? 'Y' : 'N')
   );
+
+  // 다른 정체 검수중을 소량 함께 처리 (재귀 방지: flush 경로는 _skipPendingFlush)
+  if (params._skipPendingFlush !== true) {
+    try {
+      processPendingVerificationLogs_(3);
+    } catch (flushErr) {
+      writeLog_(
+        'POSTPROCESS_PENDING_FAIL',
+        siteCode,
+        'afterSelfFlush ' + (flushErr.message || String(flushErr))
+      );
+    }
+  }
 
   return {
     submissionId: submissionId,
