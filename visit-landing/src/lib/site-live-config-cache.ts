@@ -1,10 +1,19 @@
-/** Google Sheet site.config — 서버 메모리 캐시 + stale-while-revalidate */
+/** Google Sheet site.config — 서버 메모리 캐시 + stale-while-revalidate + SSR 예산 */
 
+import {
+  EMPTY_CONVERSION_TRACKING,
+} from "@/lib/conversion-tracking";
 import type { SiteLiveConfigData } from "@/lib/fetch-site-live-config";
+import { EMPTY_OWNERSHIP_VERIFICATION } from "@/lib/ownership-verification";
 
 const CACHE_TTL_MS = 5 * 60_000;
-/** 만료 후에도 stale 설정으로 HTML을 바로 내려주고 백그라운드 갱신 */
+/** 만료 후에도 staleUntil 이전이면 즉시 반환하며 백그라운드 갱신 */
 const STALE_TTL_MS = 30 * 60_000;
+/**
+ * 첫 HTML이 GAS를 끝없이 기다리지 않도록.
+ * 예산 초과 시 unavailable(파일 폴백)로 화면을 먼저 열고, 실제 fetch는 캐시를 채운다.
+ */
+const SSR_FETCH_BUDGET_MS = 1_200;
 
 type Entry = {
   data: SiteLiveConfigData;
@@ -55,7 +64,24 @@ export function clearSiteLiveConfigCache(siteCode?: string): void {
   inFlight.clear();
 }
 
-/** 동시 요청( metadata + layout + page ) — Apps Script 1회만 호출 */
+function ssrBudgetUnavailable(siteCode: string): SiteLiveConfigData {
+  return {
+    source: "unavailable",
+    siteConfig: null,
+    conversionTracking: EMPTY_CONVERSION_TRACKING,
+    ownershipVerification: EMPTY_OWNERSHIP_VERIFICATION,
+    debug: {
+      reason: "FETCH_ERROR",
+      appsScriptUrlConfigured: true,
+      appsScriptUrlLength: 0,
+      deploymentId: null,
+      siteCode,
+      responseSnippet: `SSR_BUDGET_${SSR_FETCH_BUDGET_MS}ms`,
+    },
+  };
+}
+
+/** 동시 요청( metadata + layout + page ) — Apps Script 1회 + SSR 예산 */
 export function dedupeSiteLiveConfigFetch(
   siteCode: string,
   fetcher: () => Promise<SiteLiveConfigData>
@@ -80,9 +106,19 @@ export function dedupeSiteLiveConfigFetch(
   }
 
   const pending = inFlight.get(siteCode);
-  if (pending) return pending;
+  if (pending) {
+    return Promise.race([
+      pending,
+      new Promise<SiteLiveConfigData>((resolve) => {
+        setTimeout(
+          () => resolve(ssrBudgetUnavailable(siteCode)),
+          SSR_FETCH_BUDGET_MS
+        );
+      }),
+    ]);
+  }
 
-  const promise = fetcher()
+  const full = fetcher()
     .then((data) => {
       writeSiteLiveConfigCache(siteCode, data);
       return data;
@@ -91,6 +127,15 @@ export function dedupeSiteLiveConfigFetch(
       inFlight.delete(siteCode);
     });
 
-  inFlight.set(siteCode, promise);
-  return promise;
+  inFlight.set(siteCode, full);
+
+  return Promise.race([
+    full,
+    new Promise<SiteLiveConfigData>((resolve) => {
+      setTimeout(
+        () => resolve(ssrBudgetUnavailable(siteCode)),
+        SSR_FETCH_BUDGET_MS
+      );
+    }),
+  ]);
 }

@@ -106,13 +106,13 @@ export function ConfigProvider({
         .catch(() => {});
     };
 
-    if (initialSource !== "sheet") {
-      refresh();
-    }
-
+    // SSR 예산 초과로 파일 폴백된 경우 즉시, 시트 SSR이어도 짧게 한 번 더 맞춤
+    const bootDelay = initialSource !== "sheet" ? 0 : 400;
+    const boot = window.setTimeout(refresh, bootDelay);
     const timer = setInterval(refresh, POLL_MS);
     return () => {
       cancelled = true;
+      clearTimeout(boot);
       clearInterval(timer);
     };
   }, [siteCode, initialSource]);

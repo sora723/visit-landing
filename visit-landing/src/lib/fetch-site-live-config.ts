@@ -131,7 +131,7 @@ async function fetchSiteLiveConfigFromSheetUncached(
       next: { revalidate: 60 },
       redirect: "follow",
       headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8_000),
     });
 
     const bodyText = await res.text();
