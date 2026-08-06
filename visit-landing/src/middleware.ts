@@ -4,6 +4,7 @@ import {
   fetchDomainSiteCodeMap,
   resolveSiteCodeFromDomainMap,
 } from "@/lib/fetch-domain-site-code-map";
+import { isTenantHostname } from "@/lib/platform-hostname";
 import {
   getRequestHostname,
   isValidSiteCodePathSegment,
@@ -42,39 +43,77 @@ export async function middleware(request: NextRequest) {
   const fromQuery = request.nextUrl.searchParams.get("siteCode");
   const fromCookie = request.cookies.get("siteCode")?.value;
   const hostname = getRequestHostname(request);
-  /**
-   * ?siteCode= 또는 유효 cookie 가 있으면 도메인 맵(Apps Script) 조회를 건너뛴다.
-   * 광고 첫 진입 TTFB에서 site.domains 왕복을 제거.
-   */
-  let domainSiteCode: string | null = null;
+  const tenantHost = isTenantHostname(hostname);
   const hasQuerySite = Boolean(fromQuery?.trim());
   const hasCookieSite = isValidSiteCodePathSegment(
     String(fromCookie || "").trim()
   );
-  if (!hasQuerySite && !hasCookieSite) {
-    const domainMap = await fetchDomainSiteCodeMap();
+
+  /**
+   * 커스텀 도메인: Host→siteCode 를 항상 확정(콜드여도 GAS await).
+   * 빈 맵/L001 폴백으로 다른 현장이 잠깐이라도 보이면 안 됨.
+   * 공유 호스트: ?siteCode= 또는 유효 cookie 면 domains 조회 생략(광고 TTFB).
+   */
+  let domainSiteCode: string | null = null;
+  const shouldResolveDomain =
+    !hasQuerySite && (tenantHost || !hasCookieSite);
+
+  if (shouldResolveDomain) {
+    const domainMap = await fetchDomainSiteCodeMap({
+      waitIfCold: tenantHost,
+    });
     domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
   }
 
-  const siteCode = resolveSiteCodeInput({
-    querySiteCode: fromQuery,
-    domainSiteCode,
-    cookieSiteCode: fromCookie,
-  });
+  let siteCode = "";
+  let siteUnresolved = false;
+
+  if (hasQuerySite) {
+    siteCode = resolveSiteCodeInput({
+      querySiteCode: fromQuery,
+      domainSiteCode,
+      cookieSiteCode: fromCookie,
+    });
+  } else if (tenantHost) {
+    if (domainSiteCode) {
+      // 도메인이 쿠키보다 우선 — 잘못된 쿠키로 다른 현장 노출 방지
+      siteCode = domainSiteCode;
+    } else {
+      siteUnresolved = true;
+    }
+  } else {
+    siteCode = resolveSiteCodeInput({
+      querySiteCode: fromQuery,
+      domainSiteCode,
+      cookieSiteCode: fromCookie,
+    });
+  }
 
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-site-code", siteCode);
+  if (siteUnresolved) {
+    requestHeaders.set("x-site-unresolved", "1");
+    requestHeaders.delete("x-site-code");
+  } else {
+    requestHeaders.set("x-site-code", siteCode);
+    requestHeaders.delete("x-site-unresolved");
+  }
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
-  response.headers.set("x-site-code", siteCode);
+
+  if (siteUnresolved) {
+    response.headers.set("x-site-unresolved", "1");
+    response.headers.delete("x-site-code");
+  } else {
+    response.headers.set("x-site-code", siteCode);
+  }
 
   const shouldPersistCookie =
     Boolean(fromQuery?.trim()) || Boolean(domainSiteCode);
 
-  if (shouldPersistCookie) {
+  if (shouldPersistCookie && siteCode) {
     response.cookies.set("siteCode", siteCode, {
       path: "/",
       sameSite: "lax",

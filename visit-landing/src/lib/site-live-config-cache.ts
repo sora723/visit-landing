@@ -11,7 +11,7 @@ const CACHE_TTL_MS = 5 * 60_000;
 const STALE_TTL_MS = 30 * 60_000;
 /**
  * 첫 HTML이 GAS를 끝없이 기다리지 않도록.
- * 예산 초과 시 unavailable(파일 폴백)로 화면을 먼저 열고, 실제 fetch는 캐시를 채운다.
+ * 예산 초과 시 unavailable — 호출측은 다른 현장 site.json 으로 폴백하면 안 됨.
  */
 const SSR_FETCH_BUDGET_MS = 1_200;
 
@@ -138,4 +138,28 @@ export function dedupeSiteLiveConfigFetch(
       );
     }),
   ]);
+}
+
+/** API·강제 동기화 — SSR 예산 없이 in-flight/uncached 완료까지 대기 */
+export function awaitSiteLiveConfigFetch(
+  siteCode: string,
+  fetcher: () => Promise<SiteLiveConfigData>
+): Promise<SiteLiveConfigData> {
+  const fresh = readSiteLiveConfigCache(siteCode);
+  if (fresh) return Promise.resolve(fresh);
+
+  const pending = inFlight.get(siteCode);
+  if (pending) return pending;
+
+  const full = fetcher()
+    .then((data) => {
+      writeSiteLiveConfigCache(siteCode, data);
+      return data;
+    })
+    .finally(() => {
+      inFlight.delete(siteCode);
+    });
+
+  inFlight.set(siteCode, full);
+  return full;
 }

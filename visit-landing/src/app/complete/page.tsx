@@ -1,8 +1,13 @@
+import { SiteContentBoot } from "@/components/SiteContentBoot";
+import { CompletePageClient } from "@/components/CompletePageClient";
 import { getSiteConfigFromFile } from "@/lib/config-source";
+import {
+  EMPTY_CONVERSION_TRACKING,
+} from "@/lib/conversion-tracking";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
 import { getServerSiteCode } from "@/lib/server-site-code";
-import { CompletePageClient } from "@/components/CompletePageClient";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +24,16 @@ type CompletePageProps = {
 export default async function CompletePage({ searchParams }: CompletePageProps) {
   const params = await searchParams;
   const siteCode = await getServerSiteCode(params.siteCode);
-  const fallback = getSiteConfigFromFile();
+  if (!siteCode) {
+    return <SiteContentBoot unresolvedDomain />;
+  }
+
+  const fileConfig = getSiteConfigFromFile();
   const live = await fetchSiteLiveConfigFromSheet(siteCode);
-  const siteName =
-    live.source === "sheet" && live.siteConfig
-      ? live.siteConfig.siteName
-      : fallback.siteName;
+  const config = resolveRenderableSiteConfig(siteCode, live, fileConfig);
+  if (!config) {
+    return <SiteContentBoot siteCode={siteCode} />;
+  }
 
   const submissionId = String(params.submissionId ?? "").trim() || null;
   const verified = params.verified === "1" || params.verified === "true";
@@ -34,9 +43,13 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
 
   return (
     <CompletePageClient
-      siteName={siteName}
+      siteName={config.siteName}
       homeHref={homeHref}
-      tracking={live.conversionTracking}
+      tracking={
+        live.source === "sheet"
+          ? live.conversionTracking
+          : EMPTY_CONVERSION_TRACKING
+      }
       submissionId={submissionId}
       conversionAllowed={verified}
       autoReturn={autoReturn}

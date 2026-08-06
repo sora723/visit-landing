@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
-import type { OwnershipVerificationConfig } from "@/lib/ownership-verification";
+import {
+  EMPTY_OWNERSHIP_VERIFICATION,
+  type OwnershipVerificationConfig,
+} from "@/lib/ownership-verification";
+import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
 import {
   buildAbsoluteSiteUrl,
   readSiteOriginFromHeaders,
@@ -13,6 +17,12 @@ import type { SiteConfig } from "@/lib/types";
 
 export type SiteSeoFields = SiteConfig["seo"];
 
+const EMPTY_SEO: SiteSeoFields = {
+  title: "",
+  description: "",
+  ogImage: "",
+  faviconUrl: "",
+};
 export function buildSiteSeoMetadata(input: {
   origin: string;
   pathname: string;
@@ -103,12 +113,34 @@ export async function generateSiteMetadata(
   const pathname = hdrs.get("x-pathname") || fallbackPathname;
   const siteCode = await getServerSiteCode(searchParamsSiteCode);
   const fileConfig = getSiteConfigFromFile();
+  if (!siteCode) {
+    return buildSiteSeoMetadata({
+      origin,
+      pathname,
+      siteName: "",
+      seo: EMPTY_SEO,
+      ownership: EMPTY_OWNERSHIP_VERIFICATION,
+      siteCode: "",
+    });
+  }
+
   const live = await fetchSiteLiveConfigFromSheet(siteCode);
-  const sheetConfig =
-    live.source === "sheet" && live.siteConfig ? live.siteConfig : null;
-  const siteConfig = sheetConfig ?? fileConfig;
+  const siteConfig = resolveRenderableSiteConfig(siteCode, live, fileConfig);
+  if (!siteConfig) {
+    return buildSiteSeoMetadata({
+      origin,
+      pathname,
+      siteName: "",
+      seo: EMPTY_SEO,
+      ownership: live.ownershipVerification,
+      siteCode,
+    });
+  }
+
   const seo = siteConfig.seo;
   /** 파비콘만 시트 값 — fileConfig로 다른 아이콘 대체 금지 */
+  const sheetConfig =
+    live.source === "sheet" && live.siteConfig ? live.siteConfig : null;
   const faviconUrl =
     sheetConfig?.faviconUrl?.trim() ||
     sheetConfig?.seo.faviconUrl?.trim() ||

@@ -94,38 +94,41 @@ async function fetchSiteLiveConfigFromSheetImpl(
   const warm =
     readSiteLiveConfigCache(siteCode) || readSiteLiveConfigStaleCache(siteCode);
   if (warm) {
-    // 백그라운드 갱신만 걸고 즉시 HTML
+    // stale/fresh 즉시 반환 + 백그라운드 갱신
     void dedupeSiteLiveConfigFetch(siteCode, () =>
       fetchSiteLiveConfigFromSheetUncached(siteCodeOverride)
     );
     return warm;
   }
 
-  // 콜드: GAS를 기다리지 않음 — HTML 먼저, 설정은 클라이언트/다음 요청이 채움
-  void dedupeSiteLiveConfigFetch(siteCode, () =>
+  // 콜드: 짧은 SSR 예산 안에서 GAS 대기. 초과 시 unavailable
+  // (호출측은 다른 현장 site.json 폴백 금지 → 중립 부트)
+  return dedupeSiteLiveConfigFetch(siteCode, () =>
     fetchSiteLiveConfigFromSheetUncached(siteCodeOverride)
   );
-
-  return {
-    source: "unavailable",
-    siteConfig: null,
-    conversionTracking: EMPTY_CONVERSION_TRACKING,
-    ownershipVerification: EMPTY_OWNERSHIP_VERIFICATION,
-    debug: {
-      reason: "FETCH_ERROR",
-      appsScriptUrlConfigured: true,
-      appsScriptUrlLength: 0,
-      deploymentId: null,
-      siteCode,
-      responseSnippet: "SSR_NON_BLOCKING",
-    },
-  };
 }
 
 /** 요청당 React cache + 프로세스 내 in-flight dedup */
 export const fetchSiteLiveConfigFromSheet = cache(
   fetchSiteLiveConfigFromSheetImpl
 );
+
+/** API 등 — SSR 예산 없이 시트 응답까지 대기 */
+export async function fetchSiteLiveConfigFromSheetBlocking(
+  siteCodeOverride?: string | null
+): Promise<SiteLiveConfigData> {
+  const { siteCode } = getAppsScriptEnv(siteCodeOverride);
+  const { awaitSiteLiveConfigFetch, readSiteLiveConfigCache } = await import(
+    "@/lib/site-live-config-cache"
+  );
+
+  const fresh = readSiteLiveConfigCache(siteCode);
+  if (fresh) return fresh;
+
+  return awaitSiteLiveConfigFetch(siteCode, () =>
+    fetchSiteLiveConfigFromSheetUncached(siteCodeOverride)
+  );
+}
 
 async function fetchSiteLiveConfigFromSheetUncached(
   siteCodeOverride?: string | null

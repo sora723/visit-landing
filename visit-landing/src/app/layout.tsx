@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
 import { generateSiteMetadata } from "@/lib/site-seo-metadata";
 import { getServerSiteCode } from "@/lib/server-site-code";
 import { mergeSiteTheme, themeStyleObject } from "@/lib/site-theme";
@@ -28,13 +29,15 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const siteCode = await getServerSiteCode();
-  const live = await fetchSiteLiveConfigFromSheet(siteCode);
-  const ownershipRaw = live.ownershipVerification.ownershipRawHtml;
-  const theme = mergeSiteTheme(
-    live.source === "sheet" && live.siteConfig
-      ? live.siteConfig.theme
-      : fileConfig.theme
-  );
+  const live = siteCode
+    ? await fetchSiteLiveConfigFromSheet(siteCode)
+    : null;
+  const ownershipRaw = live?.ownershipVerification.ownershipRawHtml;
+  const renderable =
+    siteCode && live
+      ? resolveRenderableSiteConfig(siteCode, live, fileConfig)
+      : null;
+  const theme = mergeSiteTheme(renderable?.theme ?? null);
 
   return (
     <html lang="ko" style={themeStyleObject(theme)}>

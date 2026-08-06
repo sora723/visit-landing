@@ -73,8 +73,16 @@ export async function resolveRequestSiteCode(
   const hostname = getRequestHostname(request);
   const { fetchDomainSiteCodeMap, resolveSiteCodeFromDomainMap } =
     await import("@/lib/fetch-domain-site-code-map");
-  const domainMap = await fetchDomainSiteCodeMap();
+  const { isTenantHostname } = await import("@/lib/platform-hostname");
+  const tenantHost = isTenantHostname(hostname);
+  const domainMap = await fetchDomainSiteCodeMap({ waitIfCold: tenantHost });
   const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
+
+  if (tenantHost) {
+    if (domainSiteCode) return domainSiteCode;
+    // 커스텀 도메인 미해석 — L001 등 다른 현장으로 떨어지지 않음
+    return "";
+  }
 
   return resolveSiteCodeInput({
     querySiteCode: fromQuery,

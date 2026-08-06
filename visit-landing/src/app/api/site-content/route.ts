@@ -17,6 +17,19 @@ const NO_STORE = {
  */
 export async function GET(request: NextRequest) {
   const siteCode = await resolveRequestSiteCode(request);
+  if (!siteCode) {
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: {
+          code: "SITE_UNRESOLVED",
+          message: "도메인에 연결된 현장을 찾지 못했습니다",
+        },
+      },
+      { status: 503, headers: NO_STORE }
+    );
+  }
   const target = new URL(siteContentApiPath(siteCode), request.url);
   return NextResponse.redirect(target, { status: 307, headers: NO_STORE });
 }

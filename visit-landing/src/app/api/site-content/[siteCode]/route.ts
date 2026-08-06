@@ -11,7 +11,7 @@ import {
   SITE_CONTENT_NETLIFY_CDN_CACHE_CONTROL,
 } from "@/lib/api-cache-headers";
 import { logAppsScriptEnv } from "@/lib/apps-script-env";
-import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { fetchSiteLiveConfigFromSheetBlocking } from "@/lib/fetch-site-live-config";
 import { isValidSiteCodePathSegment } from "@/lib/resolve-site-code";
 import { readHostnameFromRequest } from "@/lib/site-request-url";
 
@@ -62,7 +62,7 @@ export async function GET(
   }
 
   try {
-    const live = await fetchSiteLiveConfigFromSheet(siteCode);
+    const live = await fetchSiteLiveConfigFromSheetBlocking(siteCode);
 
     if (live.source !== "sheet" || !live.siteConfig) {
       const reason = live.debug?.reason ?? "PARSE_RESPONSE_ERROR";

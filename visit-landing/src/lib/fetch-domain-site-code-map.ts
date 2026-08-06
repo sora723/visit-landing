@@ -94,7 +94,18 @@ function refreshDomainMapInBackground(): void {
   });
 }
 
-export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> {
+export type FetchDomainMapOptions = {
+  /**
+   * 콜드 캐시일 때 GAS를 기다릴지.
+   * 커스텀 도메인은 true — 빈 맵으로 L001 폴백하면 다른 현장이 잠깐 노출됨.
+   */
+  waitIfCold?: boolean;
+};
+
+export async function fetchDomainSiteCodeMap(
+  options: FetchDomainMapOptions = {}
+): Promise<Record<string, string>> {
+  const waitIfCold = options.waitIfCold === true;
   const now = Date.now();
   if (domainMapCache && now < domainMapCache.expiresAt) {
     return domainMapCache.map;
@@ -106,8 +117,10 @@ export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> 
     return domainMapCache.map;
   }
 
-  // 콜드 첫 요청: domains GAS를 기다리지 않음 (백그라운드 채움)
   if (domainMapInFlight) {
+    if (waitIfCold) {
+      return domainMapInFlight;
+    }
     return domainMapCache?.map ?? {};
   }
 
@@ -115,6 +128,12 @@ export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> 
     domainMapInFlight = null;
   });
 
+  // 커스텀 도메인 등: 빈 맵으로 다른 현장(L001)에 떨어지지 않도록 await
+  if (waitIfCold) {
+    return domainMapInFlight;
+  }
+
+  // 공유 호스트 광고 경로: 콜드여도 HTML을 막지 않음 (백그라운드 채움)
   return domainMapCache?.map ?? {};
 }
 
