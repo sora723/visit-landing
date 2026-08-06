@@ -6,6 +6,7 @@ import {
 } from "@/lib/fetch-domain-site-code-map";
 import {
   getRequestHostname,
+  isValidSiteCodePathSegment,
   resolveSiteCodeInput,
 } from "@/lib/resolve-site-code";
 
@@ -42,11 +43,15 @@ export async function middleware(request: NextRequest) {
   const fromCookie = request.cookies.get("siteCode")?.value;
   const hostname = getRequestHostname(request);
   /**
-   * ?siteCode= 가 있으면 도메인 맵(Apps Script) 조회를 건너뛴다.
-   * L010처럼 쿼리로 여는 진입의 TTFB에서 site.domains 왕복을 제거.
+   * ?siteCode= 또는 유효 cookie 가 있으면 도메인 맵(Apps Script) 조회를 건너뛴다.
+   * 광고 첫 진입 TTFB에서 site.domains 왕복을 제거.
    */
   let domainSiteCode: string | null = null;
-  if (!fromQuery?.trim()) {
+  const hasQuerySite = Boolean(fromQuery?.trim());
+  const hasCookieSite = isValidSiteCodePathSegment(
+    String(fromCookie || "").trim()
+  );
+  if (!hasQuerySite && !hasCookieSite) {
     const domainMap = await fetchDomainSiteCodeMap();
     domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
   }

@@ -1,10 +1,13 @@
-/** Apps Script 현장관리.domain → siteCode (메모리 캐시 60초) */
+/** Apps Script 현장관리.domain → siteCode (메모리 캐시 + stale-while-revalidate) */
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 10 * 60_000;
+/** 만료 후에도 이 시간까지는 stale 맵을 즉시 반환하며 백그라운드 갱신 */
+const STALE_TTL_MS = 30 * 60_000;
 
 type DomainMapCache = {
   map: Record<string, string>;
   expiresAt: number;
+  staleUntil: number;
 };
 
 let domainMapCache: DomainMapCache | null = null;
@@ -31,6 +34,16 @@ export function resolveSiteCodeFromDomainMap(
   const host = normalizeHostname(hostname);
   if (!host) return null;
   return map[host] ?? map[`www.${host}`] ?? null;
+}
+
+function rememberDomainMap(map: Record<string, string>): Record<string, string> {
+  const now = Date.now();
+  domainMapCache = {
+    map,
+    expiresAt: now + CACHE_TTL_MS,
+    staleUntil: now + STALE_TTL_MS,
+  };
+  return map;
 }
 
 async function fetchDomainSiteCodeMapUncached(): Promise<Record<string, string>> {
@@ -64,11 +77,7 @@ async function fetchDomainSiteCodeMapUncached(): Promise<Record<string, string>>
       const domains = (json as { data: { domains?: Record<string, string> } })
         .data.domains;
       if (domains && typeof domains === "object") {
-        domainMapCache = {
-          map: domains,
-          expiresAt: Date.now() + CACHE_TTL_MS,
-        };
-        return domains;
+        return rememberDomainMap(domains);
       }
     }
   } catch {
@@ -78,8 +87,22 @@ async function fetchDomainSiteCodeMapUncached(): Promise<Record<string, string>>
   return domainMapCache?.map ?? {};
 }
 
+function refreshDomainMapInBackground(): void {
+  if (domainMapInFlight) return;
+  domainMapInFlight = fetchDomainSiteCodeMapUncached().finally(() => {
+    domainMapInFlight = null;
+  });
+}
+
 export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> {
-  if (domainMapCache && Date.now() < domainMapCache.expiresAt) {
+  const now = Date.now();
+  if (domainMapCache && now < domainMapCache.expiresAt) {
+    return domainMapCache.map;
+  }
+
+  // 만료됐지만 stale 구간이면 즉시 반환 + 백그라운드 갱신 (TTFB 블로킹 제거)
+  if (domainMapCache && now < domainMapCache.staleUntil) {
+    refreshDomainMapInBackground();
     return domainMapCache.map;
   }
 

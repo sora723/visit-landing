@@ -38,6 +38,12 @@ export default async function RootLayout({
 
   return (
     <html lang="ko" style={themeStyleObject(theme)}>
+      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+        precedence="default"
+      />
       <body className="font-sans antialiased">
         {ownershipRaw ? <OwnershipRawScripts html={ownershipRaw} /> : null}
         {children}
