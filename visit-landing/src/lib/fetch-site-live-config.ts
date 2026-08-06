@@ -85,12 +85,41 @@ async function fetchSiteLiveConfigFromSheetImpl(
 ): Promise<SiteLiveConfigData> {
   const { siteCode } = getAppsScriptEnv(siteCodeOverride);
 
-  const { dedupeSiteLiveConfigFetch } = await import(
-    "@/lib/site-live-config-cache"
-  );
-  return dedupeSiteLiveConfigFetch(siteCode, () =>
+  const {
+    dedupeSiteLiveConfigFetch,
+    readSiteLiveConfigCache,
+    readSiteLiveConfigStaleCache,
+  } = await import("@/lib/site-live-config-cache");
+
+  const warm =
+    readSiteLiveConfigCache(siteCode) || readSiteLiveConfigStaleCache(siteCode);
+  if (warm) {
+    // 백그라운드 갱신만 걸고 즉시 HTML
+    void dedupeSiteLiveConfigFetch(siteCode, () =>
+      fetchSiteLiveConfigFromSheetUncached(siteCodeOverride)
+    );
+    return warm;
+  }
+
+  // 콜드: GAS를 기다리지 않음 — HTML 먼저, 설정은 클라이언트/다음 요청이 채움
+  void dedupeSiteLiveConfigFetch(siteCode, () =>
     fetchSiteLiveConfigFromSheetUncached(siteCodeOverride)
   );
+
+  return {
+    source: "unavailable",
+    siteConfig: null,
+    conversionTracking: EMPTY_CONVERSION_TRACKING,
+    ownershipVerification: EMPTY_OWNERSHIP_VERIFICATION,
+    debug: {
+      reason: "FETCH_ERROR",
+      appsScriptUrlConfigured: true,
+      appsScriptUrlLength: 0,
+      deploymentId: null,
+      siteCode,
+      responseSnippet: "SSR_NON_BLOCKING",
+    },
+  };
 }
 
 /** 요청당 React cache + 프로세스 내 in-flight dedup */

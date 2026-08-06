@@ -106,26 +106,16 @@ export async function fetchDomainSiteCodeMap(): Promise<Record<string, string>> 
     return domainMapCache.map;
   }
 
+  // 콜드 첫 요청: domains GAS를 기다리지 않음 (백그라운드 채움)
   if (domainMapInFlight) {
-    return Promise.race([
-      domainMapInFlight,
-      new Promise<Record<string, string>>((resolve) => {
-        setTimeout(() => resolve(domainMapCache?.map ?? {}), 800);
-      }),
-    ]);
+    return domainMapCache?.map ?? {};
   }
 
   domainMapInFlight = fetchDomainSiteCodeMapUncached().finally(() => {
     domainMapInFlight = null;
   });
 
-  // 콜드 첫 요청도 0.8초 이상 GAS를 붙잡지 않음
-  return Promise.race([
-    domainMapInFlight,
-    new Promise<Record<string, string>>((resolve) => {
-      setTimeout(() => resolve(domainMapCache?.map ?? {}), 800);
-    }),
-  ]);
+  return domainMapCache?.map ?? {};
 }
 
 export function clearDomainSiteCodeMapCache(): void {
