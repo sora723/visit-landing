@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import { claimConversionFire } from "@/lib/conversion-once";
 import { ConversionRawHtmlScripts } from "@/components/ConversionRawHtmlScripts";
 import { NaverConversionScripts } from "@/components/NaverConversionScripts";
+import { SmartlogConversionScripts } from "@/components/SmartlogConversionScripts";
 import {
   hasAnyConversionTracking,
+  hasSmartlogTracking,
   normalizeGoogleAdsId,
   type ConversionTrackingConfig,
 } from "@/lib/conversion-tracking";
@@ -62,6 +64,7 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
   const hasNaver = Boolean(naverScript);
   const hasKakao = Boolean(kakaoId);
   const rawHtml = tracking.conversionRawHtml?.trim();
+  const hasSmartlog = hasSmartlogTracking(tracking);
 
   useEffect(() => {
     if (!canFire) return;
@@ -82,6 +85,15 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
 
   return (
     <>
+      {canFire && hasSmartlog && (
+        <SmartlogConversionScripts
+          account={tracking.smartlogAccount}
+          server={tracking.smartlogServer}
+          mode={tracking.smartlogConversionMode}
+          memId={submissionId ?? ""}
+          active={canFire}
+        />
+      )}
       {canFire && rawHtml && (
         <ConversionRawHtmlScripts
           html={rawHtml}

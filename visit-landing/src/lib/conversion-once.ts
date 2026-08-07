@@ -27,7 +27,9 @@ export function prefersCompletePageConversion(
   tracking: import("@/lib/conversion-tracking").ConversionTrackingConfig
 ): boolean {
   return Boolean(
-    tracking.conversionRawHtml?.trim() || tracking.naverConversionScript?.trim()
+    tracking.conversionRawHtml?.trim() ||
+      tracking.naverConversionScript?.trim() ||
+      (tracking.smartlogAccount?.trim() && tracking.smartlogServer?.trim())
   );
 }
 

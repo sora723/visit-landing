@@ -14,6 +14,12 @@ export type ConversionTrackingConfig = {
   kakaoPixelId?: string;
   /** 시트 '전환코드' — HTML/스크립트 원본 (/complete) */
   conversionRawHtml?: string;
+  /** Smartlog 계정 — UHPT-300862 또는 300862 (현장마다 다름) */
+  smartlogAccount?: string;
+  /** Smartlog 서버 — a300 (현장마다 다름) */
+  smartlogServer?: string;
+  /** 접수 전환 모드 — q(문의·기본) | order | join */
+  smartlogConversionMode?: string;
 };
 
 export const EMPTY_CONVERSION_TRACKING: ConversionTrackingConfig = {};
@@ -38,11 +44,25 @@ export function parseConversionTracking(
     naverConversionScript: pick(raw.naverConversionScript),
     kakaoPixelId: pick(raw.kakaoPixelId),
     conversionRawHtml: pick(raw.conversionRawHtml),
+    smartlogAccount: pick(raw.smartlogAccount),
+    smartlogServer: pick(raw.smartlogServer),
+    smartlogConversionMode: pick(raw.smartlogConversionMode),
   };
 
-  return hasAnyConversionTracking(config) || hasCallClickTracking(config)
+  return hasAnyConversionTracking(config) ||
+    hasCallClickTracking(config) ||
+    hasSmartlogTracking(config)
     ? config
     : EMPTY_CONVERSION_TRACKING;
+}
+
+/** Smartlog 베이스 스크립트(전 페이지) 설치 여부 */
+export function hasSmartlogTracking(
+  config: ConversionTrackingConfig
+): boolean {
+  return Boolean(
+    config.smartlogAccount?.trim() && config.smartlogServer?.trim()
+  );
 }
 
 /** tel: 클릭 전환 설정 여부 */
@@ -63,7 +83,8 @@ export function hasAnyConversionTracking(
       config.googleConversionId ||
       config.naverConversionScript ||
       config.kakaoPixelId ||
-      config.conversionRawHtml
+      config.conversionRawHtml ||
+      hasSmartlogTracking(config)
   );
 }
 

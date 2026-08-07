@@ -17,6 +17,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'metaPixelId', 'metaConversionEvent',
     'googleConversionId', 'googleConversionLabel', 'googleCallConversionLabel',
     'naverConversionScript', 'kakaoPixelId', 'metaCallConversionEvent',
+    'smartlogAccount', 'smartlogServer', 'smartlogConversionMode',
     'metaOwnershipCode', 'googleOwnershipCode',
     'naverOwnershipCode', 'kakaoOwnershipCode',
     '전환코드', '소유확인코드'

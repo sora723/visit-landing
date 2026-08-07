@@ -381,9 +381,14 @@ Hero 바로 아래에 작고 차분한 공지 형태로 표시되는 일반 텍�
 | **googleConversionLabel** | 문자열 | Google Label | `AbCdEfGh` | gtag `send_to` |
 | **naverConversionScript** | WA ID 또는 `<script>` | 네이버 전환 | `1234567` | wcslog |
 | **kakaoPixelId** | 문자열 | 카카오 픽셀 ID | `1234567890` | completeRegistration |
+| **smartlogAccount** | 문자열 | Smartlog 계정 (현장마다 다름) | `UHPT-300862` 또는 `300862` | 전 페이지 메인 스크립트 |
+| **smartlogServer** | 문자열 | Smartlog 서버 (현장마다 다름) | `a300` | `hpt_info._server` |
+| **smartlogConversionMode** | 문자열 | 접수 전환 모드 | `q`(문의·기본) / `order` / `join` | `/complete` `hpt_trace_info` |
 | **전환코드** | HTML/스크립트 | 채널별 태그 **한 번에** | `<script>…</script>` | `/complete` raw HTML |
 
 비워 두면 해당 채널 전환 태그는 **미삽입**됩니다.
+
+**Smartlog:** 계정·서버만 넣으면 메인 스크립트가 전 페이지에 설치되고, 방문예약 접수 성공 시 `/complete`에서 `smartlogConversionMode`(기본 `q`=문의) 트레이스가 실행됩니다.
 
 ---
 

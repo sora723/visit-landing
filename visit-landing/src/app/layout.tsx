@@ -7,6 +7,7 @@ import { generateSiteMetadata } from "@/lib/site-seo-metadata";
 import { getServerSiteCode } from "@/lib/server-site-code";
 import { mergeSiteTheme, themeStyleObject } from "@/lib/site-theme";
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
+import { SmartlogBaseScripts } from "@/components/SmartlogBaseScripts";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function RootLayout({
     ? await fetchSiteLiveConfigFromSheet(siteCode)
     : null;
   const ownershipRaw = live?.ownershipVerification.ownershipRawHtml;
+  const smartlog = live?.conversionTracking;
   const renderable =
     siteCode && live
       ? resolveRenderableSiteConfig(siteCode, live, fileConfig)
@@ -49,6 +51,12 @@ export default async function RootLayout({
       />
       <body className="font-sans antialiased">
         {ownershipRaw ? <OwnershipRawScripts html={ownershipRaw} /> : null}
+        {smartlog ? (
+          <SmartlogBaseScripts
+            account={smartlog.smartlogAccount}
+            server={smartlog.smartlogServer}
+          />
+        ) : null}
         {children}
       </body>
     </html>

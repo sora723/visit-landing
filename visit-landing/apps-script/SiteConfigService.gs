@@ -243,6 +243,28 @@ var KAKAO_PIXEL_ID_ALIASES = [
   '카카오전환코드'
 ];
 
+var SMARTLOG_ACCOUNT_ALIASES = [
+  'smartlogAccount',
+  '스마트로그계정',
+  '스마트로그ID',
+  'Smartlog계정',
+  'smlogAccount'
+];
+
+var SMARTLOG_SERVER_ALIASES = [
+  'smartlogServer',
+  '스마트로그서버',
+  'Smartlog서버',
+  'smlogServer'
+];
+
+var SMARTLOG_CONVERSION_MODE_ALIASES = [
+  'smartlogConversionMode',
+  '스마트로그전환모드',
+  '스마트로그모드',
+  'smlogMode'
+];
+
 var CONVERSION_RAW_ALIASES = [
   '전환코드',
   'conversionRawHtml',
@@ -1094,7 +1116,10 @@ function getConversionTrackingFromSiteRow_(siteRow) {
       googleCallConversionLabel: '',
       naverConversionScript: '',
       kakaoPixelId: '',
-      conversionRawHtml: ''
+      conversionRawHtml: '',
+      smartlogAccount: '',
+      smartlogServer: '',
+      smartlogConversionMode: ''
     };
   }
 
@@ -1107,7 +1132,10 @@ function getConversionTrackingFromSiteRow_(siteRow) {
     googleCallConversionLabel: getSiteField_(siteRow, GOOGLE_CALL_CONVERSION_LABEL_ALIASES),
     naverConversionScript: getSiteField_(siteRow, NAVER_CONVERSION_SCRIPT_ALIASES),
     kakaoPixelId: getSiteField_(siteRow, KAKAO_PIXEL_ID_ALIASES),
-    conversionRawHtml: getSiteField_(siteRow, CONVERSION_RAW_ALIASES)
+    conversionRawHtml: getSiteField_(siteRow, CONVERSION_RAW_ALIASES),
+    smartlogAccount: getSiteField_(siteRow, SMARTLOG_ACCOUNT_ALIASES),
+    smartlogServer: getSiteField_(siteRow, SMARTLOG_SERVER_ALIASES),
+    smartlogConversionMode: getSiteField_(siteRow, SMARTLOG_CONVERSION_MODE_ALIASES)
   };
 }
 
