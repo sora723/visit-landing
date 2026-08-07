@@ -37,7 +37,7 @@ export function normalizeSmartlogAccount(
 }
 
 export function normalizeSmartlogServer(raw?: string | null): string | null {
-  let s = String(raw ?? "")
+  const s = String(raw ?? "")
     .trim()
     .toLowerCase()
     .replace(/^https?:\/\//, "")
