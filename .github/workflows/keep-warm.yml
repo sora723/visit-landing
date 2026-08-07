@@ -1,0 +1,31 @@
+# Keep Netlify serverless warm — ping /api/warm every 5 minutes.
+# Requires repo secret WARM_SECRET (same value as Netlify env WARM_SECRET).
+
+name: keep-warm
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping production /api/warm
+        env:
+          WARM_SECRET: ${{ secrets.WARM_SECRET }}
+        run: |
+          if [ -z "$WARM_SECRET" ]; then
+            echo "WARM_SECRET repo secret is missing"
+            exit 1
+          fi
+          curl -fsS \
+            -H "Authorization: Bearer ${WARM_SECRET}" \
+            -H "Accept: application/json" \
+            "https://david-ad.kr/api/warm"
+          echo
