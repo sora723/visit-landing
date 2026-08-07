@@ -62,6 +62,18 @@ SHEET_SITE_CODE=L001
 
 API는 Next.js 프록시(`/api/submit`, `/api/reservations`) 경유. IP는 Netlify에서 자동 수집.
 
+### Keep-warm (콜드 완화)
+
+5분마다 GitHub Actions가 `/api/warm`을 호출해 Netlify 함수를 깨웁니다.
+
+| 위치 | 이름 | 설명 |
+|------|------|------|
+| Netlify Environment | `WARM_SECRET` | `/api/warm` Bearer 시크릿 (미설정·불일치 시 404) |
+| GitHub Actions secret | `WARM_SECRET` | Netlify와 **동일** 값 |
+
+워크플로: [`.github/workflows/keep-warm.yml`](../.github/workflows/keep-warm.yml)  
+설정 후 Actions → **keep-warm** → Run workflow 로 1회 확인.
+
 ## Day 3 연동 검증
 
 **[docs/DAY3_VERIFICATION.md](docs/DAY3_VERIFICATION.md)** — 12항목 체크리스트
