@@ -1,5 +1,7 @@
 /** 1접수 = 1전환 — submissionId 기준 sessionStorage 중복 방지 (새로고침 포함) */
 
+import { hasSmartlogConversion } from "@/lib/conversion-tracking";
+
 const STORAGE_PREFIX = "vl_conv_fired:";
 
 export function conversionFiredKey(submissionId: string): string {
@@ -29,7 +31,7 @@ export function prefersCompletePageConversion(
   return Boolean(
     tracking.conversionRawHtml?.trim() ||
       tracking.naverConversionScript?.trim() ||
-      (tracking.smartlogAccount?.trim() && tracking.smartlogServer?.trim())
+      hasSmartlogConversion(tracking)
   );
 }
 

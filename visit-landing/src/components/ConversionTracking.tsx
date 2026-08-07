@@ -8,7 +8,7 @@ import { NaverConversionScripts } from "@/components/NaverConversionScripts";
 import { SmartlogConversionScripts } from "@/components/SmartlogConversionScripts";
 import {
   hasAnyConversionTracking,
-  hasSmartlogTracking,
+  hasSmartlogConversion,
   normalizeGoogleAdsId,
   type ConversionTrackingConfig,
 } from "@/lib/conversion-tracking";
@@ -64,7 +64,7 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
   const hasNaver = Boolean(naverScript);
   const hasKakao = Boolean(kakaoId);
   const rawHtml = tracking.conversionRawHtml?.trim();
-  const hasSmartlog = hasSmartlogTracking(tracking);
+  const hasSmartlog = hasSmartlogConversion(tracking);
 
   useEffect(() => {
     if (!canFire) return;
