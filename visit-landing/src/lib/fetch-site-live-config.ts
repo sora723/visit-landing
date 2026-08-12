@@ -51,6 +51,8 @@ export type SiteLiveConfigDebug = {
 export type SiteLiveConfigData = {
   source: "sheet" | "unavailable";
   siteConfig: SiteConfig | null;
+  /** 현장관리.domain — 네이버 wcs.inflow 등 */
+  domain?: string;
   conversionTracking: ConversionTrackingConfig;
   ownershipVerification: OwnershipVerificationConfig;
   updatedAt?: string;
@@ -69,6 +71,7 @@ function unavailableResult(debug: SiteLiveConfigDebug): SiteLiveConfigData {
   return {
     source: "unavailable",
     siteConfig: null,
+    domain: undefined,
     conversionTracking: EMPTY_CONVERSION_TRACKING,
     ownershipVerification: EMPTY_OWNERSHIP_VERIFICATION,
     debug,
@@ -214,6 +217,7 @@ async function fetchSiteLiveConfigFromSheetUncached(
       return {
         source: "sheet",
         siteConfig: buildSiteConfigFromApi(parsed, FILE_FALLBACK),
+        domain: parsed.domain?.trim() || undefined,
         conversionTracking: parseConversionTracking(parsed.conversionTracking),
         ownershipVerification: parseOwnershipVerification(parsed.ownershipVerification),
         updatedAt: parsed.updatedAt,

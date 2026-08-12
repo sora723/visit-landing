@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { normalizeHostname } from "@/lib/fetch-domain-site-code-map";
+import { isPlatformHostname } from "@/lib/platform-hostname";
 
 function firstHeaderValue(value: string | null): string {
   return value?.split(",")[0]?.trim() ?? "";
@@ -52,4 +53,26 @@ export function buildAbsoluteSiteUrl(pathname: string, origin: string): string {
   if (!pathname || pathname === "/") return base;
   const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
   return `${base}${path}`;
+}
+
+/**
+ * OG/canonical 용 절대 URL.
+ * 공유 호스트(david-ad.kr 등)는 ?siteCode= 를 붙여 카톡·크롤러가 현장별로 구분하게 한다.
+ * 커스텀 도메인은 Host 만으로 현장이 정해지므로 siteCode 생략.
+ */
+export function buildSeoCanonicalUrl(input: {
+  origin: string;
+  pathname: string;
+  siteCode?: string | null;
+}): string {
+  const { origin, pathname, siteCode } = input;
+  const base = buildAbsoluteSiteUrl(pathname, origin);
+  const code = String(siteCode ?? "").trim();
+  if (!code) return base;
+
+  const host = normalizeHostname(origin.replace(/^https?:\/\//, ""));
+  if (!isPlatformHostname(host)) return base;
+
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}siteCode=${encodeURIComponent(code)}`;
 }

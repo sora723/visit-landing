@@ -5,6 +5,21 @@ export function isNaverWaId(script: string): boolean {
   return Boolean(trimmed) && !trimmed.includes("<");
 }
 
+/** wcs.inflow("host") 용 — 프로토콜·경로·포트 제거 */
+export function normalizeNaverInflowDomain(domain: string): string {
+  return domain
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .toLowerCase();
+}
+
+/** 인라인 스크립트 문자열 이스케이프 */
+export function escapeForInlineJsString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 type WcsApi = {
   inflow?: () => void;
   do?: () => void;

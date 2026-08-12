@@ -1,13 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
-import { getSiteConfigFromFile } from "@/lib/config-source";
-import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
-import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
-import { generateSiteMetadata } from "@/lib/site-seo-metadata";
-import { getServerSiteCode } from "@/lib/server-site-code";
-import { mergeSiteTheme, themeStyleObject } from "@/lib/site-theme";
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 import { SmartlogBaseScripts } from "@/components/SmartlogBaseScripts";
+import { getSiteConfigFromFile } from "@/lib/config-source";
+import { normalizeHostname } from "@/lib/fetch-domain-site-code-map";
+import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { normalizeNaverInflowDomain } from "@/lib/naver-conversion";
+import { isPlatformHostname } from "@/lib/platform-hostname";
+import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
+import { getServerSiteCode } from "@/lib/server-site-code";
+import { generateSiteMetadata } from "@/lib/site-seo-metadata";
+import { readHostnameFromHeaders } from "@/lib/site-request-url";
+import { mergeSiteTheme, themeStyleObject } from "@/lib/site-theme";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +31,20 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
+/** 네이버 wcs.inflow — 시트 domain 우선, 없으면 커스텀 도메인 Host */
+function resolveNaverInflowDomain(
+  sheetDomain: string | undefined,
+  requestHost: string
+): string {
+  const fromSheet = normalizeNaverInflowDomain(sheetDomain ?? "");
+  if (fromSheet && !isPlatformHostname(fromSheet)) return fromSheet;
+
+  const fromHost = normalizeHostname(requestHost);
+  if (fromHost && !isPlatformHostname(fromHost)) return fromHost;
+
+  return fromSheet || fromHost;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -40,6 +59,8 @@ export default async function RootLayout({
       ? resolveRenderableSiteConfig(siteCode, live, fileConfig)
       : null;
   const theme = mergeSiteTheme(renderable?.theme ?? null);
+  const requestHost = readHostnameFromHeaders(await headers());
+  const inflowDomain = resolveNaverInflowDomain(live?.domain, requestHost);
 
   return (
     <html lang="ko" style={themeStyleObject(theme)}>
@@ -50,7 +71,9 @@ export default async function RootLayout({
         precedence="default"
       />
       <body className="font-sans antialiased">
-        {ownershipRaw ? <OwnershipRawScripts html={ownershipRaw} /> : null}
+        {ownershipRaw ? (
+          <OwnershipRawScripts html={ownershipRaw} inflowDomain={inflowDomain} />
+        ) : null}
         {smartlog ? (
           <SmartlogBaseScripts
             account={smartlog.smartlogAccount}

@@ -9,7 +9,7 @@ import {
 } from "@/lib/ownership-verification";
 import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
 import {
-  buildAbsoluteSiteUrl,
+  buildSeoCanonicalUrl,
   readSiteOriginFromHeaders,
 } from "@/lib/site-request-url";
 import { getServerSiteCode } from "@/lib/server-site-code";
@@ -35,7 +35,11 @@ export function buildSiteSeoMetadata(input: {
 }): Metadata {
   const { origin, pathname, siteName, seo, ownership, faviconUrl, siteCode } =
     input;
-  const canonical = buildAbsoluteSiteUrl(pathname, origin);
+  const canonical = buildSeoCanonicalUrl({
+    origin,
+    pathname,
+    siteCode,
+  });
   const pageTitle = buildSitePageTitle(siteName, seo.title);
   const ogImages = seo.ogImage ? [{ url: seo.ogImage }] : [];
   const hasFavicon = Boolean(faviconUrl?.trim());
