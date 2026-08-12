@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
+import { NaverCommonPvScripts, ownershipHtmlIsNaver } from "@/components/NaverCommonPvScripts";
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 import { SmartlogBaseScripts } from "@/components/SmartlogBaseScripts";
 import { getSiteConfigFromFile } from "@/lib/config-source";
@@ -71,8 +72,13 @@ export default async function RootLayout({
         precedence="default"
       />
       <body className="font-sans antialiased">
-        {ownershipRaw ? (
-          <OwnershipRawScripts html={ownershipRaw} inflowDomain={inflowDomain} />
+        {ownershipRaw && ownershipHtmlIsNaver(ownershipRaw) ? (
+          <NaverCommonPvScripts
+            html={ownershipRaw}
+            inflowDomain={inflowDomain}
+          />
+        ) : ownershipRaw ? (
+          <OwnershipRawScripts html={ownershipRaw} />
         ) : null}
         {smartlog ? (
           <SmartlogBaseScripts
