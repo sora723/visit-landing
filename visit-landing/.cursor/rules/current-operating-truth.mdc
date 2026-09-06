@@ -1,0 +1,42 @@
+---
+description: 현장·전환·시트 — 최신 운영 기준 (이전 안내보다 이걸 우선)
+alwaysApply: true
+---
+
+# 운영 기준 (항상 최신만)
+
+이전 채팅·주석·keep-warm 기본값과 충돌하면 **이 파일이 우선**. 폐기다운 안내를 덧붙이지 말 것.
+
+## 커스텀 도메인
+
+- **다른 현장(특히 L001·site.json)이 한 프레임도 나오면 안 됨.** 미해결이면 중립 부트.
+- keep-warm은 서버/도메인맵·**실제 붙은 현장**만. **L001을 “기본이라서” 데우지 않음.**
+
+## 전환 컬럼 (현장관리)
+
+칸타빌(L009) 패턴이 정답. 구글·네이버를 `소유확인코드` 한 칸에 섞지 말 것.
+
+| 목적 | 컬럼 | 넣기 |
+|---|---|---|
+| 네이버 공통 PV | `소유확인코드` | WA ID만 (예: `s_388d13d3cd3e`) |
+| 네이버 방문예약 | `naverConversionScript` | `lead` 스크립트. PV/`inflow` 넣지 말 것 |
+| 네이버 검색 인증 | `naverOwnershipCode` | 서치어드바이저 meta. 광고 전환 아님 |
+| 구글 방문예약 | `googleConversionId` + `googleConversionLabel` | `/complete`. gtag HTML을 소유확인에 넣지 말 것 |
+| 구글 전화(보조) | `googleCallConversionLabel` | 전화용 **별도 라벨**. 없으면 비움 |
+
+- GFA 최적화는 방문예약이면 `모든 전환`뿐. 네이버에 전화 클릭(`custom`) 넣으면 입찰에 섞임. 전화는 구글 보조만.
+- `소유확인코드`의 Google gtag는 **전 페이지 베이스**일 뿐, 전환 필수 아님. 네이버 PV와 자리 충돌 시 **네이버가 우선**.
+
+## 시트 ERROR
+
+- `Too many simultaneous invocations: Spreadsheets` = 동시 시트 호출 한도. 현장 늘수록 캐시 미스 때 확률↑.
+- `검증로그 없음`만으로 접수 유실 단정 금지. `SUBMIT_LOGGED`·알림톡·광고 전환을 같이 볼 것.
+- 시스템로그 `ERROR`의 `errorMessage`는 비는 경우가 많음 — `message` 컬럼 확인. `err.message` 없으면 공란일 수 있음.
+- **동시 실행 완화 (프론트)**: 설정/프로모 폴링 60초, 실시간예약 90초. keep-warm은 커스텀 도메인 현장만 순차 (L001 기본 데우기 금지).
+
+## 알림톡 발송 장애 & 접수 복구 운영
+
+- **장애 상황**: 솔라피 등 외부 알림 API의 일시 오류(500 단가조회 등) 발생 시, 원본은 `_검증로그`에 안전하게 저장되나 `접수관리` 시트로의 자동 이관이 멈춤 (`SUBMIT_POST_SKIP`).
+- **복구 방법**: 구글 시트 상단 메뉴 `VisitLanding` → `[누락 접수 재검열 및 복구 (알림+접수관리)]` 또는 `action=submission.reprocessMissed` 실행.
+- **예외 처리**: 이미 수기 전달/처리되어 카톡 재발송을 원치 않는 건은 `KNOWN_EXCLUDED_SUBMISSION_IDS`에 등록하여 중복 발송 방지.
+- **배포 범위**: 백엔드/알림/시트 로직 변경 시 `npm run setup:apps-script:push`만 진행하며 웹사이트(Netlify) 배포는 불필요.

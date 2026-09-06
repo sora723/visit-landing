@@ -17,7 +17,8 @@ import {
   startPromoCanvasAnimation,
 } from "@/lib/render-promo-canvas";
 
-const POLL_MS = 15_000;
+/** GAS 동시 실행 완화 — 15s → 60s */
+const POLL_MS = 60_000;
 
 /** 하단 프로모 — Google Sheet stickyPromoText 전용 (site.json 미사용) */
 export function PromoStickyBar({

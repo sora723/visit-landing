@@ -351,7 +351,7 @@ export function LiveReservationSection() {
       observer?.disconnect();
       observer = null;
       loadItems();
-      refresh = setInterval(loadItems, 45_000);
+      refresh = setInterval(loadItems, 90_000);
     };
 
     cancelIdle = scheduleAfterFirstPaint(start, {

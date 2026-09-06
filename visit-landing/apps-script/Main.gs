@@ -30,7 +30,11 @@ function handleRequest_(e, method) {
     var result = routeAction_(action, params);
     return buildJsonResponse_({ success: true, data: result, error: null });
   } catch (err) {
-    writeLog_('ERROR', (params && params.siteCode) || '', err.message);
+    writeLog_(
+      'ERROR',
+      (params && params.siteCode) || '',
+      err.message || String(err) || 'unknown_error'
+    );
     return buildJsonResponse_({
       success: false,
       data: null,
@@ -90,6 +94,9 @@ function routeAction_(action, params) {
     case 'notify.requeueMissed':
       return handleNotifyRequeueMissed(params);
 
+    case 'submission.reprocessMissed':
+      return handleReprocessMissedSubmissions(params);
+
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
   }
@@ -122,6 +129,7 @@ function onOpen() {
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
     .addItem('IP 차단 시트 추가 (_IP차단)', 'runEnsureIpBlockSheet')
+    .addItem('누락 접수 재검열 및 복구 (알림+접수관리)', 'runReprocessMissedSubmissions')
     .addItem('(레거시) 알림 큐 잔여 발송', 'runFlushNotificationQueue')
     .addToUi();
 }

@@ -30,7 +30,8 @@ import { mergeSiteTheme } from "@/lib/site-theme";
 import { SiteThemeProvider } from "@/components/SiteThemeProvider";
 import { CallClickTracking } from "@/components/CallClickTracking";
 
-const POLL_MS = 15_000;
+/** GAS 동시 실행 완화 — 15s → 60s */
+const POLL_MS = 60_000;
 
 export type ContentSource = "sheet" | "unavailable";
 

@@ -468,15 +468,16 @@ function toSheetPhoneText_(phone) {
 
 function writeLog_(action, siteCode, message) {
   try {
+    var text = message || '';
     appendRowByHeaders_(getLogSheetName_(), {
       'occurredAt': new Date(),
       'action': action,
       'siteCode': siteCode || '',
       'provider': '',
       'recipientPhone': '',
-      'errorMessage': '',
+      'errorMessage': action === 'ERROR' ? text : '',
       'payload': '',
-      'message': message || ''
+      'message': text
     });
   } catch (e) {
     Logger.log('로그 기록 실패: ' + e.message);

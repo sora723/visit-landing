@@ -7,6 +7,7 @@ VisitLanding_Master 전용 백엔드. **VIDAD 플랫폼과 독립** 운영.
 | action | 메서드 | 용도 |
 |--------|--------|------|
 | `submit` | POST | 접수 저장 |
+| `submission.reprocessMissed` | GET/POST | 알림 장애 등으로 누락된 접수 재검열 및 복구 |
 | `reservations.recent` | GET | 실시간 예약 |
 | `site.provision` | GET/POST | 현장 Spreadsheet 생성 |
 

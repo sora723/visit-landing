@@ -64,7 +64,8 @@ API는 Next.js 프록시(`/api/submit`, `/api/reservations`) 경유. IP는 Netli
 
 ### Keep-warm (콜드 완화)
 
-5분마다 GitHub Actions가 `/api/warm`을 호출해 Netlify 함수를 깨웁니다.
+5분마다 GitHub Actions가 `/api/warm`을 호출해 Netlify 함수를 깨웁니다.  
+**커스텀 도메인에 붙은 현장만 순차 데움** — L001을 기본값으로 데우지 않음.
 
 | 위치 | 이름 | 설명 |
 |------|------|------|

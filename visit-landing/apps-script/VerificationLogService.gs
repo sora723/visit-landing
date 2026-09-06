@@ -400,3 +400,216 @@ function loadRecentSystemLogMatches_(needles, limit) {
   }
   return hits;
 }
+
+/**
+ * 순간 장애(솔라피 등)로 _검증로그에는 있으나 접수관리 시트에 등록되지 않은 건 복구
+ * 1) _검증로그 기준 누락 건 탐색
+ * 2) 제외할 submissionId 필터링 (옵션: excludeSubmissionIds)
+ * 3) 알림톡 발송 (sendNotification: true 일 때만)
+ * 4) 접수관리 및 현장별 미러 시트에 행 추가
+ */
+var KNOWN_EXCLUDED_SUBMISSION_IDS = {
+  '8bfae10f-ccbd-4f9a-a87b-f714144550b2': true, // 유석희 님 (관리자 수동 처리 완료)
+  '709a0ffa-33ae-465d-b063-fb71112586b1': true  // 레거시 테스트 건
+};
+
+function handleReprocessMissedSubmissions(params) {
+  var p = params || {};
+  var maxLimit = Number(p.limit) || 20;
+  if (maxLimit < 1) maxLimit = 20;
+  if (maxLimit > 50) maxLimit = 50;
+
+  var sendNotification = p.sendNotification !== false && p.sendNotification !== 'false' && p.sendNotification !== 'N';
+  var excludeList = [];
+  if (Array.isArray(p.excludeSubmissionIds)) {
+    excludeList = p.excludeSubmissionIds.map(function (id) { return String(id || '').trim(); });
+  } else if (typeof p.excludeSubmissionIds === 'string' && p.excludeSubmissionIds.trim()) {
+    excludeList = p.excludeSubmissionIds.split(',').map(function (id) { return id.trim(); });
+  }
+
+  var excludeMap = {};
+  Object.keys(KNOWN_EXCLUDED_SUBMISSION_IDS).forEach(function (k) {
+    excludeMap[k] = true;
+  });
+  for (var e = 0; e < excludeList.length; e++) {
+    if (excludeList[e]) excludeMap[excludeList[e]] = true;
+  }
+
+  ensureVerificationLogSheet_();
+  var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
+  var map = getHeaderIndexMap_(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { success: true, processedCount: 0, recovered: [], message: '_검증로그에 데이터가 없습니다.' };
+  }
+
+  var iStatus = map['검증상태'];
+  var iId = map.submissionId;
+  var iPayload = map.raw_payload;
+  var iTime = map['기록시간'];
+  var iSite = map.siteCode;
+  var iReason = map['의심사유'];
+
+  if (iStatus === undefined || iId === undefined) {
+    return { success: false, error: '_검증로그 필수 컬럼(검증상태, submissionId)이 없습니다.' };
+  }
+
+  var FINAL_EXPECT_NOTIFY = {
+    '정상접수': true,
+    '빠른접수': true,
+    '허수의심': true,
+    '광고신호없음': true,
+    '중복접수': true
+  };
+
+  var submissionIds = loadSubmissionIdSet_();
+  var width = sheet.getLastColumn();
+  var values = sheet.getRange(2, 1, lastRow, width).getValues();
+
+  var recovered = [];
+  var skipped = [];
+
+  for (var i = values.length - 1; i >= 0 && recovered.length < maxLimit; i--) {
+    var row = values[i];
+    var status = String(row[iStatus] || '').trim();
+    var submissionId = String(row[iId] || '').trim();
+
+    if (!submissionId) continue;
+    if (!FINAL_EXPECT_NOTIFY[status]) continue;
+
+    // 이미 접수관리에 있는 경우 스킵
+    if (submissionIds[submissionId]) continue;
+
+    // 명시적 제외 대상 스킵
+    if (excludeMap[submissionId]) {
+      skipped.push({ submissionId: submissionId, reason: 'EXCLUDED_BY_USER' });
+      continue;
+    }
+
+    var raw = iPayload !== undefined ? String(row[iPayload] || '').trim() : '';
+    if (!raw) {
+      skipped.push({ submissionId: submissionId, reason: 'NO_RAW_PAYLOAD' });
+      continue;
+    }
+
+    try {
+      var rawPayload = JSON.parse(raw);
+      var siteCode = String((iSite !== undefined && row[iSite]) || rawPayload.siteCode || '').trim();
+      var siteRow = findSiteByCode_(siteCode);
+      if (!siteRow) {
+        skipped.push({ submissionId: submissionId, siteCode: siteCode, reason: 'SITE_NOT_FOUND' });
+        continue;
+      }
+
+      var formType = getField_(siteRow, '폼타입') || 'simple';
+      var validated = validateSubmitParams_(rawPayload, formType);
+      var suspicionReasons = iReason !== undefined ? String(row[iReason] || '').trim() : '';
+
+      var submittedAt = new Date();
+      if (iTime !== undefined && row[iTime]) {
+        var recTime = row[iTime];
+        submittedAt = recTime instanceof Date ? recTime : new Date(recTime);
+        if (isNaN(submittedAt.getTime())) submittedAt = new Date();
+      }
+
+      var notificationSent = false;
+      var notifyError = '';
+
+      if (sendNotification) {
+        var notifyResult = notifyManagerOnSubmission_(siteRow, validated, rawPayload);
+        notificationSent = notifyResult && notifyResult.success === true;
+        if (!notificationSent) {
+          notifyError = notifyResult && notifyResult.error ? notifyResult.error : 'NOTIFY_FAILED';
+        }
+      }
+
+      // 접수관리 시트 추가 및 미러링
+      var appendResult = appendSubmissionRow_(
+        siteRow,
+        validated,
+        submissionId,
+        submittedAt,
+        rawPayload,
+        {
+          validationStatus: status,
+          suspicionReasons: suspicionReasons,
+          skipMirror: false
+        }
+      );
+
+      submissionIds[submissionId] = true;
+
+      writeLog_(
+        'SUBMIT_REPROCESS_OK',
+        siteCode,
+        '접수ID=' + submissionId +
+          ', 상태=' + status +
+          ', 알림전송=' + (sendNotification ? (notificationSent ? 'OK' : 'FAIL(' + notifyError + ')') : 'SKIPPED') +
+          ', 접수관리=Y'
+      );
+
+      recovered.push({
+        submissionId: submissionId,
+        siteCode: siteCode,
+        name: validated.name,
+        phone: validated.phone,
+        status: status,
+        notificationSent: notificationSent,
+        notifyError: notifyError
+      });
+    } catch (err) {
+      writeLog_(
+        'SUBMIT_REPROCESS_FAIL',
+        '',
+        '접수ID=' + submissionId + ', ' + (err.message || String(err))
+      );
+      skipped.push({ submissionId: submissionId, reason: err.message || String(err) });
+    }
+  }
+
+  return {
+    success: true,
+    processedCount: recovered.length,
+    recovered: recovered,
+    skipped: skipped
+  };
+}
+
+/** 시트 메뉴에서 실행 */
+function runReprocessMissedSubmissions() {
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert(
+    '누락 접수 재검열 및 복구',
+    '순간 장애로 _검증로그에는 있으나 [접수관리] 시트에 등록되지 않은 건을 찾아\n' +
+    '알림톡을 재발송하고 [접수관리] 시트에 등록합니다.\n\n' +
+    '진행하시겠습니까?',
+    ui.ButtonSet.YES_NO
+  );
+
+  if (response !== ui.Button.YES) {
+    return;
+  }
+
+  var result = handleReprocessMissedSubmissions({
+    limit: 30,
+    sendNotification: true
+  });
+
+  if (!result.success) {
+    ui.alert('복구 실패: ' + (result.error || '알 수 없는 오류'));
+    return;
+  }
+
+  var msg = '복구 완료: 총 ' + result.processedCount + '건 복구됨\n';
+  if (result.recovered && result.recovered.length > 0) {
+    msg += '\n[복구 목록]\n';
+    for (var i = 0; i < result.recovered.length; i++) {
+      var r = result.recovered[i];
+      msg += '- ' + r.siteCode + ' ' + r.name + ' (' + r.status + ') 알림:' + (r.notificationSent ? '성공' : '실패') + '\n';
+    }
+  } else {
+    msg += '\n현재 누락된 접수 건이 없습니다.';
+  }
+
+  ui.alert(msg);
+}
