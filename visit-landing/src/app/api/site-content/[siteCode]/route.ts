@@ -12,7 +12,10 @@ import {
 } from "@/lib/api-cache-headers";
 import { logAppsScriptEnv } from "@/lib/apps-script-env";
 import { fetchSiteLiveConfigFromSheetBlocking } from "@/lib/fetch-site-live-config";
-import { isValidSiteCodePathSegment } from "@/lib/resolve-site-code";
+import {
+  isValidSiteCodePathSegment,
+  normalizeSiteCode,
+} from "@/lib/resolve-site-code";
 import { readHostnameFromRequest } from "@/lib/site-request-url";
 
 const LOG = "[api/site-content/[siteCode]]";
@@ -46,7 +49,7 @@ export async function GET(
   context: { params: Promise<{ siteCode: string }> }
 ) {
   const params = await context.params;
-  const siteCode = String(params.siteCode || "").trim();
+  const siteCode = normalizeSiteCode(params.siteCode);
   const requestedHost = readHostnameFromRequest(request);
   const envDebug = logAppsScriptEnv(LOG, siteCode);
 

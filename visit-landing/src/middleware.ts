@@ -8,6 +8,7 @@ import { isTenantHostname } from "@/lib/platform-hostname";
 import {
   getRequestHostname,
   isValidSiteCodePathSegment,
+  normalizeSiteCode,
   resolveSiteCodeInput,
 } from "@/lib/resolve-site-code";
 
@@ -19,7 +20,9 @@ export async function middleware(request: NextRequest) {
      * → ?siteCode= 있을 때만 프록시, 없으면 404 (없는 그대로).
      * 실제 아이콘은 metadata의 /api/favicon?siteCode= 만 사용.
      */
-    const siteCode = request.nextUrl.searchParams.get("siteCode")?.trim() || "";
+    const siteCode = normalizeSiteCode(
+      request.nextUrl.searchParams.get("siteCode")
+    );
 
     if (!siteCode) {
       return new NextResponse(null, {
@@ -44,9 +47,9 @@ export async function middleware(request: NextRequest) {
   const fromCookie = request.cookies.get("siteCode")?.value;
   const hostname = getRequestHostname(request);
   const tenantHost = isTenantHostname(hostname);
-  const hasQuerySite = Boolean(fromQuery?.trim());
+  const hasQuerySite = Boolean(normalizeSiteCode(fromQuery));
   const hasCookieSite = isValidSiteCodePathSegment(
-    String(fromCookie || "").trim()
+    normalizeSiteCode(fromCookie)
   );
 
   /**
@@ -77,7 +80,7 @@ export async function middleware(request: NextRequest) {
   } else if (tenantHost) {
     if (domainSiteCode) {
       // 도메인이 쿠키보다 우선 — 잘못된 쿠키로 다른 현장 노출 방지
-      siteCode = domainSiteCode;
+      siteCode = normalizeSiteCode(domainSiteCode);
     } else {
       siteUnresolved = true;
     }

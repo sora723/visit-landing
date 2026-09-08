@@ -231,7 +231,7 @@ function handleSubmitPostProcess(params) {
 }
 
 function prepareSubmitContext_(params) {
-  var siteCode = String(params.siteCode || '').trim();
+  var siteCode = normalizeSiteCode_(params.siteCode);
   if (!siteCode) {
     throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
   }

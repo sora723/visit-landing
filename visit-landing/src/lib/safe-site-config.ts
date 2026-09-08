@@ -1,4 +1,5 @@
 import type { SiteLiveConfigData } from "@/lib/fetch-site-live-config";
+import { normalizeSiteCode } from "@/lib/resolve-site-code";
 import type { SiteConfig } from "@/lib/types";
 
 /**
@@ -10,19 +11,19 @@ export function resolveRenderableSiteConfig(
   live: SiteLiveConfigData,
   fileConfig: SiteConfig
 ): SiteConfig | null {
-  const code = String(siteCode || "").trim();
+  const code = normalizeSiteCode(siteCode);
   if (!code) return null;
 
   if (live.source === "sheet" && live.siteConfig) {
-    const liveCode = String(live.siteConfig.siteCode || "").trim();
+    const liveCode = normalizeSiteCode(live.siteConfig.siteCode);
     if (!liveCode || liveCode === code) {
       return { ...live.siteConfig, siteCode: code };
     }
     return null;
   }
 
-  if (String(fileConfig.siteCode || "").trim() === code) {
-    return fileConfig;
+  if (normalizeSiteCode(fileConfig.siteCode) === code) {
+    return { ...fileConfig, siteCode: code };
   }
 
   return null;

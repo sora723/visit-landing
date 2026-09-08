@@ -231,6 +231,11 @@ function getSiteCodeFromRow_(row) {
   return getSiteField_(row, ['siteCode', '현장코드']);
 }
 
+/** L013 형식 — 소문자 l013 요청도 동일 현장으로 매칭 */
+function normalizeSiteCode_(siteCode) {
+  return String(siteCode || '').trim().toUpperCase();
+}
+
 function getSiteNameFromRow_(row) {
   return getSiteField_(row, ['siteName', '현장명']);
 }
@@ -287,7 +292,7 @@ function getSheetInSpreadsheetOptional_(spreadsheet, sheetName) {
 }
 
 function updateSiteFieldsByCode_(siteCode, updates) {
-  var code = String(siteCode || '').trim();
+  var code = normalizeSiteCode_(siteCode);
   var sheet = getSheet_(SHEET_NAMES.SITE);
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) {
@@ -307,7 +312,7 @@ function updateSiteFieldsByCode_(siteCode, updates) {
   }
 
   for (var r = 1; r < data.length; r++) {
-    if (String(data[r][codeCol]).trim() !== code) continue;
+    if (normalizeSiteCode_(data[r][codeCol]) !== code) continue;
 
     Object.keys(updates || {}).forEach(function (field) {
       var col = headers.indexOf(field);
@@ -328,7 +333,7 @@ function updateSiteFieldsByCode_(siteCode, updates) {
 
 /** 콘텐츠관리 행 필드 업데이트 (헤더명 기준) */
 function updateContentFieldsByCode_(siteCode, updates) {
-  var code = String(siteCode || '').trim();
+  var code = normalizeSiteCode_(siteCode);
   var sheet = getSheet_(SHEET_NAMES.CONTENT);
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) {
@@ -348,7 +353,7 @@ function updateContentFieldsByCode_(siteCode, updates) {
   }
 
   for (var r = 1; r < data.length; r++) {
-    if (String(data[r][codeCol]).trim() !== code) continue;
+    if (normalizeSiteCode_(data[r][codeCol]) !== code) continue;
 
     Object.keys(updates || {}).forEach(function (field) {
       var col = headers.indexOf(field);
@@ -388,11 +393,11 @@ function getDuplicateBlockMinutes_(siteRow) {
 }
 
 function findSiteByCode_(siteCode) {
-  var code = String(siteCode || '').trim();
+  var code = normalizeSiteCode_(siteCode);
   if (!code) return null;
   var rows = sheetToObjects_(SHEET_NAMES.SITE);
   for (var i = 0; i < rows.length; i++) {
-    if (getSiteCodeFromRow_(rows[i]) === code) return rows[i];
+    if (normalizeSiteCode_(getSiteCodeFromRow_(rows[i])) === code) return rows[i];
   }
   return null;
 }

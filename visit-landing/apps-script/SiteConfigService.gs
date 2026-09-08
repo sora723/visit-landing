@@ -1160,11 +1160,11 @@ function getOwnershipVerificationFromSiteRow_(siteRow) {
 }
 
 function findContentBySiteCode_(siteCode) {
-  var code = String(siteCode || '').trim();
+  var code = normalizeSiteCode_(siteCode);
   if (!code) return null;
   var rows = sheetToObjects_(CONTENT_SHEET_NAME);
   for (var i = 0; i < rows.length; i++) {
-    if (getSiteField_(rows[i], ['siteCode', '현장코드']) === code) {
+    if (normalizeSiteCode_(getSiteField_(rows[i], ['siteCode', '현장코드'])) === code) {
       return rows[i];
     }
   }
@@ -1324,7 +1324,7 @@ function buildPageContentFromContentRow_(contentRow, ext) {
  * GET action=site.config&siteCode=L001
  */
 function getSiteLiveConfig(siteCode) {
-  var code = String(siteCode || '').trim();
+  var code = normalizeSiteCode_(siteCode);
   if (!code) {
     throw createAppError_('VALIDATION_ERROR', 'siteCode는 필수입니다');
   }

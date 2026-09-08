@@ -4,13 +4,16 @@ import {
   resolveSiteCodeFromDomainMap,
 } from "@/lib/fetch-domain-site-code-map";
 import { isTenantHostname } from "@/lib/platform-hostname";
-import { resolveSiteCodeInput } from "@/lib/resolve-site-code";
+import {
+  normalizeSiteCode,
+  resolveSiteCodeInput,
+} from "@/lib/resolve-site-code";
 
 /** Server Component — searchParams → middleware header → domain(시트) → cookie → env */
 export async function getServerSiteCode(
   searchParamsSiteCode?: string | null
 ): Promise<string> {
-  const fromQuery = String(searchParamsSiteCode ?? "").trim();
+  const fromQuery = normalizeSiteCode(searchParamsSiteCode);
   if (fromQuery) return fromQuery;
 
   const hdrs = await headers();
@@ -18,7 +21,7 @@ export async function getServerSiteCode(
     return "";
   }
 
-  const headerSiteCode = hdrs.get("x-site-code")?.trim();
+  const headerSiteCode = normalizeSiteCode(hdrs.get("x-site-code"));
   if (headerSiteCode) return headerSiteCode;
 
   const hostname = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
@@ -29,7 +32,7 @@ export async function getServerSiteCode(
   const domainSiteCode = resolveSiteCodeFromDomainMap(hostname, domainMap);
 
   if (tenantHost) {
-    return domainSiteCode ?? "";
+    return normalizeSiteCode(domainSiteCode);
   }
 
   return resolveSiteCodeInput({
