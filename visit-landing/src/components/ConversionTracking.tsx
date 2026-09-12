@@ -39,12 +39,18 @@ type Props = {
   tracking: ConversionTrackingConfig;
   /** 1접수=1전환 — 없으면 미실행, 새로고침 시 sessionStorage로 중복 차단 */
   submissionId?: string | null;
+  /** /complete SSR 동기 lead 사용 시 클라이언트 네이버 스킵 */
+  skipNaver?: boolean;
 };
 
 /**
  * 전환 코드 (현장관리 시트). submissionId당 최초 1회만 실행.
  */
-export function ConversionTracking({ tracking, submissionId }: Props) {
+export function ConversionTracking({
+  tracking,
+  submissionId,
+  skipNaver = false,
+}: Props) {
   const shouldTrack = Boolean(
     submissionId && hasAnyConversionTracking(tracking)
   );
@@ -61,7 +67,7 @@ export function ConversionTracking({ tracking, submissionId }: Props) {
 
   const hasMeta = Boolean(metaId);
   const hasGoogle = Boolean(googleId && googleLabel);
-  const hasNaver = Boolean(naverScript);
+  const hasNaver = Boolean(naverScript) && !skipNaver;
   const hasKakao = Boolean(kakaoId);
   const rawHtml = tracking.conversionRawHtml?.trim();
   const hasSmartlog = hasSmartlogConversion(tracking);

@@ -15,6 +15,8 @@ type Props = {
   conversionAllowed: boolean;
   autoReturn: boolean;
   returnTo: string;
+  /** SSR NaverLeadSyncScripts 가 lead 발화 — 클라이언트 네이버 중복 방지 */
+  skipNaverConversion?: boolean;
 };
 
 export function CompletePageClient({
@@ -25,6 +27,7 @@ export function CompletePageClient({
   conversionAllowed,
   autoReturn,
   returnTo,
+  skipNaverConversion = false,
 }: Props) {
   const router = useRouter();
 
@@ -42,6 +45,7 @@ export function CompletePageClient({
         <ConversionTracking
           submissionId={submissionId}
           tracking={tracking}
+          skipNaver={skipNaverConversion}
         />
       ) : null}
       <div className="flex min-h-[100dvh] items-center justify-center bg-[#0f1a2e] p-5">

@@ -1,5 +1,6 @@
 import { SiteContentBoot } from "@/components/SiteContentBoot";
 import { CompletePageClient } from "@/components/CompletePageClient";
+import { NaverLeadSyncScripts } from "@/components/NaverLeadSyncScripts";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import {
   EMPTY_CONVERSION_TRACKING,
@@ -40,20 +41,31 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
   const autoReturn = params.autoReturn === "1" || params.autoReturn === "true";
   const returnTo = String(params.returnTo ?? "").trim();
   const homeHref = appendSiteCodeQuery("/", siteCode);
+  const tracking =
+    live.source === "sheet"
+      ? live.conversionTracking
+      : EMPTY_CONVERSION_TRACKING;
+  const naverLeadHtml = tracking.naverConversionScript?.trim() || "";
+  const fireNaverLead = Boolean(verified && submissionId && naverLeadHtml);
 
   return (
-    <CompletePageClient
-      siteName={config.siteName}
-      homeHref={homeHref}
-      tracking={
-        live.source === "sheet"
-          ? live.conversionTracking
-          : EMPTY_CONVERSION_TRACKING
-      }
-      submissionId={submissionId}
-      conversionAllowed={verified}
-      autoReturn={autoReturn}
-      returnTo={returnTo || homeHref}
-    />
+    <>
+      {fireNaverLead ? (
+        <NaverLeadSyncScripts
+          html={naverLeadHtml}
+          submissionId={submissionId!}
+        />
+      ) : null}
+      <CompletePageClient
+        siteName={config.siteName}
+        homeHref={homeHref}
+        tracking={tracking}
+        submissionId={submissionId}
+        conversionAllowed={verified}
+        autoReturn={autoReturn}
+        returnTo={returnTo || homeHref}
+        skipNaverConversion={fireNaverLead}
+      />
+    </>
   );
 }

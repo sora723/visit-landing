@@ -200,6 +200,7 @@ function runEnsureConversionTrackingColumns() {
 /**
  * POST action=setup.siteConversion
  * 현장관리 전환 컬럼 업데이트 (관심등록용 — 콜 라벨은 명시적으로 넘긴 경우만)
+ * naverConversionScript: lead 전환 HTML (PV/inflow 넣지 말 것 — 소유확인코드에 WA ID)
  */
 function handleSetupSiteConversion(params) {
   var siteCode = String(params.siteCode || '').trim();
@@ -220,6 +221,9 @@ function handleSetupSiteConversion(params) {
   }
   if (params.clearCallLabel === true || params.clearCallLabel === 'true') {
     updates.googleCallConversionLabel = '';
+  }
+  if (params.naverConversionScript !== undefined) {
+    updates.naverConversionScript = String(params.naverConversionScript || '').trim();
   }
 
   if (!Object.keys(updates).length) {
