@@ -429,6 +429,9 @@ function appendRowToSheet_(sheet, rowData) {
     /** 연락처 열은 텍스트로 강제 — Sheets 숫자 변환으로 앞자리 0 유실 방지 */
     if (isPhoneHeader_(header)) {
       newRow.push(toSheetPhoneText_(value));
+    } else if (isDateHeader_(header)) {
+      /** 예약날짜 yyyy-MM-dd — Sheets Date 파싱 시 TZ로 하루 전 표시 방지 */
+      newRow.push(toSheetDateText_(value));
     } else {
       newRow.push(value);
     }
@@ -464,11 +467,30 @@ function isPhoneHeader_(header) {
   );
 }
 
+function isDateHeader_(header) {
+  var h = String(header || '').trim();
+  return (
+    h === 'reserveDate' ||
+    h === '예약날짜' ||
+    h === 'visitDate' ||
+    h === '방문일자' ||
+    h === '방문날짜'
+  );
+}
+
 /** Sheets에 숫자로 들어가지 않도록 텍스트 강제 (' 접두) */
 function toSheetPhoneText_(phone) {
   var normalized = normalizeMobilePhone_(phone) || normalizePhone_(phone);
   if (!normalized) return '';
   return "'" + normalized;
+}
+
+/** yyyy-MM-dd 는 Date로 파싱되면 TZ에 따라 하루 전으로 보일 수 있어 텍스트 강제 */
+function toSheetDateText_(dateStr) {
+  var s = String(dateStr || '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return "'" + s;
+  return s;
 }
 
 function writeLog_(action, siteCode, message) {
