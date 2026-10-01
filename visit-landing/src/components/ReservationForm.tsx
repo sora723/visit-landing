@@ -96,7 +96,13 @@ export function ReservationForm({
     setVisitDate("");
     setVisitTime("");
     setAgreed(false);
-    onSuccess?.();
+    /**
+     * 네이버 lead 등은 /complete 에서 완료메시지+전환 동시 노출.
+     * 랜딩 팝업·푸터 완료 UI를 먼저 띄우면 GFA가 lead 없이 완료만 보고 검수실패 함.
+     */
+    if (!result.navigatedToComplete) {
+      onSuccess?.();
+    }
   }
 
   if (variant === "inline") {

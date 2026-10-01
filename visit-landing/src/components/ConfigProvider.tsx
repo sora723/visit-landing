@@ -44,7 +44,13 @@ interface ConfigContextValue {
   submit: (
     input: ReservationSubmitInput,
     options?: { redirect?: boolean }
-  ) => Promise<{ success: boolean; message?: string; isDuplicate?: boolean }>;
+  ) => Promise<{
+    success: boolean;
+    message?: string;
+    isDuplicate?: boolean;
+    /** /complete 로 이동해 완료메시지+lead 동시 노출 (랜딩 완료 UI 스킵) */
+    navigatedToComplete?: boolean;
+  }>;
 }
 
 const ConfigContext = createContext<ConfigContextValue | null>(null);
@@ -171,6 +177,8 @@ export function ConfigProvider({
           includeInLiveFeed: result.includeInLiveFeed === true,
         });
 
+        let navigatedToComplete = false;
+
         if (result.submissionId) {
           const conversionOnComplete =
             fireClientConversion &&
@@ -185,6 +193,7 @@ export function ConfigProvider({
               navigate: (url) => router.push(url),
               returnPath: pathname || "/",
             });
+            if (conversionOnComplete) navigatedToComplete = true;
           }
 
           if (options?.redirect !== false && !conversionOnComplete) {
@@ -194,10 +203,15 @@ export function ConfigProvider({
               `&submissionId=${encodeURIComponent(result.submissionId)}` +
               `&verified=${verified}`;
             router.push(completeUrl);
+            navigatedToComplete = true;
           }
         }
 
-        return { success: true, isDuplicate: result.isDuplicate === true };
+        return {
+          success: true,
+          isDuplicate: result.isDuplicate === true,
+          navigatedToComplete,
+        };
       } catch (err) {
         return {
           success: false,

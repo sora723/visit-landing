@@ -13,7 +13,8 @@ export type RunConversionOptions = {
   returnPath?: string;
 };
 
-export const COMPLETE_DWELL_MS = 3500;
+/** SSR lead 발화·어시스턴트 확인 여유 (너무 짧으면 GFA가 PV만 보고 이탈) */
+export const COMPLETE_DWELL_MS = 4500;
 
 /**
  * 접수 1건당 전환 1회.
