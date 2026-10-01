@@ -6,7 +6,11 @@ import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 import { SmartlogBaseScripts } from "@/components/SmartlogBaseScripts";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import { normalizeHostname } from "@/lib/fetch-domain-site-code-map";
-import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import {
+  fetchSiteLiveConfigFromSheet,
+  fetchSiteLiveConfigFromSheetBlocking,
+  type SiteLiveConfigData,
+} from "@/lib/fetch-site-live-config";
 import { normalizeNaverInflowDomain } from "@/lib/naver-conversion";
 import { isPlatformHostname } from "@/lib/platform-hostname";
 import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
@@ -46,13 +50,30 @@ function resolveNaverInflowDomain(
   return fromSheet || fromHost;
 }
 
+function needsTrackingConfig(live: SiteLiveConfigData | null): boolean {
+  if (!live || live.source !== "sheet") return true;
+  const ownership = live.ownershipVerification.ownershipRawHtml?.trim();
+  const naver = live.conversionTracking.naverConversionScript?.trim();
+  const smartlog =
+    live.conversionTracking.smartlogAccount?.trim() &&
+    live.conversionTracking.smartlogServer?.trim();
+  return !ownership && !naver && !smartlog;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const siteCode = await getServerSiteCode();
-  const live = siteCode
+  let live: SiteLiveConfigData | null = siteCode
     ? await fetchSiteLiveConfigFromSheet(siteCode)
     : null;
+  /**
+   * SSR 1.2s 예산에 지면 소유확인·lead가 빠져 어시스턴트 Site ID 0건.
+   * 추적 설정이 비면 GAS 응답까지 대기 (광고 검수·전환 필수).
+   */
+  if (siteCode && needsTrackingConfig(live)) {
+    live = await fetchSiteLiveConfigFromSheetBlocking(siteCode);
+  }
   const ownershipRaw = live?.ownershipVerification.ownershipRawHtml;
   const smartlog = live?.conversionTracking;
   const renderable =

@@ -5,7 +5,7 @@ import { getSiteConfigFromFile } from "@/lib/config-source";
 import {
   EMPTY_CONVERSION_TRACKING,
 } from "@/lib/conversion-tracking";
-import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
+import { fetchSiteLiveConfigFromSheetBlocking } from "@/lib/fetch-site-live-config";
 import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
 import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
 import { getServerSiteCode } from "@/lib/server-site-code";
@@ -30,7 +30,7 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
   }
 
   const fileConfig = getSiteConfigFromFile();
-  const live = await fetchSiteLiveConfigFromSheet(siteCode);
+  const live = await fetchSiteLiveConfigFromSheetBlocking(siteCode);
   const config = resolveRenderableSiteConfig(siteCode, live, fileConfig);
   if (!config) {
     return <SiteContentBoot siteCode={siteCode} />;
