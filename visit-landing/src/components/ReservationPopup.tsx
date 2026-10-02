@@ -73,7 +73,7 @@ function EventImagePanel({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
+      className={`relative w-fit max-w-[min(100%,28rem)] overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
     >
       <button
         type="button"
@@ -86,7 +86,7 @@ function EventImagePanel({
       <button
         type="button"
         onClick={handleZoomClick}
-        className="group relative block h-full w-full touch-manipulation"
+        className="group relative block touch-manipulation"
         aria-label="이벤트 이미지 확대"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,7 +95,7 @@ function EventImagePanel({
           alt=""
           loading="lazy"
           decoding="async"
-          className="h-full w-full cursor-zoom-in object-contain bg-[#f5f3ef] transition-transform duration-300 group-hover:scale-[1.01]"
+          className="block h-auto max-h-[min(90dvh,720px)] w-auto max-w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
           onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
         />
         <ZoomExpandHint compact />
@@ -218,7 +218,7 @@ export function ReservationPopup() {
     finishPopup();
   };
 
-  const panelHeightClass = "h-[min(90dvh,560px)] min-h-[420px]";
+  const panelHeightClass = "max-h-[90dvh]";
 
   return (
     <>
@@ -280,8 +280,8 @@ export function ReservationPopup() {
             onClick={finishPopup}
           >
             <motion.div
-              className={`flex w-full items-stretch gap-3 sm:gap-4 ${
-                isMobile ? "max-w-md flex-col" : "flex-row justify-center"
+              className={`flex w-full items-center justify-center gap-3 sm:gap-4 ${
+                isMobile ? "max-w-md flex-col" : "flex-row"
               }`}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -303,7 +303,7 @@ export function ReservationPopup() {
                       )
                     )
                   }
-                  className={`hidden md:block ${popupPanelClass} ${panelHeightClass}`}
+                  className="hidden md:block shrink-0"
                 />
               ))}
 
