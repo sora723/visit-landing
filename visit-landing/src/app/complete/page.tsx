@@ -1,6 +1,14 @@
+import { headers } from "next/headers";
 import { SiteContentBoot } from "@/components/SiteContentBoot";
 import { CompletePageClient } from "@/components/CompletePageClient";
+import {
+  NaverCommonPvScripts,
+  ownershipHtmlIsNaver,
+} from "@/components/NaverCommonPvScripts";
 import { NaverLeadSyncScripts } from "@/components/NaverLeadSyncScripts";
+import { isNaverWaId } from "@/lib/naver-conversion";
+import { resolveNaverInflowDomain } from "@/lib/resolve-naver-inflow-domain";
+import { readHostnameFromHeaders } from "@/lib/site-request-url";
 import { getSiteConfigFromFile } from "@/lib/config-source";
 import {
   EMPTY_CONVERSION_TRACKING,
@@ -47,6 +55,19 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
       : EMPTY_CONVERSION_TRACKING;
   const naverLeadHtml = tracking.naverConversionScript?.trim() || "";
   const fireNaverLead = Boolean(verified && submissionId && naverLeadHtml);
+  const ownershipRaw =
+    live.source === "sheet"
+      ? live.ownershipVerification.ownershipRawHtml?.trim() || ""
+      : "";
+  const hdrs = await headers();
+  const inflowDomain = resolveNaverInflowDomain(
+    live.domain,
+    readHostnameFromHeaders(hdrs)
+  );
+  const ownershipWaId = isNaverWaId(ownershipRaw) ? ownershipRaw : null;
+  const showNaverPvOnly =
+    !fireNaverLead &&
+    Boolean(ownershipRaw && ownershipHtmlIsNaver(ownershipRaw));
 
   return (
     <>
@@ -54,6 +75,13 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
         <NaverLeadSyncScripts
           html={naverLeadHtml}
           submissionId={submissionId!}
+          inflowDomain={inflowDomain}
+          ownershipWaId={ownershipWaId}
+        />
+      ) : showNaverPvOnly ? (
+        <NaverCommonPvScripts
+          html={ownershipRaw}
+          inflowDomain={inflowDomain}
         />
       ) : null}
       <CompletePageClient

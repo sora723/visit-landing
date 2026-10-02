@@ -5,14 +5,12 @@ import { NaverCommonPvScripts, ownershipHtmlIsNaver } from "@/components/NaverCo
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 import { SmartlogBaseScripts } from "@/components/SmartlogBaseScripts";
 import { getSiteConfigFromFile } from "@/lib/config-source";
-import { normalizeHostname } from "@/lib/fetch-domain-site-code-map";
 import {
   fetchSiteLiveConfigFromSheet,
   fetchSiteLiveConfigFromSheetBlocking,
   type SiteLiveConfigData,
 } from "@/lib/fetch-site-live-config";
-import { normalizeNaverInflowDomain } from "@/lib/naver-conversion";
-import { isPlatformHostname } from "@/lib/platform-hostname";
+import { resolveNaverInflowDomain } from "@/lib/resolve-naver-inflow-domain";
 import { resolveRenderableSiteConfig } from "@/lib/safe-site-config";
 import { getServerSiteCode } from "@/lib/server-site-code";
 import { generateSiteMetadata } from "@/lib/site-seo-metadata";
@@ -35,20 +33,6 @@ export const viewport: Viewport = {
   /** Samsung/Chrome "어둡게 보기" — 그라데이션·canvas 텍스트 색 왜곡 방지 */
   colorScheme: "light",
 };
-
-/** 네이버 wcs.inflow — 시트 domain 우선, 없으면 커스텀 도메인 Host */
-function resolveNaverInflowDomain(
-  sheetDomain: string | undefined,
-  requestHost: string
-): string {
-  const fromSheet = normalizeNaverInflowDomain(sheetDomain ?? "");
-  if (fromSheet && !isPlatformHostname(fromSheet)) return fromSheet;
-
-  const fromHost = normalizeHostname(requestHost);
-  if (fromHost && !isPlatformHostname(fromHost)) return fromHost;
-
-  return fromSheet || fromHost;
-}
 
 function needsTrackingConfig(live: SiteLiveConfigData | null): boolean {
   if (!live || live.source !== "sheet") return true;
@@ -81,8 +65,14 @@ export default async function RootLayout({
       ? resolveRenderableSiteConfig(siteCode, live, fileConfig)
       : null;
   const theme = mergeSiteTheme(renderable?.theme ?? null);
-  const requestHost = readHostnameFromHeaders(await headers());
+  const hdrs = await headers();
+  const requestHost = readHostnameFromHeaders(hdrs);
   const inflowDomain = resolveNaverInflowDomain(live?.domain, requestHost);
+  const pathname = hdrs.get("x-pathname")?.trim() || "";
+  /** /complete 는 PV+lead 한 블록 — 레이아웃 PV 중복 방지 */
+  const skipNaverLayoutPv =
+    pathname === "/complete" &&
+    Boolean(ownershipRaw && ownershipHtmlIsNaver(ownershipRaw));
 
   return (
     <html lang="ko" style={themeStyleObject(theme)}>
@@ -93,12 +83,12 @@ export default async function RootLayout({
         precedence="default"
       />
       <body className="font-sans antialiased">
-        {ownershipRaw && ownershipHtmlIsNaver(ownershipRaw) ? (
+        {ownershipRaw && ownershipHtmlIsNaver(ownershipRaw) && !skipNaverLayoutPv ? (
           <NaverCommonPvScripts
             html={ownershipRaw}
             inflowDomain={inflowDomain}
           />
-        ) : ownershipRaw ? (
+        ) : ownershipRaw && !ownershipHtmlIsNaver(ownershipRaw) ? (
           <OwnershipRawScripts html={ownershipRaw} />
         ) : null}
         {smartlog ? (
