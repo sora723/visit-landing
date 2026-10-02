@@ -18,6 +18,14 @@ import {
 } from "./ZoomExpandHint";
 import { PinchZoomImage } from "./PinchZoomImage";
 
+/**
+ * PC 팝업 프레임 — 「선착순 방문예약」5필드(성함·연락처·관심평형·일자·시간) 꽉 찬 높이 기준.
+ * 표시: 448×648 (28rem × 40.5rem), 짧으면 max 90dvh.
+ * 이미지 제작 권장: 896×1296 (@2x), 비율 약 2:3 세로.
+ */
+const PC_POPUP_FRAME_CLASS =
+  "w-full max-w-md h-[min(90dvh,40.5rem)] shrink-0";
+
 function ImageZoomModal({
   src,
   onClose,
@@ -73,7 +81,7 @@ function EventImagePanel({
 
   return (
     <div
-      className={`relative w-fit max-w-[min(100%,28rem)] overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
+      className={`relative overflow-hidden rounded-sm border border-white/10 bg-white shadow-2xl ${className ?? ""}`}
     >
       <button
         type="button"
@@ -86,7 +94,7 @@ function EventImagePanel({
       <button
         type="button"
         onClick={handleZoomClick}
-        className="group relative block touch-manipulation"
+        className="group relative block h-full w-full touch-manipulation"
         aria-label="이벤트 이미지 확대"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,7 +103,7 @@ function EventImagePanel({
           alt=""
           loading="lazy"
           decoding="async"
-          className="block h-auto max-h-[min(90dvh,720px)] w-auto max-w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+          className="h-full w-full cursor-zoom-in object-cover transition-transform duration-300 group-hover:scale-[1.01]"
           onError={() => setCurrentSrc(getImageFallbackUrl(src, "popup-pc"))}
         />
         <ZoomExpandHint compact />
@@ -131,7 +139,7 @@ function ReservationPopupPanel({
       </button>
 
       {complete ? (
-        <div className="py-8 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-gold)]/15 text-2xl text-[var(--color-gold)]">
             ✓
           </div>
@@ -141,7 +149,7 @@ function ReservationPopupPanel({
         </div>
       ) : (
         <>
-          <h2 className="mb-6 text-center text-xl font-semibold text-[var(--color-navy)] sm:text-2xl">
+          <h2 className="mb-6 shrink-0 text-center text-xl font-semibold text-[var(--color-navy)] sm:text-2xl">
             {config.popup.title}
           </h2>
           <ReservationForm
@@ -173,6 +181,7 @@ export function ReservationPopup() {
   const canShowPopup =
     config.settings.popupEnabled && (reservationEnabled || hasImages);
   const popupPanelClass = "w-full max-w-md shrink-0";
+  const matchPcFrames = !isMobile && pcImages.length > 0 && reservationEnabled;
 
   const [visible, setVisible] = useState(false);
   const [mobilePhase, setMobilePhase] = useState<"image" | "reservation">(
@@ -217,8 +226,6 @@ export function ReservationPopup() {
     }
     finishPopup();
   };
-
-  const panelHeightClass = "max-h-[90dvh]";
 
   return (
     <>
@@ -280,8 +287,10 @@ export function ReservationPopup() {
             onClick={finishPopup}
           >
             <motion.div
-              className={`flex w-full items-center justify-center gap-3 sm:gap-4 ${
-                isMobile ? "max-w-md flex-col" : "flex-row"
+              className={`flex w-full justify-center gap-3 sm:gap-4 ${
+                isMobile
+                  ? "max-w-md flex-col items-stretch"
+                  : "flex-row items-stretch"
               }`}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -303,7 +312,9 @@ export function ReservationPopup() {
                       )
                     )
                   }
-                  className="hidden md:block shrink-0"
+                  className={`hidden md:block ${
+                    matchPcFrames ? PC_POPUP_FRAME_CLASS : popupPanelClass
+                  }`}
                 />
               ))}
 
@@ -312,7 +323,9 @@ export function ReservationPopup() {
                   complete={complete}
                   onComplete={handleReservationComplete}
                   onClose={finishPopup}
-                  className={`${popupPanelClass} ${!isMobile && pcImages.length ? panelHeightClass : ""}`}
+                  className={
+                    matchPcFrames ? PC_POPUP_FRAME_CLASS : popupPanelClass
+                  }
                 />
               )}
             </motion.div>
