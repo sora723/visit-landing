@@ -26,8 +26,9 @@ function extractWaId(html: string): string | null {
 }
 
 /**
- * 네이버 §2.1 완료 페이지: inflow → wcs_do(PV) → wcs.trans(lead) 한 블록.
- * sessionStorage는 lead 성공 후에만 기록 (PV는 매 방문).
+ * 네이버 §2.1 완료 페이지 평문 패턴 (어시스턴트 Site ID 인식용).
+ * IIFE/`window.wcs_add` 래핑은 정적 검수에서 Site ID 0건으로 판정됨.
+ * lead만 sessionStorage로 접수당 1회.
  */
 function buildCompletePvLeadScript(
   waId: string,
@@ -38,29 +39,21 @@ function buildCompletePvLeadScript(
   const domain = normalizeNaverInflowDomain(inflowDomain ?? "");
   const domainArg = domain ? `"${escapeForInlineJsString(domain)}"` : '""';
   const key = escapeForInlineJsString(`vl_naver_lead:${submissionId}`);
-  return `(function(){
-  var __nk="${key}";
-  function __run(){
-    if(!window.wcs)return false;
-    window.wcs_add=window.wcs_add||{};
-    window.wcs_add["wa"]="${wa}";
-    if(typeof window.wcs.inflow==="function")window.wcs.inflow(${domainArg});
-    if(typeof window.wcs_do==="function")window.wcs_do();
-    try{if(sessionStorage.getItem(__nk)==="1")return true;}catch(e){}
-    try{
-      if(typeof window.wcs.trans!=="function")return false;
-      var _conv={};_conv.type="lead";
-      window.wcs.trans(_conv);
-      try{sessionStorage.setItem(__nk,"1");}catch(e){}
-    }catch(e){return false;}
-    return true;
-  }
-  if(__run())return;
-  var __n=0;
-  var __t=setInterval(function(){
-    if(__run()||++__n>50)clearInterval(__t);
-  },100);
-})();`;
+  return `if (!wcs_add) var wcs_add = {};
+wcs_add["wa"] = "${wa}";
+if (window.wcs) {
+  wcs.inflow(${domainArg});
+  wcs_do();
+  try {
+    var __nk = "${key}";
+    if (sessionStorage.getItem(__nk) !== "1") {
+      var _conv = {};
+      _conv.type = "lead";
+      wcs.trans(_conv);
+      sessionStorage.setItem(__nk, "1");
+    }
+  } catch (e) {}
+}`;
 }
 
 /**
