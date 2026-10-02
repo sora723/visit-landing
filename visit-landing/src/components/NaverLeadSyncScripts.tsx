@@ -31,13 +31,15 @@ function buildLeadFireScript(waId: string, submissionId: string): string {
   var __nk="${key}";
   try{if(sessionStorage.getItem(__nk)==="1")return;}catch(e){}
   function __fire(){
-    if(!window.wcs||typeof wcs.trans!=="function")return false;
-    if(!window.wcs_add)var wcs_add={};
-    wcs_add["wa"]="${wa}";
-    var _conv={};_conv.type="lead";
-    wcs.trans(_conv);
-    try{sessionStorage.setItem(__nk,"1");}catch(e){}
-    return true;
+    try{
+      if(!window.wcs||typeof window.wcs.trans!=="function")return false;
+      window.wcs_add=window.wcs_add||{};
+      window.wcs_add["wa"]="${wa}";
+      var _conv={};_conv.type="lead";
+      window.wcs.trans(_conv);
+      try{sessionStorage.setItem(__nk,"1");}catch(e){}
+      return true;
+    }catch(e){return false;}
   }
   if(__fire())return;
   var __n=0;
