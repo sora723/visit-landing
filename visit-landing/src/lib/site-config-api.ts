@@ -248,11 +248,14 @@ function parseLocationExtraImages(value: unknown): LocationExtraImage[] {
   for (const item of value) {
     if (!isRecord(item)) continue;
     const image = String(item.image ?? "").trim();
-    if (!image) continue;
+    const imagePc = optionalNormalizedImage(item.imagePc);
+    const imageMobile = optionalNormalizedImage(item.imageMobile);
+    /** 기본·PC·모바일 중 하나라도 있으면 표시 (맵과 동일 패턴) */
+    if (!image && !imagePc && !imageMobile) continue;
     out.push({
-      image: normalizeImageUrl(image),
-      imagePc: optionalNormalizedImage(item.imagePc),
-      imageMobile: optionalNormalizedImage(item.imageMobile),
+      image: image ? normalizeImageUrl(image) : imagePc || imageMobile || "",
+      imagePc,
+      imageMobile,
       alt: optionalString(item.alt),
     });
   }

@@ -114,7 +114,12 @@
   "title": "입지환경",
   "mapImage": "https://example.com/map.jpg",
   "extraImages": [
-    { "image": "https://example.com/between-map-and-text.jpg", "alt": "맵 아래" }
+    {
+      "image": "https://example.com/extra-default.jpg",
+      "imagePc": "https://example.com/extra-pc.jpg",
+      "imageMobile": "https://example.com/extra-mobile.jpg",
+      "alt": "맵 아래"
+    }
   ],
   "items": [
     {
@@ -124,12 +129,22 @@
     }
   ],
   "extraImagesAfter": [
-    { "image": "https://example.com/below-text.jpg", "alt": "텍스트 아래" }
+    {
+      "image": "https://example.com/below-default.jpg",
+      "imagePc": "https://example.com/below-pc.jpg",
+      "imageMobile": "https://example.com/below-mobile.jpg"
+    }
   ]
 }
 ```
 
-이미지 키를 생략하면 예전과 동일(맵 + 텍스트만). `imagePc` / `imageMobile` 선택 가능.
+| 이미지 필드 | 용도 |
+|---|---|
+| `image` | **기본** (공용). PC/모바일 전용이 없을 때 fallback |
+| `imagePc` | **PC** 전용 (있으면 PC에서 우선) |
+| `imageMobile` | **모바일** 전용 (있으면 모바일에서 우선) |
+
+한 장만 쓰면 `image`만 넣으면 됩니다. 키 자체를 생략하면 예전과 동일(맵 + 텍스트만).
 
 ### futureData — 미래가치
 
