@@ -260,6 +260,8 @@ Hero 바로 아래에 작고 차분한 공지 형태로 표시되는 일반 텍�
 | **ctaPromoImagePc** | URL | 홍보 이미지 PC | `https://…` | CTA 하단 |
 | **ctaPromoImageMobile** | URL | 홍보 이미지 모바일 | `https://…` | CTA 하단 |
 | **ctaPromoImage** | URL | PC/모바일 **공통** (fallback) | `https://…` | 위 둘 비었을 때 |
+
+CTA 프로모: **Pc·Mobile만 채워도 표시**됩니다. 공통 `ctaPromoImage`는 선택. 컬럼명 철자 확인 (`ctaPromoImagePc` / `ctaPromoImageMobile`).
 | **popupImage1** | URL | 방문예약 **팝업 이미지 1** | `https://…` | `ReservationPopup` |
 | **popupImage2** | URL | 팝업 이미지 2 (2장 레이아웃) | `https://…` | `ReservationPopup` |
 

@@ -85,15 +85,23 @@ function buildCtaPromoImage(
   fallback?: CtaPromoImageSection
 ): CtaPromoImageSection | undefined {
   const extPromo = ext.ctaPromoImage;
+  const imagePc =
+    api.ctaPromoImagePc?.trim() || extPromo?.imagePc?.trim() || "";
+  const imageMobile =
+    api.ctaPromoImageMobile?.trim() || extPromo?.imageMobile?.trim() || "";
   const image =
-    api.ctaPromoImage?.trim() || extPromo?.image?.trim() || "";
-  if (!image) return fallback;
+    api.ctaPromoImage?.trim() ||
+    extPromo?.image?.trim() ||
+    imagePc ||
+    imageMobile ||
+    "";
+  /** 기본·PC·모바일 중 하나라도 있으면 표시 (기본만 필수였던 버그 수정) */
+  if (!image && !imagePc && !imageMobile) return fallback;
 
   return {
-    image,
-    imagePc: api.ctaPromoImagePc?.trim() || extPromo?.imagePc?.trim(),
-    imageMobile:
-      api.ctaPromoImageMobile?.trim() || extPromo?.imageMobile?.trim(),
+    image: image || imagePc || imageMobile,
+    imagePc: imagePc || undefined,
+    imageMobile: imageMobile || undefined,
     backgroundColor: parseCtaPromoBg(
       api.ctaPromoBg || extPromo?.backgroundColor
     ),

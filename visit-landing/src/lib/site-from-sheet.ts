@@ -66,14 +66,22 @@ function resolveCtaPromoImageFromContent(
   ext: ContentExtendedData
 ): CtaPromoImageSection | undefined {
   const extPromo = ext.ctaPromoImage;
-  const image = content.ctaPromoImage?.trim() || extPromo?.image?.trim() || "";
-  if (!image) return undefined;
+  const imagePc =
+    content.ctaPromoImagePc?.trim() || extPromo?.imagePc?.trim() || "";
+  const imageMobile =
+    content.ctaPromoImageMobile?.trim() || extPromo?.imageMobile?.trim() || "";
+  const image =
+    content.ctaPromoImage?.trim() ||
+    extPromo?.image?.trim() ||
+    imagePc ||
+    imageMobile ||
+    "";
+  if (!image && !imagePc && !imageMobile) return undefined;
 
   return {
-    image,
-    imagePc: content.ctaPromoImagePc?.trim() || extPromo?.imagePc?.trim(),
-    imageMobile:
-      content.ctaPromoImageMobile?.trim() || extPromo?.imageMobile?.trim(),
+    image: image || imagePc || imageMobile,
+    imagePc: imagePc || undefined,
+    imageMobile: imageMobile || undefined,
     backgroundColor: parseCtaPromoBg(
       content.ctaPromoBg || extPromo?.backgroundColor
     ),
