@@ -5,6 +5,10 @@ import { useConfig } from "./ConfigProvider";
 import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
+import {
+  MOBILE_BREAKPOINT,
+  resolveResponsiveImage,
+} from "@/lib/responsive-image";
 import type { SiteConfig } from "@/lib/types";
 import { ResponsiveImg } from "./ResponsiveImg";
 import {
@@ -183,6 +187,54 @@ function locationImagePresent(img: {
   );
 }
 
+/**
+ * JS isMobile 초기값(false) 때문에 모바일에서 PC 이미지가 남는 문제 방지.
+ * CSS media로 imageMobile / imagePc / image 분기.
+ */
+function LocationExtraResponsiveImg({
+  source,
+  alt,
+  className,
+}: {
+  source: LocationExtraImage;
+  alt: string;
+  className?: string;
+}) {
+  const mobileSrc = source.imageMobile?.trim()
+    ? resolveResponsiveImage(source, true, "section")
+    : "";
+  const desktopSrc = resolveResponsiveImage(source, false, "section");
+  const fallbackSrc =
+    desktopSrc ||
+    mobileSrc ||
+    normalizeImageUrl(source.image || "", "section");
+
+  return (
+    <picture>
+      {mobileSrc ? (
+        <source
+          media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
+          srcSet={mobileSrc}
+        />
+      ) : null}
+      {source.imagePc?.trim() ? (
+        <source
+          media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
+          srcSet={desktopSrc}
+        />
+      ) : null}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={fallbackSrc}
+        alt={alt}
+        className={className}
+        loading="lazy"
+        decoding="async"
+      />
+    </picture>
+  );
+}
+
 function LocationExtraImageStack({
   images,
   className,
@@ -214,7 +266,7 @@ function LocationExtraImageStack({
             className="group relative block w-full touch-manipulation"
             aria-label={`${img.alt || "입지"} 이미지 확대`}
           >
-            <ResponsiveImg
+            <LocationExtraResponsiveImg
               source={img}
               alt={img.alt || "입지 이미지"}
               className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
