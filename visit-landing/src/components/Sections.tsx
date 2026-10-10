@@ -5,6 +5,7 @@ import { useConfig } from "./ConfigProvider";
 import { useSiteTheme } from "@/hooks/useSiteTheme";
 import { useResponsiveImage } from "@/hooks/useResponsiveImage";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
+import type { SiteConfig } from "@/lib/types";
 import { ResponsiveImg } from "./ResponsiveImg";
 import {
   ZoomExpandHint,
@@ -166,11 +167,143 @@ function groupLocationItems(
   }, []);
 }
 
+type LocationBlock = NonNullable<SiteConfig["location"]["blocks"]>[number];
+type LocationExtraImage = Extract<
+  LocationBlock,
+  { kind: "extraImages" }
+>["images"][number];
+
+function locationImagePresent(img: {
+  image?: string;
+  imagePc?: string;
+  imageMobile?: string;
+}): boolean {
+  return (
+    !!img.image?.trim() || !!img.imagePc?.trim() || !!img.imageMobile?.trim()
+  );
+}
+
+function LocationExtraImageStack({
+  images,
+  className,
+  onOpen,
+}: {
+  images: LocationExtraImage[];
+  className?: string;
+  onOpen: (index: number) => void;
+}) {
+  const visible = images
+    .map((img, index) => ({ img, index }))
+    .filter(({ img }) => locationImagePresent(img));
+  if (visible.length === 0) return null;
+
+  return (
+    <div className={`flex flex-col gap-6 sm:gap-8 ${className ?? ""}`}>
+      {visible.map(({ img, index }) => (
+        <div
+          key={`location-extra-${index}`}
+          className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]"
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onOpen(index);
+            }}
+            className="group relative block w-full touch-manipulation"
+            aria-label={`${img.alt || "입지"} 이미지 확대`}
+          >
+            <ResponsiveImg
+              source={img}
+              alt={img.alt || "입지 이미지"}
+              className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+            />
+            <ZoomExpandHint />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LocationItemsGrid({
+  items,
+  className,
+}: {
+  items: SiteConfig["location"]["items"];
+  className?: string;
+}) {
+  const groups = groupLocationItems(items);
+  if (groups.length === 0) return null;
+
+  return (
+    <div
+      className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 ${className ?? ""}`}
+    >
+      {groups.map((point) => (
+        <div
+          key={point.cat || "__uncategorized"}
+          className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-6 sm:px-[20px] sm:py-6"
+        >
+          {point.cat ? (
+            <div className="mb-4 border-b border-[var(--color-gold)]/25 pb-3 text-[15px] font-bold text-[var(--color-gold)] sm:text-base">
+              {point.cat}
+            </div>
+          ) : null}
+          <ul className="flex flex-col gap-2.5 sm:gap-3">
+            {point.lines.map((line, lineIndex) => (
+              <li
+                key={`${point.cat}-${lineIndex}`}
+                className="flex items-start gap-2.5 text-[15px] leading-relaxed text-white/85 sm:text-base sm:leading-[1.65]"
+              >
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-gold)]" />
+                <span>
+                  {line.title && line.description ? (
+                    <>
+                      <span className="font-semibold text-white/95">{line.title}</span>
+                      <span className="text-white/80"> — {line.description}</span>
+                    </>
+                  ) : line.title ? (
+                    <span className="font-semibold text-white/95">{line.title}</span>
+                  ) : (
+                    line.description
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function LocationSection() {
   const { config } = useConfig();
   const { location } = config;
-  const [lightbox, setLightbox] = useState(false);
-  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
+  const blocks: LocationBlock[] =
+    location.blocks && location.blocks.length > 0
+      ? location.blocks
+      : location.items.length > 0
+        ? [{ kind: "items", items: location.items }]
+        : [];
+  const [lightbox, setLightbox] = useState<
+    { kind: "map" } | { kind: "extra"; blockIndex: number; imageIndex: number } | null
+  >(null);
+  const { handleZoomClick } = useZoomExpandClick(() =>
+    setLightbox({ kind: "map" })
+  );
+
+  const activeExtra =
+    lightbox?.kind === "extra"
+      ? (() => {
+          const block = blocks[lightbox.blockIndex];
+          return block?.kind === "extraImages"
+            ? block.images[lightbox.imageIndex]
+            : undefined;
+        })()
+      : undefined;
   const mapLightboxSrc = useResponsiveImage(
     {
       image: location.mapImage,
@@ -179,25 +312,37 @@ export function LocationSection() {
     },
     "lightbox"
   );
+  const extraLightboxSrc = useResponsiveImage(
+    activeExtra ?? { image: "" },
+    "lightbox"
+  );
+  const lightboxSrc =
+    lightbox?.kind === "map" ? mapLightboxSrc : extraLightboxSrc;
+  const lightboxAlt =
+    lightbox?.kind === "map"
+      ? location.title || "입지 지도"
+      : activeExtra?.alt || location.title || "입지 이미지";
+
   const hasMapImage =
     !!location.mapImage?.trim() ||
     !!location.mapImagePc?.trim() ||
     !!location.mapImageMobile?.trim();
-
-  const hasLocationItems = location.items.some(
-    (item) => !!(item.title?.trim() || item.description?.trim())
+  const hasBlocks = blocks.some((block) =>
+    block.kind === "extraImages"
+      ? block.images.some(locationImagePresent)
+      : block.items.some(
+          (item) => !!(item.title?.trim() || item.description?.trim())
+        )
   );
 
-  if (!hasMapImage && !hasLocationItems) return null;
-
-  const groups = groupLocationItems(location.items);
+  if (!hasMapImage && !hasBlocks) return null;
 
   return (
     <section id="입지환경" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-navy)] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="LOCATION ENVIRONMENT" title={location.title} titleVariant="location" />
-        <div className="relative mb-10 overflow-hidden rounded-2xl bg-[#1a2e5a]">
-          {hasMapImage && (
+        {hasMapImage && (
+          <div className="relative mb-10 overflow-hidden rounded-2xl bg-[#1a2e5a]">
             <button
               type="button"
               onClick={handleZoomClick}
@@ -216,55 +361,44 @@ export function LocationSection() {
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-navy)]/75" />
               <ZoomExpandHint />
             </button>
-          )}
-          {location.title && (
-            <div className="pointer-events-none absolute bottom-6 left-6 z-10">
-              <p className="text-[22px] font-extrabold text-white">{location.title}</p>
-            </div>
-          )}
-        </div>
+            {location.title && (
+              <div className="pointer-events-none absolute bottom-6 left-6 z-10">
+                <p className="text-[22px] font-extrabold text-white">{location.title}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {blocks.map((block, blockIndex) => {
+          const isLast = blockIndex === blocks.length - 1;
+          const gapClass = isLast ? "" : "mb-10";
+          if (block.kind === "extraImages") {
+            return (
+              <LocationExtraImageStack
+                key={`location-block-${blockIndex}`}
+                images={block.images}
+                className={gapClass}
+                onOpen={(imageIndex) =>
+                  setLightbox({ kind: "extra", blockIndex, imageIndex })
+                }
+              />
+            );
+          }
+          return (
+            <LocationItemsGrid
+              key={`location-block-${blockIndex}`}
+              items={block.items}
+              className={gapClass}
+            />
+          );
+        })}
+
         <ImageLightbox
-          src={mapLightboxSrc}
-          alt={location.title || "입지 지도"}
-          open={lightbox}
-          onClose={() => setLightbox(false)}
+          src={lightboxSrc}
+          alt={lightboxAlt}
+          open={lightbox !== null && !!lightboxSrc}
+          onClose={() => setLightbox(null)}
         />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {groups.map((point) => (
-            <div
-              key={point.cat || "__uncategorized"}
-              className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-6 sm:px-[20px] sm:py-6"
-            >
-              {point.cat ? (
-                <div className="mb-4 border-b border-[var(--color-gold)]/25 pb-3 text-[15px] font-bold text-[var(--color-gold)] sm:text-base">
-                  {point.cat}
-                </div>
-              ) : null}
-              <ul className="flex flex-col gap-2.5 sm:gap-3">
-                {point.lines.map((line, lineIndex) => (
-                  <li
-                    key={`${point.cat}-${lineIndex}`}
-                    className="flex items-start gap-2.5 text-[15px] leading-relaxed text-white/85 sm:text-base sm:leading-[1.65]"
-                  >
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-gold)]" />
-                    <span>
-                      {line.title && line.description ? (
-                        <>
-                          <span className="font-semibold text-white/95">{line.title}</span>
-                          <span className="text-white/80"> — {line.description}</span>
-                        </>
-                      ) : line.title ? (
-                        <span className="font-semibold text-white/95">{line.title}</span>
-                      ) : (
-                        line.description
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );

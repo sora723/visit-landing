@@ -102,19 +102,34 @@
 
 ### locationData — 입지환경
 
+**기존 `title` + `mapImage` + `items` 형태 그대로** 쓰고, 필요할 때만 이미지 키를 추가합니다. (`blocks` 불필요)
+
+| 키 | 화면 위치 |
+|---|---|
+| `extraImages` | 맵 ↔ 텍스트 **사이** |
+| `extraImagesAfter` | 텍스트 **아래** |
+
 ```json
 {
   "title": "입지환경",
   "mapImage": "https://example.com/map.jpg",
+  "extraImages": [
+    { "image": "https://example.com/between-map-and-text.jpg", "alt": "맵 아래" }
+  ],
   "items": [
     {
       "category": "교통",
       "title": "원주고속·시외버스터미널 인접",
       "description": "광역 교통망과의 접근성 우수"
     }
+  ],
+  "extraImagesAfter": [
+    { "image": "https://example.com/below-text.jpg", "alt": "텍스트 아래" }
   ]
 }
 ```
+
+이미지 키를 생략하면 예전과 동일(맵 + 텍스트만). `imagePc` / `imageMobile` 선택 가능.
 
 ### futureData — 미래가치
 

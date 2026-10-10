@@ -164,6 +164,7 @@
   "location": {
     "title": "입지환경",
     "mapImage": "/images/hero-aerial.png",
+    "blocks": [],
     "items": [
       {
         "category": "교통",

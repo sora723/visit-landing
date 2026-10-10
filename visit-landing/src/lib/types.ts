@@ -92,6 +92,25 @@ export interface SiteConfig {
     mapImage: string;
     mapImagePc?: string;
     mapImageMobile?: string;
+    /**
+     * 시트는 평탄 키 권장: extraImages(맵↔텍스트), extraImagesAfter(텍스트 아래).
+     * 파서에서 blocks로 정규화해 렌더.
+     */
+    blocks?: (
+      | {
+          kind: "extraImages";
+          images: {
+            image: string;
+            imagePc?: string;
+            imageMobile?: string;
+            alt?: string;
+          }[];
+        }
+      | {
+          kind: "items";
+          items: { category: string; title?: string; description?: string }[];
+        }
+    )[];
     items: { category: string; title?: string; description?: string }[];
   };
   futureValue: {

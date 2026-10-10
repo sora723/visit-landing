@@ -4,6 +4,7 @@
  */
 
 import { buildSitePageTitle } from "@/lib/site-page-title";
+import { normalizeLocationData } from "./site-config-api";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
 import { normalizeFooter } from "./footer-config";
@@ -323,11 +324,13 @@ export function buildSiteConfigFromSheet(
     title: "프리미엄",
     items: [] as { title: string; description: string; image: string }[],
   });
-  const location = parseJson(content.locationData, {
-    title: "입지환경",
-    mapImage: "",
-    items: [] as { category: string; title: string; description: string }[],
-  });
+  const location =
+    normalizeLocationData(parseJson(content.locationData, null)) ?? {
+      title: "입지환경",
+      mapImage: "",
+      blocks: [],
+      items: [],
+    };
   const futureValue = parseJson(content.futureData, {
     title: "미래가치",
     items: [] as { title: string; description: string; image: string }[],

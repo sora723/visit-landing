@@ -225,31 +225,108 @@ function parseFooter(value: unknown): SiteConfigApiFooter | undefined {
   return parseFooterData(value);
 }
 
-function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
+type LocationExtraImage = {
+  image: string;
+  imagePc?: string;
+  imageMobile?: string;
+  alt?: string;
+};
+
+type LocationTextItem = {
+  category: string;
+  title?: string;
+  description?: string;
+};
+
+type LocationBlock =
+  | { kind: "extraImages"; images: LocationExtraImage[] }
+  | { kind: "items"; items: LocationTextItem[] };
+
+function parseLocationExtraImages(value: unknown): LocationExtraImage[] {
+  if (!Array.isArray(value)) return [];
+  const out: LocationExtraImage[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const image = String(item.image ?? "").trim();
+    if (!image) continue;
+    out.push({
+      image: normalizeImageUrl(image),
+      imagePc: optionalNormalizedImage(item.imagePc),
+      imageMobile: optionalNormalizedImage(item.imageMobile),
+      alt: optionalString(item.alt),
+    });
+  }
+  return out;
+}
+
+function parseLocationTextItems(value: unknown): LocationTextItem[] {
+  if (!Array.isArray(value)) return [];
+  const out: LocationTextItem[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const category = String(item.category ?? "").trim();
+    const title = String(item.title ?? "").trim();
+    const description = String(item.description ?? "").trim();
+    if (!title && !description) continue;
+    out.push({ category, title, description });
+  }
+  return out;
+}
+
+function parseLocationBlocks(value: unknown): LocationBlock[] {
+  if (!Array.isArray(value)) return [];
+  const blocks: LocationBlock[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) continue;
+    if ("extraImages" in entry) {
+      const images = parseLocationExtraImages(entry.extraImages);
+      if (images.length > 0) blocks.push({ kind: "extraImages", images });
+      continue;
+    }
+    if ("items" in entry) {
+      const items = parseLocationTextItems(entry.items);
+      if (items.length > 0) blocks.push({ kind: "items", items });
+    }
+  }
+  return blocks;
+}
+
+/** blocks 우선. 없으면 예전 평탄 키(extraImages / items / extraImagesAfter)로 순서 합성 */
+function resolveLocationBlocks(value: Record<string, unknown>): LocationBlock[] {
+  const fromBlocks = parseLocationBlocks(value.blocks);
+  if (fromBlocks.length > 0) return fromBlocks;
+
+  const blocks: LocationBlock[] = [];
+  const mid = parseLocationExtraImages(value.extraImages);
+  if (mid.length > 0) blocks.push({ kind: "extraImages", images: mid });
+  const items = parseLocationTextItems(value.items);
+  if (items.length > 0) blocks.push({ kind: "items", items });
+  const after = parseLocationExtraImages(value.extraImagesAfter);
+  if (after.length > 0) blocks.push({ kind: "extraImages", images: after });
+  return blocks;
+}
+
+/** locationData JSON → SiteConfig.location (blocks 순서 정규화) */
+export function normalizeLocationData(
+  value: unknown
+): SiteConfigApiLocation | undefined {
   if (!isRecord(value)) return undefined;
-  const items = Array.isArray(value.items)
-    ? value.items
-        .map((item) => {
-          if (!isRecord(item)) return null;
-          const category = String(item.category ?? "").trim();
-          const title = String(item.title ?? "").trim();
-          const description = String(item.description ?? "").trim();
-          if (!title && !description) return null;
-          return {
-            category,
-            title,
-            description,
-          };
-        })
-        .filter((item): item is NonNullable<typeof item> => item !== null)
-    : [];
+  const blocks = resolveLocationBlocks(value);
+  const items = blocks.flatMap((block) =>
+    block.kind === "items" ? block.items : []
+  );
   return {
     title: String(value.title ?? "입지환경").trim() || "입지환경",
     mapImage: normalizeImageUrl(String(value.mapImage ?? "").trim()),
     mapImagePc: optionalNormalizedImage(value.mapImagePc),
     mapImageMobile: optionalNormalizedImage(value.mapImageMobile),
+    blocks,
     items,
   };
+}
+
+function parseLocation(value: unknown): SiteConfigApiLocation | undefined {
+  return normalizeLocationData(value);
 }
 
 function parseUnitTypes(value: unknown): SiteConfigApiUnitTypes | undefined {
