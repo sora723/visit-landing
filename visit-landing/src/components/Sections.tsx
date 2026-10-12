@@ -139,7 +139,7 @@ export function PremiumSection() {
                 </div>
               )}
               <div className="px-[22px] py-5">
-                <h3 className="text-lg font-extrabold text-[var(--color-navy)]">{item.title}</h3>
+                <h3 className="text-lg font-extrabold text-[var(--color-text)]">{item.title}</h3>
                 <p className="mt-2.5 text-[13px] leading-[1.75] text-[#7a7060]">
                   {item.description}
                 </p>
