@@ -56,7 +56,7 @@ function LiveSectionHeader({ title }: { title: string }) {
         <span className="live-text-pulse text-[11px] font-bold tracking-[0.25em] text-red-500">
           LIVE
         </span>
-        <span className="text-xs tracking-wide text-white/45">
+        <span className="text-on-dark-45 text-xs tracking-wide">
           · 지금 이 시간에도 예약이 진행 중입니다
         </span>
       </div>

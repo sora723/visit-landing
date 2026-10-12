@@ -249,6 +249,13 @@ Hero 바로 아래에 작고 차분한 공지 형태로 표시되는 일반 텍�
 | **mainColor** | HEX | 메인 네이비/배경 | `#0f1d3a` | `--color-navy` |
 | **subColor** | HEX | 서브·그라데이션 | `#d7b56d` | `--color-sub` |
 | **accentColor** | HEX | CTA·골드 포인트 | `#caa85c` | `--color-gold` |
+| **locationTitleColor** | HEX | 입지환경 제목 | `#ffffff` | 입지 섹션 제목 |
+| **ctaSectionTitleColor** | HEX | CTA·방문예약 제목 | `#ffffff` | CTA 제목 |
+| **liveStatusTitleColor** | HEX | 실시간 현황 제목 | `#ffffff` | 실시간 섹션 제목 |
+| **sectionTitleColor** | HEX | 밝은 배경 섹션 제목 | `#0f1d3a` | 사업개요 등 |
+| **textColor** | HEX | 네이비 배경 **본문·보조** 글자 | `#ffffff` | 입지 본문, CTA 부제, 실시간 카드, 푸터 |
+
+`mainColor`를 밝게 바꿀 때: 제목색(`locationTitleColor` 등) + **`textColor`**를 어두운 색으로 함께 맞춘다. 별칭: `onDarkTextColor`, `어두운배경글자색`, `다크섹션텍스트색`, `네이비본문색`.
 
 ---
 

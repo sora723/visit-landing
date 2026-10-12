@@ -71,7 +71,7 @@ export function CtaSection({
             {title}
           </h2>
           <div className="mx-auto mt-4 h-0.5 w-[60px] bg-[var(--color-gold)]" />
-          <p className="mt-3.5 text-sm text-white/60">{subtitle}</p>
+          <p className="text-on-dark-60 mt-3.5 text-sm">{subtitle}</p>
 
           <div className="mt-6 flex justify-center gap-8 border-y border-[var(--color-gold)]/20 py-4">
             {[
@@ -81,7 +81,7 @@ export function CtaSection({
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-xl font-black text-[var(--color-gold)]">{s.num}</div>
-                <div className="mt-0.5 text-[11px] text-white/50">{s.label}</div>
+                <div className="text-on-dark-50 mt-0.5 text-[11px]">{s.label}</div>
               </div>
             ))}
           </div>
@@ -110,10 +110,10 @@ export function SiteFooter() {
   const items = footer.items.filter((item) => item.title || item.content);
 
   return (
-    <footer className="site-footer border-t border-white/8 bg-[var(--color-navy)] pt-8 text-white/55 sm:pt-10">
+    <footer className="site-footer text-on-dark-55 border-t border-white/8 bg-[var(--color-navy)] pt-8 sm:pt-10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-6 space-y-5">
-          <strong className="block text-base text-white sm:text-lg">
+          <strong className="text-on-dark block text-base sm:text-lg">
             {config.siteName}
           </strong>
           {items.length > 0 && (
@@ -123,8 +123,8 @@ export function SiteFooter() {
                   key={`${item.title}-${item.content}-${index}`}
                   className="grid grid-cols-[88px_1fr] gap-2 text-xs"
                 >
-                  <dt className="text-white/38">{item.title}</dt>
-                  <dd className="text-white/72">{item.content}</dd>
+                  <dt className="text-on-dark-38">{item.title}</dt>
+                  <dd className="text-on-dark-72">{item.content}</dd>
                 </div>
               ))}
             </dl>
@@ -135,7 +135,7 @@ export function SiteFooter() {
             {footer.bottomText}
           </p>
         )}
-        <p className="mt-2 pb-6 text-xs text-white/28">
+        <p className="text-on-dark-28 mt-2 pb-6 text-xs">
           © 2026 DAVID. All rights reserved.
           <br />
           Powered by DAVID

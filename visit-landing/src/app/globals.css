@@ -46,8 +46,10 @@
   --color-cta-section-title: #ffffff;
   --color-section-title: var(--color-navy);
   --color-location-title: #ffffff;
+  --color-on-dark-text: #ffffff;
   --color-navy-rgb: 15, 29, 58;
   --color-gold-rgb: 202, 168, 92;
+  --color-on-dark-text-rgb: 255 255 255;
   --color-text-sub: #6b7280;
   --color-card: #ffffff;
   --header-h: 3.625rem;
@@ -62,6 +64,41 @@
   :root {
     --promo-bar-h: 4.5rem;
   }
+}
+
+/* 네이비(mainColor) 배경 위 본문 — onDarkTextColor 시트 연동 */
+.text-on-dark {
+  color: rgb(var(--color-on-dark-text-rgb));
+}
+.text-on-dark-95 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.95);
+}
+.text-on-dark-85 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.85);
+}
+.text-on-dark-80 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.8);
+}
+.text-on-dark-72 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.72);
+}
+.text-on-dark-60 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.6);
+}
+.text-on-dark-55 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.55);
+}
+.text-on-dark-50 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.5);
+}
+.text-on-dark-45 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.45);
+}
+.text-on-dark-38 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.38);
+}
+.text-on-dark-28 {
+  color: rgb(var(--color-on-dark-text-rgb) / 0.28);
 }
 
 html {

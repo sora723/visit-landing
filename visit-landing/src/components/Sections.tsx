@@ -51,7 +51,7 @@ function FigmaSectionTitle({
       {subtitle && (
         <p
           className={`mt-3.5 text-sm ${
-            titleVariant === "light" ? "text-[#7a7060]" : "text-white/60"
+            titleVariant === "light" ? "text-[#7a7060]" : "text-on-dark-60"
           }`}
         >
           {subtitle}
@@ -307,17 +307,17 @@ function LocationItemsGrid({
             {point.lines.map((line, lineIndex) => (
               <li
                 key={`${point.cat}-${lineIndex}`}
-                className="flex items-start gap-2.5 text-[15px] leading-relaxed text-white/85 sm:text-base sm:leading-[1.65]"
+                className="text-on-dark-85 flex items-start gap-2.5 text-[15px] leading-relaxed sm:text-base sm:leading-[1.65]"
               >
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-gold)]" />
                 <span>
                   {line.title && line.description ? (
                     <>
-                      <span className="font-semibold text-white/95">{line.title}</span>
-                      <span className="text-white/80"> — {line.description}</span>
+                      <span className="text-on-dark-95 font-semibold">{line.title}</span>
+                      <span className="text-on-dark-80"> — {line.description}</span>
                     </>
                   ) : line.title ? (
-                    <span className="font-semibold text-white/95">{line.title}</span>
+                    <span className="text-on-dark-95 font-semibold">{line.title}</span>
                   ) : (
                     line.description
                   )}
@@ -415,7 +415,7 @@ export function LocationSection() {
             </button>
             {location.title && (
               <div className="pointer-events-none absolute bottom-6 left-6 z-10">
-                <p className="text-[22px] font-extrabold text-white">{location.title}</p>
+                <p className="text-on-dark text-[22px] font-extrabold">{location.title}</p>
               </div>
             )}
           </div>

@@ -57,8 +57,14 @@ function themeColorFromExt(
     | "ctaSectionTitleColor"
     | "sectionTitleColor"
     | "locationTitleColor"
+    | "onDarkTextColor"
+    | "textColor"
 ): string | undefined {
-  const fromTheme = ext.theme?.[key];
+  const fromTheme =
+    key === "textColor"
+      ? ext.theme?.onDarkTextColor ??
+        (ext.theme as { textColor?: string } | undefined)?.textColor
+      : ext.theme?.[key];
   if (typeof fromTheme === "string" && fromTheme.trim()) return fromTheme.trim();
   const fromRoot = (ext as Record<string, unknown>)[key];
   if (typeof fromRoot === "string" && fromRoot.trim()) return fromRoot.trim();
@@ -241,6 +247,10 @@ export function buildSiteConfigFromApi(
         api.sectionTitleColor ?? themeColorFromExt(ext, "sectionTitleColor"),
       locationTitleColor:
         api.locationTitleColor ?? themeColorFromExt(ext, "locationTitleColor"),
+      onDarkTextColor:
+        api.onDarkTextColor ??
+        themeColorFromExt(ext, "onDarkTextColor") ??
+        themeColorFromExt(ext, "textColor"),
     }),
     reservationForm: {
       unitTypeOptions: api.unitTypeOptions.length

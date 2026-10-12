@@ -41,7 +41,7 @@ export function FooterReservationSection() {
             {title}
           </h2>
           <div className="mx-auto mt-4 h-0.5 w-[60px] bg-[var(--color-gold)]" />
-          <p className="mt-3.5 text-sm text-white/60">{subtitle}</p>
+          <p className="text-on-dark-60 mt-3.5 text-sm">{subtitle}</p>
 
           <div className="mt-6 flex justify-center gap-8 border-y border-[var(--color-gold)]/20 py-4">
             {[
@@ -51,7 +51,7 @@ export function FooterReservationSection() {
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-xl font-black text-[var(--color-gold)]">{s.num}</div>
-                <div className="mt-0.5 text-[11px] text-white/50">{s.label}</div>
+                <div className="text-on-dark-50 mt-0.5 text-[11px]">{s.label}</div>
               </div>
             ))}
           </div>

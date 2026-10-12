@@ -62,7 +62,7 @@ export function ReservationCard({
           >
             <span
               className={`text-sm font-semibold ${
-                isTopCard ? "text-[var(--color-gold)]" : "text-white/70"
+                isTopCard ? "text-[var(--color-gold)]" : "text-on-dark-72"
               }`}
             >
               {avatarChar}
@@ -70,11 +70,11 @@ export function ReservationCard({
           </div>
 
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium text-white">
+            <p className="text-on-dark truncate text-[13px] font-medium">
               <span className="font-semibold">{name}</span>
               <span className="font-normal"> 고객님</span>
             </p>
-            <p className="mt-0.5 truncate text-xs text-white/50">{typeLabel}</p>
+            <p className="text-on-dark-50 mt-0.5 truncate text-xs">{typeLabel}</p>
           </div>
         </div>
 
@@ -84,7 +84,7 @@ export function ReservationCard({
               NEW
             </span>
           )}
-          <span key={timeLabel} className="live-time-tick text-[11px] text-white/45">
+          <span key={timeLabel} className="live-time-tick text-on-dark-45 text-[11px]">
             {timeLabel}
           </span>
         </div>

@@ -17,6 +17,11 @@ export type SiteTheme = {
   sectionTitleColor: string;
   /** 입지환경 — 네이비 배경 섹션 제목 */
   locationTitleColor: string;
+  /**
+   * 네이비(mainColor) 배경 위 본문·보조 글자색
+   * — 입지 본문, 실시간 현황 카드, CTA 부제, 푸터 등
+   */
+  onDarkTextColor: string;
 };
 
 export const DEFAULT_SITE_THEME: SiteTheme = {
@@ -27,6 +32,7 @@ export const DEFAULT_SITE_THEME: SiteTheme = {
   ctaSectionTitleColor: "#ffffff",
   sectionTitleColor: "#0f1d3a",
   locationTitleColor: "#ffffff",
+  onDarkTextColor: "#ffffff",
 };
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -68,6 +74,9 @@ export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
     locationTitleColor:
       normalizeHexColor(partial?.locationTitleColor) ??
       DEFAULT_SITE_THEME.locationTitleColor,
+    onDarkTextColor:
+      normalizeHexColor(partial?.onDarkTextColor) ??
+      DEFAULT_SITE_THEME.onDarkTextColor,
   };
 }
 
@@ -86,6 +95,7 @@ function hexToRgbParts(hex: string): [number, number, number] | null {
 export function themeToCssProperties(theme: SiteTheme): Record<string, string> {
   const mainRgb = hexToRgbParts(theme.mainColor);
   const accentRgb = hexToRgbParts(theme.accentColor);
+  const onDarkRgb = hexToRgbParts(theme.onDarkTextColor);
 
   return {
     "--color-navy": theme.mainColor,
@@ -98,8 +108,12 @@ export function themeToCssProperties(theme: SiteTheme): Record<string, string> {
     "--color-cta-section-title": theme.ctaSectionTitleColor,
     "--color-section-title": theme.sectionTitleColor,
     "--color-location-title": theme.locationTitleColor,
+    "--color-on-dark-text": theme.onDarkTextColor,
     ...(mainRgb ? { "--color-navy-rgb": mainRgb.join(", ") } : {}),
     ...(accentRgb ? { "--color-gold-rgb": accentRgb.join(", ") } : {}),
+    ...(onDarkRgb
+      ? { "--color-on-dark-text-rgb": onDarkRgb.join(" ") }
+      : {}),
   };
 }
 
