@@ -50,8 +50,8 @@ export function ScrollableSelect({
         onClick={() => setOpen((v) => !v)}
         className={
           compact
-            ? "flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-navy)]/15 bg-white px-2 text-left text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/60"
-            : "flex h-full min-h-10 w-full items-center justify-between gap-2 rounded border border-[var(--color-navy)]/15 bg-white px-3 text-left text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/60"
+            ? "flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-text)]/35 bg-white px-2 text-left text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/70"
+            : "flex h-full min-h-10 w-full items-center justify-between gap-2 rounded border border-[var(--color-text)]/35 bg-white px-3 text-left text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/70"
         }
       >
         <span className={`truncate ${selected ? "" : "text-[#7a7060]"}`}>
@@ -66,7 +66,7 @@ export function ScrollableSelect({
         <ul
           id={listId}
           role="listbox"
-          className={`absolute left-0 right-0 z-[260] overflow-y-auto rounded border border-[var(--color-navy)]/15 bg-white py-1 shadow-lg ${
+          className={`absolute left-0 right-0 z-[260] overflow-y-auto rounded border border-[var(--color-text)]/30 bg-white py-1 shadow-lg ${
             dropUp ? "bottom-full mb-1" : "top-full mt-1"
           }`}
           style={{ maxHeight: listMaxHeight }}
