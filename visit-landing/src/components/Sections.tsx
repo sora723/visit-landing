@@ -254,7 +254,7 @@ function LocationExtraImageStack({
       {visible.map(({ img, index }) => (
         <div
           key={`location-extra-${index}`}
-          className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]"
+          className="overflow-hidden rounded-xl border border-white/[0.2] bg-white/[0.2]"
         >
           <button
             type="button"
@@ -296,7 +296,7 @@ function LocationItemsGrid({
       {groups.map((point) => (
         <div
           key={point.cat || "__uncategorized"}
-          className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-6 sm:px-[20px] sm:py-6"
+          className="rounded-xl border border-white/[0.2] bg-white/[0.2] px-5 py-6 sm:px-[20px] sm:py-6"
         >
           {point.cat ? (
             <div className="mb-4 border-b border-[var(--color-gold)]/25 pb-3 text-[15px] font-bold text-[var(--color-gold)] sm:text-base">
