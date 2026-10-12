@@ -50,8 +50,8 @@ export function ReservationCard({
       <div
         className={`live-reservation-card flex items-center justify-between gap-3 rounded-2xl border px-[18px] py-3.5 md:px-5 md:py-4 ${
           isTopCard && showNewBadge
-            ? "live-reservation-card-top live-reservation-card-new border-[var(--color-gold)]/45 bg-[var(--color-gold)]/[0.14]"
-            : "border-white/[0.14] bg-white/[0.12]"
+            ? "live-reservation-card-top live-reservation-card-new border-[var(--color-gold)]/45 bg-[var(--color-gold)]/[0.22]"
+            : "border-white/[0.2] bg-white/[0.2]"
         }`}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
