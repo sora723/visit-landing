@@ -149,7 +149,7 @@ function ReservationPopupPanel({
         </div>
       ) : (
         <>
-          <h2 className="mb-6 shrink-0 text-center text-xl font-semibold text-[var(--color-navy)] sm:text-2xl">
+          <h2 className="mb-6 shrink-0 text-center text-xl font-semibold text-[var(--color-text)] sm:text-2xl">
             {config.popup.title}
           </h2>
           <ReservationForm

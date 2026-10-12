@@ -97,7 +97,7 @@ export function OverviewSection() {
                 <div className="w-[140px] shrink-0 border-r border-[var(--color-navy)]/7 bg-[var(--color-bg)] px-5 py-4 text-[13px] font-medium text-[#7a7060]">
                   {spec.label}
                 </div>
-                <div className="px-5 py-4 text-[13px] leading-relaxed text-[var(--color-navy)]">
+                <div className="px-5 py-4 text-[13px] leading-relaxed text-[var(--color-text)]">
                   {spec.value}
                 </div>
               </div>
@@ -605,8 +605,8 @@ export function UnitTypesSection() {
                   onClick={() => setActiveIndex(index)}
                   className={`shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold tracking-wide transition-colors ${
                     selected
-                      ? "border-[var(--color-navy)] bg-[var(--color-navy)] text-white shadow-[0_4px_16px_rgba(15,29,58,0.18)]"
-                      : "border-[var(--color-navy)]/15 bg-white text-[var(--color-navy)] hover:border-[var(--color-gold)]/50 hover:text-[var(--color-navy)]"
+                      ? "border-[var(--color-text)] bg-[var(--color-text)] text-white shadow-[0_4px_16px_rgba(var(--color-text-rgb),0.18)]"
+                      : "border-[var(--color-text)]/15 bg-white text-[var(--color-text)] hover:border-[var(--color-gold)]/50 hover:text-[var(--color-text)]"
                   }`}
                   aria-pressed={selected}
                 >
@@ -634,7 +634,7 @@ export function UnitTypesSection() {
           )}
 
           <div className="mt-6 text-center sm:mt-8">
-            <h3 className="text-[clamp(20px,3vw,28px)] font-bold text-[var(--color-navy)]">
+            <h3 className="text-[clamp(20px,3vw,28px)] font-bold text-[var(--color-text)]">
               {current.title}
             </h3>
             {current.description && (
@@ -733,7 +733,7 @@ export function CommunitySection() {
               >
                 <ResponsiveImg source={item} alt={item.title} className="aspect-square w-full object-cover" />
                 <div className="p-3 sm:p-4">
-                  <h3 className="text-sm font-semibold text-[var(--color-navy)]">{item.title}</h3>
+                  <h3 className="text-sm font-semibold text-[var(--color-text)]">{item.title}</h3>
                   <p className="mt-1 text-[11px] leading-relaxed text-[#7a7060] sm:text-xs">
                     {item.description}
                   </p>
