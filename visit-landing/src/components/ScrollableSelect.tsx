@@ -50,8 +50,8 @@ export function ScrollableSelect({
         onClick={() => setOpen((v) => !v)}
         className={
           compact
-            ? "flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-navy)]/15 bg-white px-2 text-left text-xs text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60"
-            : "flex h-full min-h-10 w-full items-center justify-between gap-2 rounded border border-[var(--color-navy)]/15 bg-white px-3 text-left text-[13px] text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60"
+            ? "flex h-full min-h-0 w-full items-center justify-between gap-1 rounded border border-[var(--color-navy)]/15 bg-white px-2 text-left text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/60"
+            : "flex h-full min-h-10 w-full items-center justify-between gap-2 rounded border border-[var(--color-navy)]/15 bg-white px-3 text-left text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/60"
         }
       >
         <span className={`truncate ${selected ? "" : "text-[#7a7060]"}`}>
@@ -89,8 +89,8 @@ export function ScrollableSelect({
                 type="button"
                 className={`block w-full px-3 py-2 text-left text-[13px] hover:bg-[var(--color-bg)] ${
                   value === opt.value
-                    ? "bg-[var(--color-gold)]/10 font-semibold text-[var(--color-navy)]"
-                    : "text-[var(--color-navy)]"
+                    ? "bg-[var(--color-gold)]/10 font-semibold text-[var(--color-text)]"
+                    : "text-[var(--color-text)]"
                 }`}
                 onClick={() => {
                   onChange(opt.value);

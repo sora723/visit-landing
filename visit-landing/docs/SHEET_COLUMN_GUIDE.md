@@ -253,9 +253,10 @@ Hero 바로 아래에 작고 차분한 공지 형태로 표시되는 일반 텍�
 | **ctaSectionTitleColor** | HEX | CTA·방문예약 제목 | `#ffffff` | CTA 제목 |
 | **liveStatusTitleColor** | HEX | 실시간 현황 제목 | `#ffffff` | 실시간 섹션 제목 |
 | **sectionTitleColor** | HEX | 밝은 배경 섹션 제목 | `#0f1d3a` | 사업개요 등 |
-| **textColor** | HEX | 네이비 배경 **본문·보조** 글자 | `#ffffff` | 입지 본문, CTA 부제, 실시간 카드, 푸터 |
+| **heroTitleColor** | HEX | 히어로 메인 제목 | `#ffffff` | Hero `h1` |
+| **textColor** | HEX | 본문 + 밝은면 UI 글자 | `#174873` | 입지·CTA·푸터 본문, 스크롤 헤더, 예약 폼, 히어로 강조 카드, 하단 전화 |
 
-`mainColor`를 밝게 바꿀 때: 제목색(`locationTitleColor` 등) + **`textColor`**를 어두운 색으로 함께 맞춘다. 별칭: `onDarkTextColor`, `어두운배경글자색`, `다크섹션텍스트색`, `네이비본문색`.
+미설정 시: 다크 섹션 본문은 `#ffffff`, 폼/헤더 등 UI는 `mainColor`. `mainColor`를 밝게 할 때 `textColor`+제목색을 어두운 색으로 맞출 것. 별칭: `onDarkTextColor`, `어두운배경글자색`.
 
 ---
 

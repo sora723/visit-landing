@@ -40,7 +40,7 @@ function BottomSheet({
                 {headerTagline}
               </p>
             ) : null}
-            <p className="text-lg font-semibold text-[var(--color-navy)]">{title}</p>
+            <p className="text-lg font-semibold text-[var(--color-text)]">{title}</p>
           </div>
           <button type="button" onClick={onClose} className="p-1 text-[#7a7060]" aria-label="닫기">
             <IconX className="h-[22px] w-[22px]" />
@@ -53,7 +53,7 @@ function BottomSheet({
               <div className="mx-auto mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[var(--color-gold)]/15">
                 <span className="text-2xl">✓</span>
               </div>
-              <p className="mb-2 text-base font-semibold text-[var(--color-navy)]">접수 완료</p>
+              <p className="mb-2 text-base font-semibold text-[var(--color-text)]">접수 완료</p>
               <p className="text-[13px] leading-relaxed text-[#7a7060]">
                 담당자가 빠른 시간 내 연락드리겠습니다.
               </p>
@@ -73,7 +73,7 @@ function BottomSheet({
                   }, 2500);
                 }}
               />
-              <TelLink className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--color-navy)]/20 py-[15px] text-sm font-medium text-[var(--color-navy)] no-underline" />
+              <TelLink className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--color-navy)]/20 py-[15px] text-sm font-medium text-[var(--color-text)] no-underline" />
             </>
           )}
         </div>
@@ -135,7 +135,7 @@ export function BottomBar() {
                 aria-label={`전화 ${config.phone}`}
               >
                 <IconPhone className="h-5 w-5 shrink-0 text-[var(--color-gold)] lg:h-6 lg:w-6 xl:h-7 xl:w-7" />
-                <span className="hidden whitespace-nowrap text-base font-semibold leading-none text-white/85 min-[900px]:inline lg:text-xl xl:text-2xl 2xl:text-[26px]">
+                <span className="hidden whitespace-nowrap text-base font-semibold leading-none text-[var(--color-text)] min-[900px]:inline lg:text-xl xl:text-2xl 2xl:text-[26px]">
                   {config.phone}
                 </span>
               </a>
@@ -151,8 +151,8 @@ export function BottomBar() {
             href={`tel:${tel}`}
             className="flex flex-1 items-center justify-center gap-1.5 border-r border-white/12 no-underline"
           >
-            <IconPhone className="h-[18px] w-[18px] text-white/75" />
-            <span className="text-[15px] tracking-wide text-white">전화문의</span>
+            <IconPhone className="h-[18px] w-[18px] text-[var(--color-text)] opacity-75" />
+            <span className="text-[15px] tracking-wide text-[var(--color-text)]">전화문의</span>
           </a>
           <button
             type="button"

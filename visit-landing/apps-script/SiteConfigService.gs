@@ -124,6 +124,13 @@ var ON_DARK_TEXT_COLOR_ALIASES = [
   '네이비글자색'
 ];
 
+var HERO_TITLE_COLOR_ALIASES = [
+  'heroTitleColor',
+  '히어로제목색',
+  '히어로타이틀색',
+  '메인카피색'
+];
+
 var HERO_IMAGE_PC_ALIASES = [
   'heroImagePc',
   '히어로이미지PC',
@@ -691,6 +698,7 @@ function ensureSiteThemeColumns() {
   var added = [];
   // extendedData 앞에 넣을 때는 역순으로 삽입해야 main → sub → accent 순서가 됨
   var themeHeaders = [
+    'heroTitleColor',
     'textColor',
     'locationTitleColor',
     'sectionTitleColor',
@@ -701,6 +709,7 @@ function ensureSiteThemeColumns() {
     'mainColor'
   ];
   var themeAliases = [
+    HERO_TITLE_COLOR_ALIASES,
     ON_DARK_TEXT_COLOR_ALIASES,
     LOCATION_TITLE_COLOR_ALIASES,
     SECTION_TITLE_COLOR_ALIASES,
@@ -1405,6 +1414,12 @@ function getSiteLiveConfig(siteCode) {
     ON_DARK_TEXT_COLOR_ALIASES,
     'onDarkTextColor'
   );
+  var heroTitleColor = getOptionalThemeColorFromContentRow_(
+    contentRow,
+    ext,
+    HERO_TITLE_COLOR_ALIASES,
+    'heroTitleColor'
+  );
   var siteRow = findSiteByCode_(code);
   var conversionTracking = getConversionTrackingFromSiteRow_(siteRow);
   var ownershipVerification = getOwnershipVerificationFromSiteRow_(siteRow);
@@ -1440,6 +1455,7 @@ function getSiteLiveConfig(siteCode) {
     sectionTitleColor: sectionTitleColor,
     locationTitleColor: locationTitleColor,
     onDarkTextColor: onDarkTextColor,
+    heroTitleColor: heroTitleColor,
     heroTitle: pageContent.heroTitle,
     heroSubTitle: pageContent.heroSubTitle,
     headerBrand: pageContent.headerBrand,

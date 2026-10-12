@@ -41,6 +41,7 @@ export type SiteConfigApiData = {
   ctaSectionTitleColor?: string;
   sectionTitleColor?: string;
   locationTitleColor?: string;
+  heroTitleColor?: string;
   /** 시트 `textColor` / `onDarkTextColor` — 네이비 본문색 */
   onDarkTextColor?: string;
   textColor?: string;
@@ -403,6 +404,7 @@ export function parseSiteConfigApiResponse(
     ctaSectionTitleColor: optionalString(data.ctaSectionTitleColor),
     sectionTitleColor: optionalString(data.sectionTitleColor),
     locationTitleColor: optionalString(data.locationTitleColor),
+    heroTitleColor: optionalString(data.heroTitleColor),
     onDarkTextColor:
       optionalString(data.onDarkTextColor) ?? optionalString(data.textColor),
     heroTitle: optionalString(data.heroTitle),

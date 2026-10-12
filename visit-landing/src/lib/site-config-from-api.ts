@@ -57,6 +57,7 @@ function themeColorFromExt(
     | "ctaSectionTitleColor"
     | "sectionTitleColor"
     | "locationTitleColor"
+    | "heroTitleColor"
     | "onDarkTextColor"
     | "textColor"
 ): string | undefined {
@@ -247,10 +248,14 @@ export function buildSiteConfigFromApi(
         api.sectionTitleColor ?? themeColorFromExt(ext, "sectionTitleColor"),
       locationTitleColor:
         api.locationTitleColor ?? themeColorFromExt(ext, "locationTitleColor"),
+      heroTitleColor:
+        api.heroTitleColor ?? themeColorFromExt(ext, "heroTitleColor"),
       onDarkTextColor:
         api.onDarkTextColor ??
         themeColorFromExt(ext, "onDarkTextColor") ??
         themeColorFromExt(ext, "textColor"),
+      /** mergeSiteTheme가 시트값·mainColor로 다시 계산 */
+      textColor: undefined,
     }),
     reservationForm: {
       unitTypeOptions: api.unitTypeOptions.length

@@ -218,7 +218,10 @@ export function HeroSection() {
 
       <div className="relative z-10 flex min-h-[100svh] flex-col md:hidden">
         <div className="flex h-[70svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] text-center">
-          <h1 className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide text-white">
+          <h1
+            className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide"
+            style={{ color: "var(--color-hero-title)" }}
+          >
             {headline}
           </h1>
           {hero.sub && (
@@ -241,7 +244,10 @@ export function HeroSection() {
       </div>
 
       <div className="relative z-10 mx-auto hidden min-h-[100svh] w-full max-w-[1100px] flex-col items-center justify-center px-6 pb-24 pt-[var(--header-h)] text-center md:flex">
-        <h1 className="font-paperlogy text-[clamp(36px,6.5vw,72px)] font-bold leading-tight tracking-wide text-white">
+        <h1
+          className="font-paperlogy text-[clamp(36px,6.5vw,72px)] font-bold leading-tight tracking-wide"
+          style={{ color: "var(--color-hero-title)" }}
+        >
           {headline}
         </h1>
 

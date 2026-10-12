@@ -37,7 +37,8 @@ Powered by DAVID
 | `locationTitleColor` | 네이비 | **입지환경** 제목 | `#ffffff` |
 | `ctaSectionTitleColor` | 네이비 | 홍보관 방문예약, CTA 제목 | `#ffffff` |
 | `liveStatusTitleColor` | 네이비 | 실시간 방문예약 현황 제목 | `#ffffff` |
-| `textColor` (`onDarkTextColor`) | 네이비 | 입지 본문·CTA 부제·실시간 카드·푸터 | `#ffffff` |
+| `heroTitleColor` | 히어로 | Hero 메인 제목 | `#ffffff` |
+| `textColor` | 공통 | 입지 본문(`onDarkTextColor`) + 스크롤 헤더·폼·히어로 강조카드·하단 전화(`--color-text`) | 미설정 시 본문 `#ffffff` / UI `mainColor` |
 
 `mainColor`를 밝게 할 때 제목색 + `textColor`를 어두운 색으로 같이 맞출 것.
 

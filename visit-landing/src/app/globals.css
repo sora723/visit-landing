@@ -46,10 +46,14 @@
   --color-cta-section-title: #ffffff;
   --color-section-title: var(--color-navy);
   --color-location-title: #ffffff;
+  --color-hero-title: #ffffff;
   --color-on-dark-text: #ffffff;
+  --color-text: #0f1d3a;
   --color-navy-rgb: 15, 29, 58;
   --color-gold-rgb: 202, 168, 92;
   --color-on-dark-text-rgb: 255 255 255;
+  --color-text-rgb: 15, 29, 58;
+  --color-text-rgb-space: 15 29 58;
   --color-text-sub: #6b7280;
   --color-card: #ffffff;
   --header-h: 3.625rem;
@@ -320,7 +324,7 @@ textarea {
 
 .cta-primary {
   background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
-  color: var(--color-navy);
+  color: var(--color-text);
   font-weight: 700;
   border-radius: 2px;
   box-shadow: 0 4px 16px rgba(var(--color-gold-rgb), 0.35);
@@ -580,7 +584,7 @@ textarea {
   }
   20%,
   38% {
-    color: var(--color-navy);
+    color: var(--color-text);
   }
 }
 
@@ -592,7 +596,7 @@ textarea {
   }
   20%,
   38% {
-    color: rgba(var(--color-navy-rgb), 0.85);
+    color: rgba(var(--color-text-rgb), 0.85);
   }
 }
 

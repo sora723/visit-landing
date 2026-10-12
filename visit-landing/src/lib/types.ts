@@ -179,8 +179,12 @@ export interface SiteConfig {
     ctaSectionTitleColor?: string;
     sectionTitleColor?: string;
     locationTitleColor?: string;
+    /** 히어로 메인 제목 (기본 #ffffff) */
+    heroTitleColor?: string;
     /** 네이비 배경 위 본문·보조 글자 (기본 #ffffff) */
     onDarkTextColor?: string;
+    /** 밝은 면 UI 글자 — 시트 textColor, 미설정 시 mainColor */
+    textColor?: string;
   };
   /** 관심평형·방문일자 — site.json 기본값 + Sheet live 덮어쓰기 */
   reservationForm?: {

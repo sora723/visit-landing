@@ -66,7 +66,7 @@ export function SiteHeader() {
             ) : null}
             <span
               className={`truncate text-xl font-black tracking-wide transition-colors duration-300 ${
-                scrolled ? "text-[var(--color-navy)]" : "text-white"
+                scrolled ? "text-[var(--color-text)]" : "text-white"
               }`}
             >
               {config.siteName}
@@ -97,7 +97,7 @@ export function SiteHeader() {
                   scrollToAnchor(item.href);
                 }}
                 className={`text-sm tracking-wide transition-colors hover:text-[var(--color-gold)] ${
-                  scrolled ? "text-[var(--color-navy)]" : "text-white/90"
+                  scrolled ? "text-[var(--color-text)]" : "text-white/90"
                 }`}
               >
                 {item.label}
@@ -109,7 +109,7 @@ export function SiteHeader() {
             <a
               href={`tel:${tel}`}
               className={`text-2xl font-black tracking-wide transition-colors hover:text-[var(--color-gold)] ${
-                scrolled ? "text-[var(--color-navy)]" : "text-white"
+                scrolled ? "text-[var(--color-text)]" : "text-white"
               }`}
             >
               {config.phone}
@@ -149,7 +149,7 @@ export function SiteHeader() {
               className={`relative flex min-w-0 flex-1 items-center justify-center border-r border-[var(--color-navy)]/7 px-1 py-2.5 text-center text-[clamp(10px,2.65vw,13px)] leading-tight tracking-wide last:border-r-0 ${
                 item.highlight
                   ? "font-extrabold text-[var(--color-gold)]"
-                  : "font-normal text-[var(--color-navy)]"
+                  : "font-normal text-[var(--color-text)]"
               }`}
             >
               <span className="truncate">{item.label}</span>

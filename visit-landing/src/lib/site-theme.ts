@@ -17,11 +17,19 @@ export type SiteTheme = {
   sectionTitleColor: string;
   /** 입지환경 — 네이비 배경 섹션 제목 */
   locationTitleColor: string;
+  /** 히어로 메인 제목 — 시트 `heroTitleColor`, 기본 #ffffff */
+  heroTitleColor: string;
   /**
    * 네이비(mainColor) 배경 위 본문·보조 글자색
    * — 입지 본문, 실시간 현황 카드, CTA 부제, 푸터 등
+   * 시트 `textColor` — 미설정 시 #ffffff
    */
   onDarkTextColor: string;
+  /**
+   * 밝은 면 UI 글자색 (스크롤 헤더, 폼, 히어로 강조 카드, 하단 전화 등)
+   * 시트 `textColor` — 미설정 시 mainColor
+   */
+  textColor: string;
 };
 
 export const DEFAULT_SITE_THEME: SiteTheme = {
@@ -32,7 +40,9 @@ export const DEFAULT_SITE_THEME: SiteTheme = {
   ctaSectionTitleColor: "#ffffff",
   sectionTitleColor: "#0f1d3a",
   locationTitleColor: "#ffffff",
+  heroTitleColor: "#ffffff",
   onDarkTextColor: "#ffffff",
+  textColor: "#0f1d3a",
 };
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -56,6 +66,8 @@ export function normalizeHexColor(raw: string | undefined | null): string | null
 export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
   const mainColor =
     normalizeHexColor(partial?.mainColor) ?? DEFAULT_SITE_THEME.mainColor;
+  /** 시트 textColor → onDarkTextColor 로 유입 */
+  const sheetText = normalizeHexColor(partial?.onDarkTextColor);
 
   return {
     mainColor,
@@ -74,9 +86,13 @@ export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
     locationTitleColor:
       normalizeHexColor(partial?.locationTitleColor) ??
       DEFAULT_SITE_THEME.locationTitleColor,
-    onDarkTextColor:
-      normalizeHexColor(partial?.onDarkTextColor) ??
-      DEFAULT_SITE_THEME.onDarkTextColor,
+    heroTitleColor:
+      normalizeHexColor(partial?.heroTitleColor) ??
+      DEFAULT_SITE_THEME.heroTitleColor,
+    onDarkTextColor: sheetText ?? DEFAULT_SITE_THEME.onDarkTextColor,
+    /** 이미 merge된 theme 재적용 시 textColor 유지 · 미설정 시 시트값 · 그다음 mainColor */
+    textColor:
+      normalizeHexColor(partial?.textColor) ?? sheetText ?? mainColor,
   };
 }
 
@@ -96,6 +112,7 @@ export function themeToCssProperties(theme: SiteTheme): Record<string, string> {
   const mainRgb = hexToRgbParts(theme.mainColor);
   const accentRgb = hexToRgbParts(theme.accentColor);
   const onDarkRgb = hexToRgbParts(theme.onDarkTextColor);
+  const textRgb = hexToRgbParts(theme.textColor);
 
   return {
     "--color-navy": theme.mainColor,
@@ -108,11 +125,19 @@ export function themeToCssProperties(theme: SiteTheme): Record<string, string> {
     "--color-cta-section-title": theme.ctaSectionTitleColor,
     "--color-section-title": theme.sectionTitleColor,
     "--color-location-title": theme.locationTitleColor,
+    "--color-hero-title": theme.heroTitleColor,
     "--color-on-dark-text": theme.onDarkTextColor,
+    "--color-text": theme.textColor,
     ...(mainRgb ? { "--color-navy-rgb": mainRgb.join(", ") } : {}),
     ...(accentRgb ? { "--color-gold-rgb": accentRgb.join(", ") } : {}),
     ...(onDarkRgb
       ? { "--color-on-dark-text-rgb": onDarkRgb.join(" ") }
+      : {}),
+    ...(textRgb
+      ? {
+          "--color-text-rgb": textRgb.join(", "),
+          "--color-text-rgb-space": textRgb.join(" "),
+        }
       : {}),
   };
 }

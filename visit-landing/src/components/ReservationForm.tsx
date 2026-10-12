@@ -17,10 +17,10 @@ import {
 export type ReservationFormVariant = "default" | "compact" | "sheet" | "inline";
 
 const inputWhite =
-  "w-full rounded border border-[var(--color-navy)]/20 bg-white px-4 py-3.5 text-sm text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60";
+  "w-full rounded border border-[var(--color-navy)]/20 bg-white px-4 py-3.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/60";
 const inputSheet =
-  "w-full rounded-lg border border-[var(--color-navy)]/15 bg-[var(--color-bg)] px-4 py-3.5 text-sm text-[var(--color-navy)] outline-none focus:border-[var(--color-gold)]/60";
-const labelBase = "mb-1.5 block text-[13px] font-medium tracking-wide text-[var(--color-navy)]";
+  "w-full rounded-lg border border-[var(--color-navy)]/15 bg-[var(--color-bg)] px-4 py-3.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-gold)]/60";
+const labelBase = "mb-1.5 block text-[13px] font-medium tracking-wide text-[var(--color-text)]";
 
 export function ReservationForm({
   buttonText,
@@ -119,7 +119,7 @@ export function ReservationForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          className="h-9 w-[52px] shrink-0 rounded border border-[var(--color-navy)]/15 bg-white px-1.5 text-xs text-[var(--color-navy)] outline-none md:h-10 md:w-[64px] md:px-2 lg:w-[76px] lg:text-[13px] xl:w-[88px] xl:px-3 2xl:w-[90px]"
+          className="h-9 w-[52px] shrink-0 rounded border border-[var(--color-navy)]/15 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[64px] md:px-2 lg:w-[76px] lg:text-[13px] xl:w-[88px] xl:px-3 2xl:w-[90px]"
         />
         <input
           type="tel"
@@ -129,7 +129,7 @@ export function ReservationForm({
             setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
           }
           required
-          className="h-9 w-[108px] shrink-0 rounded border border-[var(--color-navy)]/15 bg-white px-1.5 text-xs text-[var(--color-navy)] outline-none md:h-10 md:w-[120px] md:px-2 lg:w-[132px] lg:text-[13px] xl:w-[148px] xl:px-3"
+          className="h-9 w-[108px] shrink-0 rounded border border-[var(--color-navy)]/15 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[120px] md:px-2 lg:w-[132px] lg:text-[13px] xl:w-[148px] xl:px-3"
         />
         {showUnitType && (
           <ScrollableSelect
@@ -300,7 +300,7 @@ export function ReservationForm({
         disabled={submitting}
         className={
           variant === "sheet"
-            ? "w-full rounded-[10px] bg-[var(--color-navy)] py-4 text-[15px] font-medium tracking-[0.08em] text-white disabled:opacity-60"
+            ? "w-full rounded-[10px] bg-[var(--color-text)] py-4 text-[15px] font-medium tracking-[0.08em] text-white disabled:opacity-60"
             : "reservation-submit-btn cta-primary min-h-14 w-full text-base disabled:opacity-60"
         }
       >
@@ -363,9 +363,9 @@ function PrivacyAgreement({
         }`}
       />
       <span
-        className={`${isInline ? "shrink-0 whitespace-nowrap text-[10px] text-white/50 lg:text-[11px]" : "flex-1 text-[13px] text-[#7a7060]"}`}
+        className={`${isInline ? "text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]" : "flex-1 text-[13px] text-[#7a7060]"}`}
       >
-        {!isInline && <span className="font-medium text-[var(--color-navy)]">[필수]</span>}{" "}
+        {!isInline && <span className="font-medium text-[var(--color-text)]">[필수]</span>}{" "}
         {isInline ? (
           <>
             <span className="xl:hidden">동의</span>

@@ -183,6 +183,7 @@ export interface ContentExtendedData {
   ctaSectionTitleColor?: string;
   sectionTitleColor?: string;
   locationTitleColor?: string;
+  heroTitleColor?: string;
   onDarkTextColor?: string;
   /** 시트 컬럼명 — onDarkTextColor와 동일 */
   textColor?: string;
@@ -214,6 +215,7 @@ export interface ContentExtendedData {
     ctaSectionTitleColor?: string;
     sectionTitleColor?: string;
     locationTitleColor?: string;
+    heroTitleColor?: string;
     onDarkTextColor?: string;
   };
 }

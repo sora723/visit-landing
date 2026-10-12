@@ -33,7 +33,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'unitTypeEnabled', 'visitDateEnabled', 'visitTimeEnabled', 'popupReservationEnabled',
     'mainColor', 'subColor', 'accentColor',
     'liveStatusTitleColor', 'ctaSectionTitleColor', 'sectionTitleColor',
-    'locationTitleColor', 'textColor', 'onDarkTextColor',
+    'locationTitleColor', 'textColor', 'onDarkTextColor', 'heroTitleColor',
     'footerData', 'extendedData'
   ],
   '접수관리': [
