@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
+import { GoogleAdsBaseScripts } from "@/components/GoogleAdsBaseScripts";
 import { NaverCommonPvScripts, ownershipHtmlIsNaver } from "@/components/NaverCommonPvScripts";
 import { OwnershipRawScripts } from "@/components/OwnershipRawScripts";
 import { SmartlogBaseScripts } from "@/components/SmartlogBaseScripts";
@@ -38,10 +39,11 @@ function needsTrackingConfig(live: SiteLiveConfigData | null): boolean {
   if (!live || live.source !== "sheet") return true;
   const ownership = live.ownershipVerification.ownershipRawHtml?.trim();
   const naver = live.conversionTracking.naverConversionScript?.trim();
+  const google = live.conversionTracking.googleConversionId?.trim();
   const smartlog =
     live.conversionTracking.smartlogAccount?.trim() &&
     live.conversionTracking.smartlogServer?.trim();
-  return !ownership && !naver && !smartlog;
+  return !ownership && !naver && !google && !smartlog;
 }
 
 export default async function RootLayout({
@@ -59,7 +61,9 @@ export default async function RootLayout({
     live = await fetchSiteLiveConfigFromSheetBlocking(siteCode);
   }
   const ownershipRaw = live?.ownershipVerification.ownershipRawHtml;
-  const smartlog = live?.conversionTracking;
+  const tracking = live?.conversionTracking;
+  const googleAdsId = tracking?.googleConversionId?.trim() || "";
+  const smartlog = tracking;
   const renderable =
     siteCode && live
       ? resolveRenderableSiteConfig(siteCode, live, fileConfig)
@@ -90,6 +94,9 @@ export default async function RootLayout({
           />
         ) : ownershipRaw && !ownershipHtmlIsNaver(ownershipRaw) ? (
           <OwnershipRawScripts html={ownershipRaw} />
+        ) : null}
+        {googleAdsId ? (
+          <GoogleAdsBaseScripts conversionId={googleAdsId} />
         ) : null}
         {smartlog ? (
           <SmartlogBaseScripts

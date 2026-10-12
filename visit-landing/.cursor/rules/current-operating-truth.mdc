@@ -21,11 +21,13 @@ alwaysApply: true
 | 네이버 공통 PV | `소유확인코드` | WA ID만 (예: `s_388d13d3cd3e`) |
 | 네이버 방문예약 | `naverConversionScript` | `lead` 스크립트. PV/`inflow` 넣지 말 것 |
 | 네이버 검색 인증 | `naverOwnershipCode` | 서치어드바이저 meta. 광고 전환 아님 |
-| 구글 방문예약 | `googleConversionId` + `googleConversionLabel` | `/complete`. gtag HTML을 소유확인에 넣지 말 것 |
+| 구글 사이트 설치(베이스) | `googleConversionId` | 전 페이지 `gtag config`. 소유확인에 gtag HTML 넣지 말 것 |
+| 구글 방문예약 전환 | `googleConversionId` + `googleConversionLabel` | `/complete` 에서 `conversion` 이벤트 |
 | 구글 전화(보조) | `googleCallConversionLabel` | 전화용 **별도 라벨**. 없으면 비움 |
 
 - GFA 최적화는 방문예약이면 `모든 전환`뿐. 네이버에 전화 클릭(`custom`) 넣으면 입찰에 섞임. 전화는 구글 보조만.
-- `소유확인코드`의 Google gtag는 **전 페이지 베이스**일 뿐, 전환 필수 아님. 네이버 PV와 자리 충돌 시 **네이버가 우선**.
+- 네이버 `소유확인코드`(WA)와 구글 ID는 **병행** 가능. 구글 베이스는 `googleConversionId`로 깔림.
+- `소유확인코드`에 Google gtag HTML을 넣지 말 것 (네이버 WA와 자리 충돌).
 
 ## 시트 ERROR
 
