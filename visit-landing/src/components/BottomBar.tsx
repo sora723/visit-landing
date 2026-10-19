@@ -135,7 +135,7 @@ export function BottomBar() {
                 aria-label={`전화 ${config.phone}`}
               >
                 <IconPhone className="h-5 w-5 shrink-0 text-[var(--color-gold)] lg:h-6 lg:w-6 xl:h-7 xl:w-7" />
-                <span className="hidden whitespace-nowrap text-base font-semibold leading-none text-[var(--color-text)] min-[900px]:inline lg:text-xl xl:text-2xl 2xl:text-[26px]">
+                <span className="text-on-dark hidden whitespace-nowrap text-base font-semibold leading-none min-[900px]:inline lg:text-xl xl:text-2xl 2xl:text-[26px]">
                   {config.phone}
                 </span>
               </a>
@@ -151,8 +151,8 @@ export function BottomBar() {
             href={`tel:${tel}`}
             className="flex flex-1 items-center justify-center gap-1.5 border-r border-white/12 no-underline"
           >
-            <IconPhone className="h-[18px] w-[18px] text-[var(--color-text)] opacity-75" />
-            <span className="text-[15px] tracking-wide text-[var(--color-text)]">전화문의</span>
+            <IconPhone className="text-on-dark-72 h-[18px] w-[18px]" />
+            <span className="text-on-dark text-[15px] tracking-wide">전화문의</span>
           </a>
           <button
             type="button"

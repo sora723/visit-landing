@@ -20,13 +20,12 @@ export type SiteTheme = {
   /** 히어로 메인 제목 — 시트 `heroTitleColor`, 기본 #ffffff */
   heroTitleColor: string;
   /**
-   * 네이비(mainColor) 배경 위 본문·보조 글자색
-   * — 입지 본문, 실시간 현황 카드, CTA 부제, 푸터 등
-   * 시트 `textColor` — 미설정 시 #ffffff
+   * mainColor 배경 위 글자색 (입지·실시간·CTA·푸터·하단바 전화)
+   * 시트 `textColor` — 대비 부족/미설정 시 배경에 맞춰 #fff 또는 #0f1d3a 자동 보정
    */
   onDarkTextColor: string;
   /**
-   * 밝은 면 UI 글자색 (스크롤 헤더, 폼, 히어로 강조 카드, 하단 전화 등)
+   * 밝은 면 UI 글자색 (스크롤 헤더, 폼, 히어로 강조 카드 등)
    * 시트 `textColor` — 미설정 시 mainColor
    */
   textColor: string;
@@ -46,6 +45,10 @@ export const DEFAULT_SITE_THEME: SiteTheme = {
 };
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const FALLBACK_ON_LIGHT = "#0f1d3a";
+const FALLBACK_ON_DARK = "#ffffff";
+/** WCAG 대비율 하한 — 하단바·네이비 섹션 본문 가독성 */
+const MIN_CONTRAST_RATIO = 3;
 
 export function normalizeHexColor(raw: string | undefined | null): string | null {
   if (!raw) return null;
@@ -61,6 +64,53 @@ export function normalizeHexColor(raw: string | undefined | null): string | null
     return s.toLowerCase();
   }
   return null;
+}
+
+function hexToRgbParts(hex: string): [number, number, number] | null {
+  const n = normalizeHexColor(hex);
+  if (!n) return null;
+  const h = n.slice(1);
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+function relativeLuminance(hex: string): number {
+  const rgb = hexToRgbParts(hex);
+  if (!rgb) return 0;
+  const [r, g, b] = rgb.map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+function contrastRatio(a: string, b: string): number {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  const lighter = Math.max(la, lb);
+  const darker = Math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function isLightColor(hex: string): boolean {
+  return relativeLuminance(hex) > 0.55;
+}
+
+/**
+ * mainColor(네이비 바·입지 등) 위 글자색.
+ * 시트 textColor가 대비 충분하면 사용, 아니면 밝은 배경→다크 / 어두운 배경→화이트.
+ */
+export function resolveOnMainTextColor(
+  mainColor: string,
+  preferred: string | null | undefined
+): string {
+  const bg = normalizeHexColor(mainColor) ?? DEFAULT_SITE_THEME.mainColor;
+  const want = normalizeHexColor(preferred ?? null);
+  if (want && contrastRatio(bg, want) >= MIN_CONTRAST_RATIO) return want;
+  return isLightColor(bg) ? FALLBACK_ON_LIGHT : FALLBACK_ON_DARK;
 }
 
 export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
@@ -89,22 +139,11 @@ export function mergeSiteTheme(partial?: Partial<SiteTheme> | null): SiteTheme {
     heroTitleColor:
       normalizeHexColor(partial?.heroTitleColor) ??
       DEFAULT_SITE_THEME.heroTitleColor,
-    onDarkTextColor: sheetText ?? DEFAULT_SITE_THEME.onDarkTextColor,
+    onDarkTextColor: resolveOnMainTextColor(mainColor, sheetText),
     /** 이미 merge된 theme 재적용 시 textColor 유지 · 미설정 시 시트값 · 그다음 mainColor */
     textColor:
       normalizeHexColor(partial?.textColor) ?? sheetText ?? mainColor,
   };
-}
-
-function hexToRgbParts(hex: string): [number, number, number] | null {
-  const n = normalizeHexColor(hex);
-  if (!n) return null;
-  const h = n.slice(1);
-  return [
-    parseInt(h.slice(0, 2), 16),
-    parseInt(h.slice(2, 4), 16),
-    parseInt(h.slice(4, 6), 16),
-  ];
 }
 
 /** layout SSR + 클라이언트 동기 적용 */
