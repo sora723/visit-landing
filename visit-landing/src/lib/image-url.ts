@@ -8,7 +8,9 @@ export type ImageSizePreset =
   | "section"
   | "lightbox"
   | "favicon"
-  | "logo";
+  | "logo"
+  /** CTA 프로모 등 — Drive 원본 비율·너비 유지 (썸네일 w고정 없음) */
+  | "original";
 
 const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   hero: 1920,
@@ -19,7 +21,14 @@ const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   lightbox: 2560,
   favicon: 96,
   logo: 256,
+  /** 미사용 — original 은 uc export */
+  original: 0,
 };
+
+/** Drive 원본 표시용 (가로를 sz=w 로 강제하지 않음) */
+export function driveOriginalViewUrl(fileId: string): string {
+  return `https://drive.google.com/uc?export=view&id=${fileId}`;
+}
 
 const PLACEHOLDER_SVG =
   "data:image/svg+xml," +
@@ -54,6 +63,9 @@ export function normalizeImageUrl(
 
   const fileId = extractDriveFileId(trimmed);
   if (fileId) {
+    if (preset === "original") {
+      return driveOriginalViewUrl(fileId);
+    }
     return driveThumbnailUrl(fileId, DRIVE_THUMB_WIDTH[preset]);
   }
 
@@ -83,6 +95,9 @@ export function getImageFallbackUrl(
 
   const fileId = extractDriveFileId(trimmed);
   if (fileId) {
+    if (preset === "original") {
+      return driveThumbnailUrl(fileId, DRIVE_THUMB_WIDTH.lightbox);
+    }
     if (preset === "lightbox") {
       return driveThumbnailUrl(fileId, DRIVE_THUMB_WIDTH.section);
     }

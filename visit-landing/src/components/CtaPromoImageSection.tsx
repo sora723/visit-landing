@@ -27,10 +27,11 @@ export function CtaPromoImageSection() {
   if (!promo || !hasImage) return null;
 
   const bg = promo.backgroundColor ?? "white";
+  /** PC는 원본 너비 유지(900→여백, 1200→풀). 모바일은 화면 맞춤용 section 썸네일 */
   const mobileSrc = promo.imageMobile?.trim()
     ? resolveResponsiveImage(promo, true, "section")
     : "";
-  const desktopSrc = resolveResponsiveImage(promo, false, "section");
+  const desktopSrc = resolveResponsiveImage(promo, false, "original");
   const fallbackSrc = desktopSrc || mobileSrc;
 
   return (
