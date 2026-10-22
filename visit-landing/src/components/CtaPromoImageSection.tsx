@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useConfig } from "./ConfigProvider";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import {
@@ -13,6 +13,9 @@ const BG_CLASS: Record<CtaPromoImageConfig["backgroundColor"], string> = {
   white: "bg-white",
   beige: "bg-[var(--color-bg)]",
 };
+
+/** PC 섹션 풀 기준 — 이 너비 이상이면 영역(max 1200) 가로 100% */
+const PC_FULL_MIN_PX = 1200;
 
 /**
  * 홍보관 방문예약(CtaSection) 바로 아래 — 가운데 대형 이미지 1장
@@ -29,7 +32,6 @@ export function CtaPromoImageSection() {
   if (!promo || !hasImage) return null;
 
   const bg = promo.backgroundColor ?? "white";
-  /** PC: 원본 너비 유지. 모바일: section 썸네일(화면 맞춤) */
   const mobileSrc = promo.imageMobile?.trim()
     ? resolveResponsiveImage(promo, true, "section")
     : "";
@@ -42,10 +44,6 @@ export function CtaPromoImageSection() {
       id="방문예약-홍보"
       className={`scroll-mt-[var(--site-top-offset)] ${BG_CLASS[bg]}`}
     >
-      {/*
-        풀 기준 = max 1200px.
-        원본이 1200 이상 → 영역 꽉 채움 / 900처럼 작으면 원본 너비로 가운데 → 좌우 여백.
-      */}
       <div className="mx-auto flex w-full max-w-[1200px] justify-center">
         <PromoPicture
           mobileSrc={mobileSrc}
@@ -74,6 +72,9 @@ function PromoPicture({
 }) {
   const [src, setSrc] = useState(initialSrc);
   const [stage, setStage] = useState<"primary" | "thumb" | "done">("primary");
+  const [pcWidthStyle, setPcWidthStyle] = useState<string | undefined>(
+    undefined
+  );
 
   return (
     <picture>
@@ -93,9 +94,20 @@ function PromoPicture({
       <img
         src={src}
         alt=""
-        className="h-auto w-auto max-w-full object-contain"
+        className="h-auto max-w-full object-contain md:w-auto"
+        style={
+          pcWidthStyle
+            ? ({ width: pcWidthStyle } satisfies CSSProperties)
+            : undefined
+        }
         loading="lazy"
         decoding="async"
+        onLoad={(e) => {
+          const nw = e.currentTarget.naturalWidth;
+          if (!nw) return;
+          // PC: 1200+ → 컨테이너 풀 / 그 미만 → 실제 픽셀 너비(여백)
+          setPcWidthStyle(nw >= PC_FULL_MIN_PX ? "100%" : `${nw}px`);
+        }}
         onError={() => {
           if (stage === "primary") {
             const next =
@@ -104,11 +116,13 @@ function PromoPicture({
               normalizeImageUrl(initialSrc, "lightbox");
             setSrc(next);
             setStage("thumb");
+            setPcWidthStyle(undefined);
             return;
           }
           if (stage === "thumb") {
             setSrc(getImageFallbackUrl(initialSrc, "lightbox"));
             setStage("done");
+            setPcWidthStyle(undefined);
           }
         }}
       />

@@ -26,11 +26,12 @@ const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
 };
 
 /**
- * Drive 원본에 가까운 표시 URL.
- * uc?export=view 는 바이러스검사·쿼터로 잠시 후 깨지는 경우가 많아 lh3 사용.
+ * Drive 고해상도 표시 URL (가로 최대 2400).
+ * 사이즈 없는 lh3/d/ID 는 기본이 작아 PC 1200 풀이 안 나오는 경우가 많음.
+ * uc?export=view 는 바이러스검사·쿼터로 깨지기 쉬워 사용하지 않음.
  */
 export function driveOriginalViewUrl(fileId: string): string {
-  return `https://lh3.googleusercontent.com/d/${fileId}`;
+  return `https://lh3.googleusercontent.com/d/${fileId}=w2400`;
 }
 
 const PLACEHOLDER_SVG =
