@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useConfig } from "./ConfigProvider";
+import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import {
   MOBILE_BREAKPOINT,
   resolveResponsiveImage,
@@ -27,12 +29,13 @@ export function CtaPromoImageSection() {
   if (!promo || !hasImage) return null;
 
   const bg = promo.backgroundColor ?? "white";
-  /** PC는 원본 너비 유지(900→여백, 1200→풀). 모바일은 화면 맞춤용 section 썸네일 */
+  /** PC: 원본 너비 유지. 모바일: section 썸네일(화면 맞춤) */
   const mobileSrc = promo.imageMobile?.trim()
     ? resolveResponsiveImage(promo, true, "section")
     : "";
   const desktopSrc = resolveResponsiveImage(promo, false, "original");
-  const fallbackSrc = desktopSrc || mobileSrc;
+  const desktopFallback = resolveResponsiveImage(promo, false, "lightbox");
+  const initialSrc = desktopSrc || mobileSrc;
 
   return (
     <section
@@ -42,32 +45,73 @@ export function CtaPromoImageSection() {
       {/*
         풀 기준 = max 1200px.
         원본이 1200 이상 → 영역 꽉 채움 / 900처럼 작으면 원본 너비로 가운데 → 좌우 여백.
-        (화면이 이미지보다 좁으면 max-w-full 로만 축소)
       */}
       <div className="mx-auto flex w-full max-w-[1200px] justify-center">
-        <picture>
-          {mobileSrc ? (
-            <source
-              media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
-              srcSet={mobileSrc}
-            />
-          ) : null}
-          {promo.imagePc?.trim() ? (
-            <source
-              media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
-              srcSet={desktopSrc}
-            />
-          ) : null}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={fallbackSrc}
-            alt=""
-            className="h-auto w-auto max-w-full object-contain"
-            loading="lazy"
-            decoding="async"
-          />
-        </picture>
+        <PromoPicture
+          mobileSrc={mobileSrc}
+          desktopSrc={desktopSrc}
+          desktopFallback={desktopFallback}
+          initialSrc={initialSrc}
+          hasPc={!!promo.imagePc?.trim()}
+        />
       </div>
     </section>
+  );
+}
+
+function PromoPicture({
+  mobileSrc,
+  desktopSrc,
+  desktopFallback,
+  initialSrc,
+  hasPc,
+}: {
+  mobileSrc: string;
+  desktopSrc: string;
+  desktopFallback: string;
+  initialSrc: string;
+  hasPc: boolean;
+}) {
+  const [src, setSrc] = useState(initialSrc);
+  const [stage, setStage] = useState<"primary" | "thumb" | "done">("primary");
+
+  return (
+    <picture>
+      {mobileSrc ? (
+        <source
+          media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
+          srcSet={mobileSrc}
+        />
+      ) : null}
+      {hasPc && desktopSrc ? (
+        <source
+          media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
+          srcSet={stage === "primary" ? desktopSrc : desktopFallback}
+        />
+      ) : null}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        className="h-auto w-auto max-w-full object-contain"
+        loading="lazy"
+        decoding="async"
+        onError={() => {
+          if (stage === "primary") {
+            const next =
+              desktopFallback ||
+              getImageFallbackUrl(initialSrc, "original") ||
+              normalizeImageUrl(initialSrc, "lightbox");
+            setSrc(next);
+            setStage("thumb");
+            return;
+          }
+          if (stage === "thumb") {
+            setSrc(getImageFallbackUrl(initialSrc, "lightbox"));
+            setStage("done");
+          }
+        }}
+      />
+    </picture>
   );
 }

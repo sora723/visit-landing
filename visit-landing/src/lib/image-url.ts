@@ -25,9 +25,12 @@ const DRIVE_THUMB_WIDTH: Record<ImageSizePreset, number> = {
   original: 0,
 };
 
-/** Drive 원본 표시용 (가로를 sz=w 로 강제하지 않음) */
+/**
+ * Drive 원본에 가까운 표시 URL.
+ * uc?export=view 는 바이러스검사·쿼터로 잠시 후 깨지는 경우가 많아 lh3 사용.
+ */
 export function driveOriginalViewUrl(fileId: string): string {
-  return `https://drive.google.com/uc?export=view&id=${fileId}`;
+  return `https://lh3.googleusercontent.com/d/${fileId}`;
 }
 
 const PLACEHOLDER_SVG =
