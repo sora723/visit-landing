@@ -38,31 +38,34 @@ export function CtaPromoImageSection() {
       id="방문예약-홍보"
       className={`scroll-mt-[var(--site-top-offset)] ${BG_CLASS[bg]}`}
     >
-      <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 sm:py-14 md:py-16">
-        <div className="flex justify-center">
-          <picture>
-            {mobileSrc ? (
-              <source
-                media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
-                srcSet={mobileSrc}
-              />
-            ) : null}
-            {promo.imagePc?.trim() ? (
-              <source
-                media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
-                srcSet={desktopSrc}
-              />
-            ) : null}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={fallbackSrc}
-              alt=""
-              className="h-auto w-full max-w-[960px] object-contain"
-              loading="lazy"
-              decoding="async"
+      {/*
+        풀 기준 = max 1200px.
+        원본이 1200 이상 → 영역 꽉 채움 / 900처럼 작으면 원본 너비로 가운데 → 좌우 여백.
+        (화면이 이미지보다 좁으면 max-w-full 로만 축소)
+      */}
+      <div className="mx-auto flex w-full max-w-[1200px] justify-center">
+        <picture>
+          {mobileSrc ? (
+            <source
+              media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
+              srcSet={mobileSrc}
             />
-          </picture>
-        </div>
+          ) : null}
+          {promo.imagePc?.trim() ? (
+            <source
+              media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
+              srcSet={desktopSrc}
+            />
+          ) : null}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fallbackSrc}
+            alt=""
+            className="h-auto w-auto max-w-full object-contain"
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
       </div>
     </section>
   );
