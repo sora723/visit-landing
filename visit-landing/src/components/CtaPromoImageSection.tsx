@@ -83,7 +83,7 @@ function PromoPicture({
     <div
       className={
         pcNotFull
-          ? "flex w-full justify-center py-6 sm:py-8 md:py-10"
+          ? "flex w-full justify-center md:py-8 lg:py-10"
           : "flex w-full justify-center"
       }
     >
