@@ -75,57 +75,68 @@ function PromoPicture({
   const [pcWidthStyle, setPcWidthStyle] = useState<string | undefined>(
     undefined
   );
+  /** PC에서 가로 풀이 아니면 좌우 여백과 맞춰 상·하에도 여백 */
+  const pcNotFull =
+    typeof pcWidthStyle === "string" && pcWidthStyle !== "100%";
 
   return (
-    <picture>
-      {mobileSrc ? (
-        <source
-          media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
-          srcSet={mobileSrc}
-        />
-      ) : null}
-      {hasPc && desktopSrc ? (
-        <source
-          media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
-          srcSet={stage === "primary" ? desktopSrc : desktopFallback}
-        />
-      ) : null}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        className="h-auto max-w-full object-contain md:w-auto"
-        style={
-          pcWidthStyle
-            ? ({ width: pcWidthStyle } satisfies CSSProperties)
-            : undefined
-        }
-        loading="lazy"
-        decoding="async"
-        onLoad={(e) => {
-          const nw = e.currentTarget.naturalWidth;
-          if (!nw) return;
-          // PC: 1200+ → 컨테이너 풀 / 그 미만 → 실제 픽셀 너비(여백)
-          setPcWidthStyle(nw >= PC_FULL_MIN_PX ? "100%" : `${nw}px`);
-        }}
-        onError={() => {
-          if (stage === "primary") {
-            const next =
-              desktopFallback ||
-              getImageFallbackUrl(initialSrc, "original") ||
-              normalizeImageUrl(initialSrc, "lightbox");
-            setSrc(next);
-            setStage("thumb");
-            setPcWidthStyle(undefined);
-            return;
+    <div
+      className={
+        pcNotFull
+          ? "flex w-full justify-center py-6 sm:py-8 md:py-10"
+          : "flex w-full justify-center"
+      }
+    >
+      <picture>
+        {mobileSrc ? (
+          <source
+            media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
+            srcSet={mobileSrc}
+          />
+        ) : null}
+        {hasPc && desktopSrc ? (
+          <source
+            media={`(min-width: ${MOBILE_BREAKPOINT + 1}px)`}
+            srcSet={stage === "primary" ? desktopSrc : desktopFallback}
+          />
+        ) : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          className="h-auto max-w-full object-contain md:w-auto"
+          style={
+            pcWidthStyle
+              ? ({ width: pcWidthStyle } satisfies CSSProperties)
+              : undefined
           }
-          if (stage === "thumb") {
-            setSrc(getImageFallbackUrl(initialSrc, "lightbox"));
-            setStage("done");
-            setPcWidthStyle(undefined);
-          }
-        }}
-      />
-    </picture>
+          loading="lazy"
+          decoding="async"
+          onLoad={(e) => {
+            const nw = e.currentTarget.naturalWidth;
+            if (!nw) return;
+            // PC: 1200+ → 컨테이너 풀 / 그 미만 → 실제 픽셀 너비(여백)
+            setPcWidthStyle(nw >= PC_FULL_MIN_PX ? "100%" : `${nw}px`);
+          }}
+          onError={() => {
+            if (stage === "primary") {
+              const next =
+                desktopFallback ||
+                getImageFallbackUrl(initialSrc, "original") ||
+                normalizeImageUrl(initialSrc, "lightbox");
+              setSrc(next);
+              setStage("thumb");
+              setPcWidthStyle(undefined);
+              return;
+            }
+            if (stage === "thumb") {
+              setSrc(getImageFallbackUrl(initialSrc, "lightbox"));
+              setStage("done");
+              setPcWidthStyle(undefined);
+            }
+          }}
+        />
+      </picture>
+    </div>
   );
 }
