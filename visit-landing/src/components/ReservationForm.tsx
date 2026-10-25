@@ -78,7 +78,11 @@ export function ReservationForm({
       return;
     }
     let normalizedBirth = "";
-    if (showBirthDate && birthDate.trim()) {
+    if (showBirthDate) {
+      if (!birthDate.trim()) {
+        setError("생년월일을 입력해주세요.");
+        return;
+      }
       const parsed = normalizeBirthDate(birthDate);
       if (!parsed.ok) {
         setError(parsed.error);
@@ -167,6 +171,30 @@ export function ReservationForm({
             compact
           />
         )}
+        {showBirthDate && (
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="생년월일*"
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+            required
+            className="h-9 w-[7.5rem] shrink-0 rounded border border-[var(--color-text)]/35 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[8rem] md:px-2 lg:w-[8.5rem] lg:text-[13px] xl:w-[9rem]"
+            aria-label="생년월일"
+          />
+        )}
+        {showRegion && (
+          <ScrollableSelect
+            value={region}
+            onChange={setRegion}
+            options={regionOptions}
+            placeholder="지역(선택)"
+            className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
+            listMaxHeight={180}
+            dropUp
+            compact
+          />
+        )}
         {showVisitDate && (
           <ScrollableSelect
             value={visitDate}
@@ -188,29 +216,6 @@ export function ReservationForm({
             onChange={setVisitTime}
             options={visitTimes}
             placeholder="방문시간(선택)"
-            className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
-            listMaxHeight={180}
-            dropUp
-            compact
-          />
-        )}
-        {showBirthDate && (
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="생년월일(선택)"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            className="h-9 w-[7.5rem] shrink-0 rounded border border-[var(--color-text)]/35 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[8rem] md:px-2 lg:w-[8.5rem] lg:text-[13px] xl:w-[9rem]"
-            aria-label="생년월일"
-          />
-        )}
-        {showRegion && (
-          <ScrollableSelect
-            value={region}
-            onChange={setRegion}
-            options={regionOptions}
-            placeholder="지역(선택)"
             className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
             listMaxHeight={180}
             dropUp
@@ -298,6 +303,39 @@ export function ReservationForm({
             />
           </div>
         )}
+        {showBirthDate && (
+          <div>
+            <label className={labelBase}>
+              생년월일 <span className="text-[var(--color-gold)]">*</span>
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="예: 930326, 90-00-00"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className={inputClass}
+              required
+              aria-label="생년월일"
+            />
+          </div>
+        )}
+        {showRegion && (
+          <div>
+            <label className={labelBase}>
+              지역 <span className="font-normal text-[#b0a898]">(선택)</span>
+            </label>
+            <ScrollableSelect
+              value={region}
+              onChange={setRegion}
+              options={regionOptions}
+              placeholder="시 선택"
+              className="w-full"
+              listMaxHeight={200}
+              dropUp={variant === "sheet"}
+            />
+          </div>
+        )}
         {showVisitDate && (
           <div>
             <label className={labelBase}>
@@ -324,38 +362,6 @@ export function ReservationForm({
               onChange={setVisitTime}
               options={visitTimes}
               placeholder="시간 선택"
-              className="w-full"
-              listMaxHeight={200}
-              dropUp={variant === "sheet"}
-            />
-          </div>
-        )}
-        {showBirthDate && (
-          <div>
-            <label className={labelBase}>
-              생년월일 <span className="font-normal text-[#b0a898]">(선택)</span>
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="예: 930326, 90-00-00"
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              className={inputClass}
-              aria-label="생년월일"
-            />
-          </div>
-        )}
-        {showRegion && (
-          <div>
-            <label className={labelBase}>
-              지역 <span className="font-normal text-[#b0a898]">(선택)</span>
-            </label>
-            <ScrollableSelect
-              value={region}
-              onChange={setRegion}
-              options={regionOptions}
-              placeholder="시 선택"
               className="w-full"
               listMaxHeight={200}
               dropUp={variant === "sheet"}

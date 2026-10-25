@@ -258,7 +258,14 @@ function prepareSubmitContext_(params) {
   }
 
   var formType = getField_(siteRow, '폼타입') || 'simple';
-  var validated = validateSubmitParams_(params, formType);
+  var contentRow = findContentBySiteCode_(siteCode);
+  var ext = contentRow ? parseExtendedData_(contentRow) : null;
+  var requireBirthDate = contentRow
+    ? getBirthDateEnabledFromContentRow_(contentRow, ext) === true
+    : false;
+  var validated = validateSubmitParams_(params, formType, {
+    requireBirthDate: requireBirthDate
+  });
 
   return {
     siteCode: siteCode,
@@ -269,8 +276,10 @@ function prepareSubmitContext_(params) {
 
 /**
  * simple / full 폼 필드 검증
+ * options.requireBirthDate — 콘텐츠관리 birthDateEnabled=Y 이면 필수
  */
-function validateSubmitParams_(params, formType) {
+function validateSubmitParams_(params, formType, options) {
+  var opts = options || {};
   var name = String(params.name || '').trim();
   var phone = normalizeMobilePhone_(params.phone);
   var privacyAgreed = (
@@ -290,6 +299,9 @@ function validateSubmitParams_(params, formType) {
   }
 
   var birthRaw = String(params.birthDate || params['생년월일'] || '').trim();
+  if (opts.requireBirthDate === true && !birthRaw) {
+    throw createAppError_('VALIDATION_ERROR', '생년월일을 입력해주세요');
+  }
   var birthParsed = normalizeBirthDate_(birthRaw);
   if (!birthParsed.ok) {
     throw createAppError_('VALIDATION_ERROR', birthParsed.error);
