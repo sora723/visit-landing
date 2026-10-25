@@ -261,6 +261,30 @@ function getNotifyPhoneFromRow_(row) {
   );
 }
 
+/** 현장별 Solapi 알림톡 템플릿 — 비우면 Script Properties 공통값 */
+function getSolapiTemplateIdFromRow_(row) {
+  return String(
+    getSiteField_(row, [
+      'solapiTemplateId',
+      '솔라피템플릿ID',
+      '알림톡템플릿ID',
+      'kakaoTemplateId'
+    ]) || ''
+  ).trim();
+}
+
+/** 현장별 카카오 채널 PF — 비우면 Script Properties SOLAPI_PF_ID */
+function getSolapiPfIdFromRow_(row) {
+  return String(
+    getSiteField_(row, [
+      'solapiPfId',
+      '솔라피채널ID',
+      '카카오채널PFID',
+      'kakaoPfId'
+    ]) || ''
+  ).trim();
+}
+
 function getSubmissionSpreadsheetId_(row) {
   return getSiteField_(row, ['submissionSpreadsheetId', '접수스프레드시트ID']);
 }
@@ -475,7 +499,9 @@ function isDateHeader_(header) {
     h === '예약날짜' ||
     h === 'visitDate' ||
     h === '방문일자' ||
-    h === '방문날짜'
+    h === '방문날짜' ||
+    h === 'birthDate' ||
+    h === '생년월일'
   );
 }
 
@@ -540,7 +566,9 @@ function sanitizeNotificationPayloadForLog_(payload) {
     customerPhone: payload.customerPhone || '',
     consultType: payload.consultType || '',
     reserveDisplay: payload.reserveDisplay || '',
-    isTest: payload.isTest === true
+    isTest: payload.isTest === true,
+    solapiTemplateId: payload.solapiTemplateId || '',
+    solapiPfId: payload.solapiPfId || ''
   };
 }
 

@@ -200,6 +200,8 @@ function buildVerificationLogRow_(ctx) {
     '정규화연락처': data.phone || '',
     '관심타입': data.consultType || '',
     '방문예약일시': reserveDisplay,
+    '생년월일': data.birthDate || '',
+    '지역': data.region || '',
     'NaPm': String(params.napm || params.NaPm || '').trim(),
     'utm_source': String(params.utmSource || params.utm_source || '').trim(),
     'utm_medium': String(params.utmMedium || params.utm_medium || '').trim(),

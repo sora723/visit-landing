@@ -247,6 +247,59 @@ function resolveVisitTimeEnabledFromSheet(
   return false;
 }
 
+function resolveBirthDateEnabledFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): boolean {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const raw = [row.birthDateEnabled, row["생년월일노출"]]
+    .map((v) => (v === undefined || v === null ? "" : v))
+    .find((v) => String(v).trim() !== "");
+  if (raw !== undefined && String(raw).trim() !== "") {
+    return parseBool(raw as string | boolean, false);
+  }
+  if (ext.reservationForm?.birthDateEnabled !== undefined) {
+    return parseBool(ext.reservationForm.birthDateEnabled, false);
+  }
+  return false;
+}
+
+function resolveRegionEnabledFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): boolean {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const raw = [row.regionEnabled, row["지역노출"]]
+    .map((v) => (v === undefined || v === null ? "" : v))
+    .find((v) => String(v).trim() !== "");
+  if (raw !== undefined && String(raw).trim() !== "") {
+    return parseBool(raw as string | boolean, false);
+  }
+  if (ext.reservationForm?.regionEnabled !== undefined) {
+    return parseBool(ext.reservationForm.regionEnabled, false);
+  }
+  return false;
+}
+
+function resolveRegionOptionsFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): string[] | undefined {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const fromRow = parsePipeList(
+    [row.regionOptions, row["지역옵션"]]
+      .map((v) => String(v ?? "").trim())
+      .find(Boolean)
+  );
+  if (fromRow.length) return fromRow;
+  const fromExt = ext.reservationForm?.regionOptions;
+  if (Array.isArray(fromExt) && fromExt.length) return fromExt.map(String);
+  if (typeof fromExt === "string" && fromExt.trim()) {
+    return parsePipeList(fromExt);
+  }
+  return undefined;
+}
+
 function resolvePopupReservationEnabledFromSheet(
   content: ContentManagementRow,
   ext: ContentExtendedData
@@ -477,6 +530,9 @@ export function buildSiteConfigFromSheet(
       unitTypeEnabled: resolveUnitTypeEnabledFromSheet(content, ext),
       visitDateEnabled: resolveVisitDateEnabledFromSheet(content, ext),
       visitTimeEnabled: resolveVisitTimeEnabledFromSheet(content, ext),
+      birthDateEnabled: resolveBirthDateEnabledFromSheet(content, ext),
+      regionEnabled: resolveRegionEnabledFromSheet(content, ext),
+      regionOptions: resolveRegionOptionsFromSheet(content, ext),
     },
   };
 }

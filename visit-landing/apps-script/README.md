@@ -54,7 +54,8 @@ testVisitLandingSubmit()
 | SOLAPI_API_SECRET | API Secret |
 | SOLAPI_SENDER_PHONE | 발신번호 |
 | SOLAPI_PF_ID | 카카오 채널 PF ID |
-| SOLAPI_TEMPLATE_ID_SUBMISSION | 접수 알림톡 템플릿 ID (`config/notification.json` 참고) |
+| SOLAPI_TEMPLATE_ID_SUBMISSION | 접수 알림톡 템플릿 ID (공통). 현장별은 현장관리 `solapiTemplateId` (비우면 공통) |
+| SOLAPI_PF_ID | 카카오 채널 PF (공통). 현장별은 `solapiPfId` (비우면 공통) |
 | FORM_TOKEN_HMAC_SECRET | form_token Netlify 로컬 발급용 HMAC 비밀 (Netlify env 동일, 32자+) |
 
 **콘텐츠관리 컬럼 (현장별 예약 폼)**

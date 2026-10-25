@@ -12,6 +12,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
   '현장관리': [
     'siteCode', 'siteName', 'domain', 'submissionSpreadsheetId', 'submissionSpreadsheetName', 'submissionSheetName',
     'phone', 'managerName', 'managerPhone', 'notifyPhone',
+    'solapiTemplateId', 'solapiPfId',
     'popupEnabled', 'liveStatusEnabled', 'virtualReservationEnabled',
     'duplicateBlockMinutes', 'isActive',
     'metaPixelId', 'metaConversionEvent',
@@ -30,7 +31,9 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'locationData', 'futureData', 'layoutData', 'communityData',
     'floatingTodayReservations', 'floatingActiveConsultations', 'stickyPromoText', 'noticeText',
     'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
-    'unitTypeEnabled', 'visitDateEnabled', 'visitTimeEnabled', 'popupReservationEnabled',
+    'unitTypeEnabled', 'visitDateEnabled', 'visitTimeEnabled',
+    'birthDateEnabled', 'regionEnabled', 'regionOptions',
+    'popupReservationEnabled',
     'mainColor', 'subColor', 'accentColor',
     'liveStatusTitleColor', 'ctaSectionTitleColor', 'sectionTitleColor',
     'locationTitleColor', 'textColor', 'onDarkTextColor', 'heroTitleColor',
@@ -38,6 +41,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
   ],
   '접수관리': [
     'id', 'siteCode', 'createdAt', 'name', 'phone',
+    'birthDate', 'region',
     'utmSource', 'utmMedium', 'utmCampaign',
     'referer', 'device', 'ip', 'status', 'memo', 'validationStatus', '검증상태'
   ],
@@ -104,6 +108,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('stickyPromoText', ensureStickyPromoTextColumn);
   runEnsureStep_('noticeText', ensureNoticeTextColumn);
   runEnsureStep_('reservationForm', ensureReservationFormColumns);
+  runEnsureStep_('submissionBirthRegion', ensureSubmissionBirthRegionColumns);
   runEnsureStep_('siteTheme', ensureSiteThemeColumns);
   runEnsureStep_('heroImage', ensureHeroImageColumns);
   runEnsureStep_('ctaPromoImage', ensureCtaPromoImageColumns);
@@ -111,6 +116,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('popupImages', ensurePopupImageColumns);
   runEnsureStep_('footer', ensureFooterDataColumn);
   runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);
+  runEnsureStep_('solapiNotification', ensureSolapiNotificationColumns);
   runEnsureStep_('ipBlockSheet', ensureIpBlockSheet_);
   return runVisitLandingSetupVerify();
 }

@@ -266,6 +266,11 @@ export function buildSiteConfigFromApi(
       unitTypeEnabled: api.unitTypeEnabled,
       visitDateEnabled: api.visitDateEnabled,
       visitTimeEnabled: api.visitTimeEnabled,
+      birthDateEnabled: api.birthDateEnabled === true,
+      regionEnabled: api.regionEnabled === true,
+      regionOptions: api.regionOptions?.length
+        ? api.regionOptions
+        : fallback.reservationForm?.regionOptions,
     },
   };
 }

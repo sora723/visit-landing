@@ -128,6 +128,7 @@ function onOpen() {
     .addItem('메뉴 새로고침 (시트 닫았다 열기)', 'runVisitLandingMenuHint')
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
+    .addItem('솔라피 템플릿 컬럼 추가 (solapiTemplateId)', 'runEnsureSolapiNotificationColumns')
     .addItem('IP 차단 시트 추가 (_IP차단)', 'runEnsureIpBlockSheet')
     .addItem('누락 접수 재검열 및 복구 (알림+접수관리)', 'runReprocessMissedSubmissions')
     .addItem('(레거시) 알림 큐 잔여 발송', 'runFlushNotificationQueue')

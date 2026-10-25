@@ -289,6 +289,12 @@ function validateSubmitParams_(params, formType) {
     throw createAppError_('VALIDATION_ERROR', '개인정보 수집 및 이용에 동의해주세요');
   }
 
+  var birthRaw = String(params.birthDate || params['생년월일'] || '').trim();
+  var birthParsed = normalizeBirthDate_(birthRaw);
+  if (!birthParsed.ok) {
+    throw createAppError_('VALIDATION_ERROR', birthParsed.error);
+  }
+
   var result = {
     name: name,
     phone: phone,
@@ -296,6 +302,8 @@ function validateSubmitParams_(params, formType) {
     consultType: String(params.unitType || params.consultType || '').trim(),
     reserveDate: String(params.visitDate || params.reserveDate || '').trim(),
     reserveTime: String(params.visitTime || params.reserveTime || '').trim(),
+    birthDate: birthParsed.value,
+    region: String(params.region || params['지역'] || '').trim(),
     inquiry: String(params.inquiry || params.source || '').trim(),
     utmSource: String(params.utmSource || params.utm_source || '').trim(),
     utmMedium: String(params.utmMedium || params.utm_medium || '').trim(),
@@ -396,6 +404,10 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
     '상담유형': consultType,
     '예약날짜': data.reserveDate,
     '예약시간': data.reserveTime,
+    'birthDate': data.birthDate || '',
+    '생년월일': data.birthDate || '',
+    'region': data.region || '',
+    '지역': data.region || '',
     '기타문의': data.inquiry,
     'utm_source': data.utmSource,
     'utm_medium': data.utmMedium,
@@ -497,6 +509,8 @@ function notifyManagerOnSubmission_(siteRow, submission, rawParams) {
       inquiry: submission.inquiry || '',
       consultType: submission.consultType || '관심등록',
       reserveDisplay: reserveDisplay,
+      birthDate: submission.birthDate || '',
+      region: submission.region || '',
       trafficSource: trafficSource,
       submittedAt: new Date()
     }

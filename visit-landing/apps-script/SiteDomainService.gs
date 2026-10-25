@@ -84,6 +84,13 @@ function ensureSiteManagementSchemaColumns_() {
   } catch (err) {
     Logger.log('[ensureSiteManagementSchemaColumns_] ' + (err.message || err));
   }
+  try {
+    ensureSolapiNotificationColumns();
+  } catch (err) {
+    Logger.log(
+      '[ensureSiteManagementSchemaColumns_] solapi: ' + (err.message || err)
+    );
+  }
 }
 
 /** hostname → siteCode (www 자동 포함) */

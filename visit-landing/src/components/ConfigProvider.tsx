@@ -146,6 +146,8 @@ export function ConfigProvider({
             unitType: input.unitType,
             visitDate: input.visitDate,
             visitTime: input.visitTime,
+            birthDate: input.birthDate,
+            region: input.region,
             source: input.source,
             company: input.company,
             formToken: input.formToken,

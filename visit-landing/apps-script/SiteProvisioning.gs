@@ -15,9 +15,51 @@
 
 var SITE_SUBMISSION_HEADERS = [
   'id', 'siteCode', 'createdAt', 'name', 'phone',
+  'birthDate', 'region',
   'utmSource', 'utmMedium', 'utmCampaign',
   'referer', 'device', 'ip', 'status', 'memo'
 ];
+
+/**
+ * 마스터 접수관리에 birthDate·region 컬럼 없으면 추가
+ * (한글 헤더 생년월일/지역만 있어도 OK)
+ */
+function ensureSubmissionBirthRegionColumns() {
+  var sheet = getSheet_(SHEET_NAMES.SUBMISSION);
+  var map = getHeaderIndexMap_(sheet);
+  var added = [];
+
+  var hasBirth =
+    map.birthDate !== undefined || map['생년월일'] !== undefined;
+  var hasRegion =
+    map.region !== undefined || map['지역'] !== undefined;
+
+  if (!hasBirth) {
+    var lastCol = Math.max(sheet.getLastColumn(), 1);
+    sheet.insertColumnAfter(lastCol);
+    sheet.getRange(1, lastCol + 1).setValue('birthDate');
+    added.push('birthDate');
+    map = getHeaderIndexMap_(sheet);
+  }
+  if (!hasRegion) {
+    var lastCol2 = Math.max(sheet.getLastColumn(), 1);
+    sheet.insertColumnAfter(lastCol2);
+    sheet.getRange(1, lastCol2 + 1).setValue('region');
+    added.push('region');
+  }
+
+  if (added.length) {
+    writeLog_('COLUMN_ADD', '', '접수관리.' + added.join(',') + ' 컬럼 추가');
+  }
+
+  return {
+    ok: true,
+    added: added.length > 0,
+    message: added.length
+      ? '접수관리 컬럼 추가: ' + added.join(', ')
+      : '접수관리 birthDate·region 이미 존재'
+  };
+}
 
 function provisionSiteSpreadsheet(siteCode) {
   var code = String(siteCode || '').trim();
@@ -143,6 +185,35 @@ function sanitizeSiteNameForSpreadsheet_(siteName) {
     return '현장';
   }
   return name;
+}
+
+/**
+ * 현장관리 — 현장별 Solapi 알림톡 템플릿/채널 (notifyPhone 뒤)
+ * 비우면 Script Properties 공통값 사용
+ */
+function ensureSolapiNotificationColumns() {
+  return ensureSheetColumnsAfter_(
+    SHEET_NAMES.SITE,
+    ['notifyPhone', 'notificationPhone', '알림수신번호', 'managerPhone', '담당자번호'],
+    ['solapiTemplateId', 'solapiPfId']
+  );
+}
+
+/** Apps Script 편집기 — 솔라피 템플릿 컬럼만 추가 */
+function runEnsureSolapiNotificationColumns() {
+  try {
+    var ss = getSpreadsheet_();
+    Logger.log('Spreadsheet: ' + ss.getName() + ' (' + ss.getId() + ')');
+    var result = ensureSolapiNotificationColumns();
+    Logger.log(result.message);
+    try {
+      SpreadsheetApp.getUi().alert(result.message);
+    } catch (e) {}
+    return result;
+  } catch (err) {
+    Logger.log('FAIL: ' + (err.message || err));
+    throw err;
+  }
 }
 
 /** 현장관리 — 전환 추적 + 소유 확인 컬럼 (isActive 뒤) */

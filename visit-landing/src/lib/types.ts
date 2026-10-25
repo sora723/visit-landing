@@ -197,6 +197,12 @@ export interface SiteConfig {
     visitDateEnabled?: boolean;
     /** true면 방문예약 시간 필드 노출 (기본 숨김) */
     visitTimeEnabled?: boolean;
+    /** true면 생년월일 필드 노출 (기본 숨김) */
+    birthDateEnabled?: boolean;
+    /** true면 지역 필드 노출 (기본 숨김) */
+    regionEnabled?: boolean;
+    /** 비우면 시 단위 기본 목록 */
+    regionOptions?: string[];
   };
 }
 
@@ -242,6 +248,9 @@ export interface SubmitPayload {
   unitType?: string;
   visitDate?: string;
   visitTime?: string;
+  /** 정규화 YYYY-MM-DD (월·일 00 가능) */
+  birthDate?: string;
+  region?: string;
   source?: string;
   sourceUrl?: string;
   referer?: string;
@@ -274,6 +283,8 @@ export interface ReservationSubmitInput {
   unitType?: string;
   visitDate?: string;
   visitTime?: string;
+  birthDate?: string;
+  region?: string;
   source?: string;
   company?: string;
   formToken?: string;

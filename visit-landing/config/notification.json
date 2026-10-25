@@ -1,6 +1,7 @@
 {
   "solapi": {
     "templateIdSubmission": "KA01TP260613134907956SKHD1kZne8B",
+    "note": "현장별 오버라이드: 현장관리 solapiTemplateId (비우면 위 공통). 채널 다르면 solapiPfId도.",
     "variables": {
       "#{현장명}": "siteName",
       "#{이름}": "customerName",

@@ -11,6 +11,7 @@ import {
   savePendingSubmission,
   type PendingSubmissionRecord,
 } from "@/lib/pending-submission-store";
+import { normalizeBirthDate } from "@/lib/birth-date";
 import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
 import {
   flushPendingSubmissions,
@@ -192,6 +193,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const birthRaw = String(body.birthDate ?? "").trim();
+  let birthDate = "";
+  if (birthRaw) {
+    const birthParsed = normalizeBirthDate(birthRaw);
+    if (!birthParsed.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: birthParsed.error,
+          },
+        },
+        { status: 400, headers: NO_STORE }
+      );
+    }
+    birthDate = birthParsed.value;
+  }
+
   const clientIp = getClientIp(request);
   const submissionId = randomUUID();
   const submittedAt = new Date().toISOString();
@@ -210,6 +231,8 @@ export async function POST(request: NextRequest) {
     unitType: body.unitType ?? "",
     visitDate: body.visitDate ?? "",
     visitTime: body.visitTime ?? "",
+    birthDate,
+    region: String(body.region ?? "").trim(),
     source: body.source ?? "",
     sourceUrl: body.sourceUrl ?? body.landingUrl ?? "",
     landingUrl: body.landingUrl ?? body.sourceUrl ?? "",

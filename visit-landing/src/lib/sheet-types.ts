@@ -103,6 +103,12 @@ export interface ContentManagementRow {
   visitDateEnabled?: boolean | string;
   /** Y/N — 방문예약 시간 필드 노출 (기본 N) */
   visitTimeEnabled?: boolean | string;
+  /** Y/N — 생년월일 필드 노출 (기본 N) */
+  birthDateEnabled?: boolean | string;
+  /** Y/N — 지역 필드 노출 (기본 N) */
+  regionEnabled?: boolean | string;
+  /** 지역 드롭다운 — 비우면 시 단위 기본 목록 */
+  regionOptions?: string;
   /** Y/N — 팝업 내 방문예약 폼 노출 (기본 Y, N이면 이벤트 이미지만) */
   popupReservationEnabled?: boolean | string;
   /** CtaSection 아래 대형 홍보 이미지 URL */
@@ -203,6 +209,9 @@ export interface ContentExtendedData {
     unitTypeEnabled?: boolean;
     visitDateEnabled?: boolean;
     visitTimeEnabled?: boolean;
+    birthDateEnabled?: boolean;
+    regionEnabled?: boolean;
+    regionOptions?: string[] | string;
   };
   settings?: {
     popupReservationEnabled?: boolean;

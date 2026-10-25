@@ -34,6 +34,9 @@ export type SiteConfigApiData = {
   unitTypeEnabled: boolean;
   visitDateEnabled: boolean;
   visitTimeEnabled: boolean;
+  birthDateEnabled?: boolean;
+  regionEnabled?: boolean;
+  regionOptions?: string[];
   mainColor?: string;
   subColor?: string;
   accentColor?: string;
@@ -397,6 +400,9 @@ export function parseSiteConfigApiResponse(
     unitTypeEnabled: data.unitTypeEnabled !== false,
     visitDateEnabled: data.visitDateEnabled !== false,
     visitTimeEnabled: data.visitTimeEnabled === true,
+    birthDateEnabled: data.birthDateEnabled === true,
+    regionEnabled: data.regionEnabled === true,
+    regionOptions: parseStringArray(data.regionOptions),
     mainColor: optionalString(data.mainColor),
     subColor: optionalString(data.subColor),
     accentColor: optionalString(data.accentColor),

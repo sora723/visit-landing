@@ -62,6 +62,21 @@ var VISIT_TIME_ENABLED_ALIASES = [
   '방문예약시간노출'
 ];
 
+var BIRTH_DATE_ENABLED_ALIASES = [
+  'birthDateEnabled',
+  '생년월일노출'
+];
+
+var REGION_ENABLED_ALIASES = [
+  'regionEnabled',
+  '지역노출'
+];
+
+var REGION_OPTIONS_ALIASES = [
+  'regionOptions',
+  '지역옵션'
+];
+
 var POPUP_RESERVATION_ENABLED_ALIASES = [
   'popupReservationEnabled',
   '팝업방문예약노출',
@@ -440,6 +455,47 @@ function getVisitTimeEnabledFromContentRow_(row, ext) {
   return false;
 }
 
+function getBirthDateEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, BIRTH_DATE_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, false);
+  }
+  if (ext && ext.reservationForm && ext.reservationForm.birthDateEnabled !== undefined) {
+    return parseBoolField_(ext.reservationForm.birthDateEnabled, false);
+  }
+  return false;
+}
+
+function getRegionEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, REGION_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, false);
+  }
+  if (ext && ext.reservationForm && ext.reservationForm.regionEnabled !== undefined) {
+    return parseBoolField_(ext.reservationForm.regionEnabled, false);
+  }
+  return false;
+}
+
+function getRegionOptionsFromContentRow_(row, ext) {
+  var fromColumn = getSiteField_(row, REGION_OPTIONS_ALIASES);
+  if (fromColumn !== undefined && fromColumn !== null && String(fromColumn).trim() !== '') {
+    return parsePipeList_(fromColumn);
+  }
+  if (ext && ext.reservationForm && ext.reservationForm.regionOptions) {
+    var fromExt = ext.reservationForm.regionOptions;
+    if (Object.prototype.toString.call(fromExt) === '[object Array]') {
+      return fromExt.map(String).filter(function (s) {
+        return String(s).trim() !== '';
+      });
+    }
+    if (typeof fromExt === 'string' && fromExt.trim()) {
+      return parsePipeList_(fromExt);
+    }
+  }
+  return [];
+}
+
 function getPopupReservationEnabledFromContentRow_(row, ext) {
   var raw = getSiteField_(row, POPUP_RESERVATION_ENABLED_ALIASES);
   if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
@@ -562,6 +618,9 @@ function ensureReservationFormColumns() {
 
   if (!hasUnit) {
     insertColumnBeforeHeader_(sheet, 'extendedData', 'popupReservationEnabled');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'regionOptions');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'regionEnabled');
+    insertColumnBeforeHeader_(sheet, 'extendedData', 'birthDateEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'visitTimeEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'visitDateEnabled');
     insertColumnBeforeHeader_(sheet, 'extendedData', 'unitTypeEnabled');
@@ -571,12 +630,16 @@ function ensureReservationFormColumns() {
     added.push(
       'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
       'unitTypeEnabled', 'visitDateEnabled', 'visitTimeEnabled',
+      'birthDateEnabled', 'regionEnabled', 'regionOptions',
       'popupReservationEnabled'
     );
   } else {
     var hasUnitEnabled = false;
     var hasDateEnabled = false;
     var hasTimeEnabled = false;
+    var hasBirthEnabled = false;
+    var hasRegionEnabled = false;
+    var hasRegionOptions = false;
     var hasPopupReservationEnabled = false;
     for (var i = 0; i < UNIT_TYPE_ENABLED_ALIASES.length; i++) {
       if (map[UNIT_TYPE_ENABLED_ALIASES[i]] !== undefined) hasUnitEnabled = true;
@@ -586,6 +649,15 @@ function ensureReservationFormColumns() {
     }
     for (var vt = 0; vt < VISIT_TIME_ENABLED_ALIASES.length; vt++) {
       if (map[VISIT_TIME_ENABLED_ALIASES[vt]] !== undefined) hasTimeEnabled = true;
+    }
+    for (var bd = 0; bd < BIRTH_DATE_ENABLED_ALIASES.length; bd++) {
+      if (map[BIRTH_DATE_ENABLED_ALIASES[bd]] !== undefined) hasBirthEnabled = true;
+    }
+    for (var re = 0; re < REGION_ENABLED_ALIASES.length; re++) {
+      if (map[REGION_ENABLED_ALIASES[re]] !== undefined) hasRegionEnabled = true;
+    }
+    for (var ro = 0; ro < REGION_OPTIONS_ALIASES.length; ro++) {
+      if (map[REGION_OPTIONS_ALIASES[ro]] !== undefined) hasRegionOptions = true;
     }
     for (var p = 0; p < POPUP_RESERVATION_ENABLED_ALIASES.length; p++) {
       if (map[POPUP_RESERVATION_ENABLED_ALIASES[p]] !== undefined) {
@@ -605,6 +677,21 @@ function ensureReservationFormColumns() {
     if (!hasTimeEnabled) {
       insertColumnBeforeHeader_(sheet, 'extendedData', 'visitTimeEnabled');
       added.push('visitTimeEnabled');
+      map = getHeaderIndexMap_(sheet);
+    }
+    if (!hasBirthEnabled) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'birthDateEnabled');
+      added.push('birthDateEnabled');
+      map = getHeaderIndexMap_(sheet);
+    }
+    if (!hasRegionEnabled) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'regionEnabled');
+      added.push('regionEnabled');
+      map = getHeaderIndexMap_(sheet);
+    }
+    if (!hasRegionOptions) {
+      insertColumnBeforeHeader_(sheet, 'extendedData', 'regionOptions');
+      added.push('regionOptions');
       map = getHeaderIndexMap_(sheet);
     }
     if (!hasPopupReservationEnabled) {
@@ -1374,6 +1461,9 @@ function getSiteLiveConfig(siteCode) {
   var unitTypeEnabled = getUnitTypeEnabledFromContentRow_(contentRow, ext);
   var visitDateEnabled = getVisitDateEnabledFromContentRow_(contentRow, ext);
   var visitTimeEnabled = getVisitTimeEnabledFromContentRow_(contentRow, ext);
+  var birthDateEnabled = getBirthDateEnabledFromContentRow_(contentRow, ext);
+  var regionEnabled = getRegionEnabledFromContentRow_(contentRow, ext);
+  var regionOptions = getRegionOptionsFromContentRow_(contentRow, ext);
   var popupReservationEnabled = getPopupReservationEnabledFromContentRow_(contentRow, ext);
   var mainColor = getThemeColorFromContentRow_(
     contentRow, ext, MAIN_COLOR_ALIASES, 'mainColor', DEFAULT_MAIN_COLOR
@@ -1447,6 +1537,9 @@ function getSiteLiveConfig(siteCode) {
     unitTypeEnabled: unitTypeEnabled,
     visitDateEnabled: visitDateEnabled,
     visitTimeEnabled: visitTimeEnabled,
+    birthDateEnabled: birthDateEnabled,
+    regionEnabled: regionEnabled,
+    regionOptions: regionOptions,
     mainColor: mainColor,
     subColor: subColor,
     accentColor: accentColor,

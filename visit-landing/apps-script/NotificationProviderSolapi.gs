@@ -5,6 +5,10 @@
  * Script Properties:
  *   SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_PHONE
  *   SOLAPI_PF_ID, SOLAPI_TEMPLATE_ID_SUBMISSION (선택, 알림톡)
+ *
+ * 현장관리 오버라이드 (선택):
+ *   solapiTemplateId — 비우면 SOLAPI_TEMPLATE_ID_SUBMISSION
+ *   solapiPfId — 비우면 SOLAPI_PF_ID (채널이 다른 템플릿일 때만)
  */
 
 var SolapiNotificationProvider_ = {
@@ -32,15 +36,23 @@ var SolapiNotificationProvider_ = {
       );
     }
 
-    return (
-      prefix +
-      notification.siteName + '\n\n' +
-      '관심등록이 접수되었습니다.\n\n' +
-      '이름: ' + notification.customerName + '\n' +
-      '연락처: ' + formatPhoneDisplay_(notification.customerPhone) + '\n' +
-      '유형:' + (notification.consultType || '관심등록') + '\n' +
+    var lines = [
+      prefix + notification.siteName,
+      '',
+      '관심등록이 접수되었습니다.',
+      '',
+      '이름: ' + notification.customerName,
+      '연락처: ' + formatPhoneDisplay_(notification.customerPhone),
+      '유형:' + (notification.consultType || '관심등록'),
       '방문일자:' + (notification.reserveDisplay || '미정')
-    );
+    ];
+    if (notification.birthDate) {
+      lines.push('생년월일:' + notification.birthDate);
+    }
+    if (notification.region) {
+      lines.push('지역:' + notification.region);
+    }
+    return lines.join('\n');
   }
 };
 
@@ -111,11 +123,14 @@ function buildSolapiRequestBody_(notification, messageBody, config) {
 
   var templateId = notification.isTest
     ? config.templateIdTest
-    : config.templateIdSubmission;
+    : String(notification.solapiTemplateId || '').trim() ||
+      config.templateIdSubmission;
+  var pfId =
+    String(notification.solapiPfId || '').trim() || config.pfId;
 
-  if (config.pfId && templateId) {
+  if (pfId && templateId) {
     message.kakaoOptions = {
-      pfId: config.pfId,
+      pfId: pfId,
       templateId: templateId,
       variables: buildSolapiTemplateVariables_(notification)
     };
@@ -131,6 +146,8 @@ function buildSolapiTemplateVariables_(notification) {
   var phone = formatPhoneDisplay_(notification.customerPhone) || '';
   var type = notification.consultType || '관심등록';
   var visitDate = notification.reserveDisplay || '미정';
+  var birthDate = notification.birthDate || '';
+  var region = notification.region || '';
 
   return {
     '#{현장명}': site,
@@ -138,7 +155,9 @@ function buildSolapiTemplateVariables_(notification) {
     '#{연락처}': phone,
     '#{유형}': type,
     '#{방문일자}': visitDate,
-    '#{방문일시}': visitDate
+    '#{방문일시}': visitDate,
+    '#{생년월일}': birthDate,
+    '#{지역}': region
   };
 }
 

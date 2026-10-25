@@ -27,16 +27,41 @@ function getActiveNotificationProvider_() {
   return provider;
 }
 
+function resolveNotificationTemplateMeta_(payload) {
+  var props = PropertiesService.getScriptProperties();
+  var isTest = payload && payload.isTest === true;
+  var templateId = isTest
+    ? String(props.getProperty('SOLAPI_TEMPLATE_ID_TEST') || '').trim()
+    : String(payload && payload.solapiTemplateId || '').trim() ||
+      String(props.getProperty('SOLAPI_TEMPLATE_ID_SUBMISSION') || '').trim();
+  var pfId =
+    String(payload && payload.solapiPfId || '').trim() ||
+    String(props.getProperty('SOLAPI_PF_ID') || '').trim();
+  return { templateId: templateId, pfId: pfId };
+}
+
 function dispatchNotification_(payload) {
   var provider = getActiveNotificationProvider_();
+  var meta = resolveNotificationTemplateMeta_(payload);
 
   try {
     var result = provider.send(payload);
-    writeLog_('NOTIFICATION_OK', payload.siteCode || '', '[' + provider.id + '] 발송 성공');
+    writeLog_(
+      'NOTIFICATION_OK',
+      payload.siteCode || '',
+      '[' +
+        provider.id +
+        '] 발송 성공 templateId=' +
+        (meta.templateId || '-') +
+        ' pfId=' +
+        (meta.pfId || '-')
+    );
     return {
       success: true,
       providerId: provider.id,
-      messageId: result && result.messageId ? result.messageId : ''
+      messageId: result && result.messageId ? result.messageId : '',
+      templateId: meta.templateId,
+      pfId: meta.pfId
     };
   } catch (err) {
     var message = err.message || String(err);
@@ -50,7 +75,9 @@ function dispatchNotification_(payload) {
     return {
       success: false,
       providerId: provider.id,
-      error: message
+      error: message,
+      templateId: meta.templateId,
+      pfId: meta.pfId
     };
   }
 }
@@ -74,9 +101,14 @@ function buildSubmissionNotificationPayload_(params) {
     inquiry: sub.inquiry != null ? String(sub.inquiry).trim() : '',
     consultType: sub.consultType || '관심등록',
     reserveDisplay: sub.reserveDisplay || '미정',
+    birthDate: sub.birthDate || '',
+    region: sub.region || '',
     trafficSource: sub.trafficSource || '직접유입',
     submittedAt: sub.submittedAt || new Date(),
-    isTest: false
+    isTest: false,
+    /** 비우면 Script Properties 공통 템플릿/채널 */
+    solapiTemplateId: getSolapiTemplateIdFromRow_(siteRow),
+    solapiPfId: getSolapiPfIdFromRow_(siteRow)
   };
 }
 
