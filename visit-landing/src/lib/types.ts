@@ -290,8 +290,12 @@ export interface ReservationSubmitInput {
   formToken?: string;
   pageLoadedAt?: number;
   napm?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
   utmContent?: string;
   landingUrl?: string;
+  referer?: string;
   inputFocusCount?: number;
   inputChangeCount?: number;
   clickCount?: number;

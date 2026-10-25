@@ -52,6 +52,9 @@ var SolapiNotificationProvider_ = {
     if (notification.region) {
       lines.push('지역:' + notification.region);
     }
+    if (notification.trafficSource) {
+      lines.push('예상경로:' + notification.trafficSource);
+    }
     return lines.join('\n');
   }
 };
@@ -148,6 +151,7 @@ function buildSolapiTemplateVariables_(notification) {
   var visitDate = notification.reserveDisplay || '미정';
   var birthDate = notification.birthDate || '';
   var region = notification.region || '';
+  var trafficSource = notification.trafficSource || '직접유입';
 
   return {
     '#{현장명}': site,
@@ -157,7 +161,10 @@ function buildSolapiTemplateVariables_(notification) {
     '#{방문일자}': visitDate,
     '#{방문일시}': visitDate,
     '#{생년월일}': birthDate,
-    '#{지역}': region
+    '#{지역}': region,
+    '#{예상경로}': trafficSource,
+    '#{유입경로}': trafficSource,
+    '#{utm_source}': trafficSource
   };
 }
 

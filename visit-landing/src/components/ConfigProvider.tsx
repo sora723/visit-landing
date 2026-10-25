@@ -167,6 +167,13 @@ export function ConfigProvider({
             timezone: input.timezone,
             language: input.language,
             ...getTrackingContext(),
+            // sessionStorage UTM(광고 랜딩 후 URL에서 빠질 때)을 URL보다 우선
+            ...(input.utmSource ? { utmSource: input.utmSource } : {}),
+            ...(input.utmMedium ? { utmMedium: input.utmMedium } : {}),
+            ...(input.utmCampaign ? { utmCampaign: input.utmCampaign } : {}),
+            ...(input.utmContent ? { utmContent: input.utmContent } : {}),
+            ...(input.landingUrl ? { landingUrl: input.landingUrl } : {}),
+            ...(input.referer ? { referer: input.referer } : {}),
           },
           siteCode
         );
