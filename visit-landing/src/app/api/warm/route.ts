@@ -14,9 +14,10 @@ import {
 } from "@/lib/fetch-domain-site-code-map";
 import { fetchSiteLiveConfigFromSheetBlocking } from "@/lib/fetch-site-live-config";
 import { isTenantHostname } from "@/lib/platform-hostname";
+import { flushPendingSubmissions } from "@/lib/sync-pending-submission";
 
 export const dynamic = "force-dynamic";
-/** Netlify/서버리스 — 다현장 순차 warm */
+/** Netlify/서버리스 — 다현장 순차 warm + pending 접수 flush */
 export const maxDuration = 60;
 
 /** 워크플로 timeout 2분 안 — 현장당 ~2–3s + 간격 */
@@ -89,15 +90,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let pendingFlush: {
+      processed: number;
+      synced: number;
+      failed: number;
+      error?: string;
+    } | null = null;
+    try {
+      pendingFlush = await flushPendingSubmissions(8);
+    } catch (err) {
+      console.error("[api/warm] pending flush failed:", err);
+      pendingFlush = {
+        processed: 0,
+        synced: 0,
+        failed: 0,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+
     return NextResponse.json(
       {
-        ok: failed.length === 0,
+        ok: failed.length === 0 && !pendingFlush?.error,
         warmedAt: new Date().toISOString(),
         domainKeys: Object.keys(domainMap).length,
         siteCodesTotal: allCodes.length,
         siteCodesWarmed: siteCodes.length,
         warmed,
         failed,
+        pendingFlush,
       },
       { headers: NO_STORE }
     );

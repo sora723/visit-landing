@@ -20,6 +20,7 @@
     "manual:apps-script": "node scripts/print-manual-apps-script.mjs"
   },
   "dependencies": {
+    "@netlify/blobs": "^9.1.6",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.18.0",
     "next": "15.5.19",
