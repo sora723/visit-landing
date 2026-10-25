@@ -53,7 +53,7 @@ var SolapiNotificationProvider_ = {
       lines.push('지역:' + notification.region);
     }
     if (notification.trafficSource) {
-      lines.push('예상경로:' + notification.trafficSource);
+      lines.push('경로:' + notification.trafficSource);
     }
     return lines.join('\n');
   }
@@ -162,6 +162,7 @@ function buildSolapiTemplateVariables_(notification) {
     '#{방문일시}': visitDate,
     '#{생년월일}': birthDate,
     '#{지역}': region,
+    '#{경로}': trafficSource,
     '#{예상경로}': trafficSource,
     '#{유입경로}': trafficSource,
     '#{utm_source}': trafficSource
