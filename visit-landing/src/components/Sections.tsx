@@ -97,7 +97,7 @@ export function OverviewSection() {
                 <div className="w-[140px] shrink-0 border-r border-[var(--color-navy)]/7 bg-[var(--color-bg)] px-5 py-4 text-[13px] font-medium text-[#7a7060]">
                   {spec.label}
                 </div>
-                <div className="px-5 py-4 text-[13px] leading-relaxed text-[var(--color-text)]">
+                <div className="whitespace-pre-line px-5 py-4 text-[13px] leading-relaxed text-[var(--color-text)]">
                   {spec.value}
                 </div>
               </div>
