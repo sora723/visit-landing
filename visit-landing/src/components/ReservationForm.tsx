@@ -159,18 +159,6 @@ export function ReservationForm({
           required
           className="h-9 w-[108px] shrink-0 rounded border border-[var(--color-text)]/35 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[120px] md:px-2 lg:w-[132px] lg:text-[13px] xl:w-[148px] xl:px-3"
         />
-        {showUnitType && (
-          <ScrollableSelect
-            value={unitType}
-            onChange={setUnitType}
-            options={unitOptions}
-            placeholder="관심평형(선택)"
-            className="h-9 min-w-0 w-[7.5rem] shrink md:h-10 lg:w-[8.5rem] xl:w-[9.5rem]"
-            listMaxHeight={160}
-            dropUp
-            compact
-          />
-        )}
         {showBirthDate && (
           <input
             type="text"
@@ -191,6 +179,18 @@ export function ReservationForm({
             placeholder="지역(선택)"
             className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
             listMaxHeight={180}
+            dropUp
+            compact
+          />
+        )}
+        {showUnitType && (
+          <ScrollableSelect
+            value={unitType}
+            onChange={setUnitType}
+            options={unitOptions}
+            placeholder="관심평형(선택)"
+            className="h-9 min-w-0 w-[7.5rem] shrink md:h-10 lg:w-[8.5rem] xl:w-[9.5rem]"
+            listMaxHeight={160}
             dropUp
             compact
           />
@@ -287,22 +287,6 @@ export function ReservationForm({
             required
           />
         </div>
-        {showUnitType && (
-          <div className={unitSpansFullRow ? "sm:col-span-2" : undefined}>
-            <label className={labelBase}>
-              관심평형 <span className="font-normal text-[#b0a898]">(선택)</span>
-            </label>
-            <ScrollableSelect
-              value={unitType}
-              onChange={setUnitType}
-              options={unitOptions}
-              placeholder="평형 선택"
-              className="w-full"
-              listMaxHeight={200}
-              dropUp={variant === "sheet"}
-            />
-          </div>
-        )}
         {showBirthDate && (
           <div>
             <label className={labelBase}>
@@ -330,6 +314,22 @@ export function ReservationForm({
               onChange={setRegion}
               options={regionOptions}
               placeholder="시 선택"
+              className="w-full"
+              listMaxHeight={200}
+              dropUp={variant === "sheet"}
+            />
+          </div>
+        )}
+        {showUnitType && (
+          <div className={unitSpansFullRow ? "sm:col-span-2" : undefined}>
+            <label className={labelBase}>
+              관심평형 <span className="font-normal text-[#b0a898]">(선택)</span>
+            </label>
+            <ScrollableSelect
+              value={unitType}
+              onChange={setUnitType}
+              options={unitOptions}
+              placeholder="평형 선택"
               className="w-full"
               listMaxHeight={200}
               dropUp={variant === "sheet"}
