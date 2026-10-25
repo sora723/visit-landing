@@ -129,7 +129,7 @@ function countIpAttemptsFromRecentSheet_(siteCode, normalizedIp, windowSeconds) 
 /**
  * _검증로그 기준 — 동일 siteCode + IP 의 최근 시도 건수
  * CacheService 우선 (검증로그 비동기화 대응), 없으면 최근 N행만 스캔
- * 현재 접수는 아직 카운트에 없으므로, MAX=3 이면 기존 3건 이후(4건째)부터 차단
+ * 현재 접수는 아직 카운트에 없으므로, MAX=8 이면 기존 8건 이후(9건째)부터 차단
  */
 function countIpAttemptsWithin_(siteCode, clientIp, windowSeconds) {
   var normalized = normalizeClientIp_(clientIp);

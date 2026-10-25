@@ -12,8 +12,11 @@ var SUBMIT_VALIDATION_CONFIG = {
   REQUIRE_AD_SIGNAL_FOR_CONVERSION: true,
   /** 동일 IP · 동일 현장 — 짧은 시간 대량 접수 제한 (GFA 명의DB 묶음 공격 대응) */
   BULK_IP_WINDOW_SECONDS: 600,
-  /** 이 건수에 도달한 뒤(이상)부터 차단 — 예: 3이면 4건째부터 IP대량차단 */
-  BULK_IP_MAX_COUNT: 3,
+  /**
+   * 이 건수에 도달한 뒤(이상)부터 차단 — 예: 8이면 9건째부터 IP대량차단
+   * 가족·동행이 같은 공유기(IP)로 연달아 접수하는 경우를 위해 3→8로 완화
+   */
+  BULK_IP_MAX_COUNT: 8,
   /** IP대량차단 시 _IP차단 자동 등록 유지 시간(시간) — expiresAt */
   BULK_IP_AUTO_BLOCK_HOURS: 24,
   /** IP/전화 중복 검사 시 시트 최근 N행만 스캔 (전체 로드 금지) — 중기: 스캔 축소 */
