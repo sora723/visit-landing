@@ -49,7 +49,10 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
   if (cache.get(cacheKey)) return true;
 
   var cfg = SUBMIT_VALIDATION_CONFIG || {};
-  var maxRows = Number(cfg.VALIDATION_RECENT_SUBMISSION_ROWS) || 800;
+  var negKey = 'ph0:' + siteCode + ':' + normalizedPhone;
+  if (cache.get(negKey)) return false;
+
+  var maxRows = Number(cfg.VALIDATION_RECENT_SUBMISSION_ROWS) || 200;
   var rows = readRecentSheetObjects_(SHEET_NAMES.SUBMISSION, maxRows);
   var now = Date.now();
   var windowMs = (ttlSeconds || 86400) * 1000;
@@ -75,6 +78,8 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
       return true;
     }
   }
+  var negTtl = Number(cfg.DUPLICATE_PHONE_NEGATIVE_CACHE_SECONDS) || 300;
+  cache.put(negKey, '1', Math.min(21600, Math.max(60, negTtl)));
   return false;
 }
 

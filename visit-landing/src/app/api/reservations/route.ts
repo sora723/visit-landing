@@ -12,13 +12,9 @@ function getAppsScriptUrl() {
 
 function logEnv(siteCode: string) {
   const url = getAppsScriptUrl();
-  console.error(`${LOG} APPS_SCRIPT_URL read=${url ? "yes" : "no"} length=${url.length}`);
-  if (url) {
-    console.error(`${LOG} APPS_SCRIPT_URL=${url}`);
-  } else {
-    console.error(`${LOG} APPS_SCRIPT_URL missing — demo 모드로 fallback`);
+  if (!url) {
+    console.error(`${LOG} APPS_SCRIPT_URL missing — demo fallback siteCode=${siteCode}`);
   }
-  console.error(`${LOG} siteCode=${siteCode}`);
 }
 
 /** 가상 접수는 프론트 buildLiveFeed에서만 생성 — API는 실제 접수만 반환 */
@@ -59,8 +55,6 @@ export async function GET(request: NextRequest) {
     `&limit=${encodeURIComponent(String(limit))}`;
 
   try {
-    console.error(`${LOG} fetch URL=${fetchUrl}`);
-
     const res = await fetch(fetchUrl, {
       cache: "no-store",
       redirect: "follow",
@@ -68,10 +62,6 @@ export async function GET(request: NextRequest) {
     });
 
     const bodyText = await res.text();
-    console.error(
-      `${LOG} response status=${res.status} content-type=${res.headers.get("content-type") ?? "(none)"}`
-    );
-    console.error(`${LOG} response body=${bodyText.slice(0, 800)}`);
 
     let json: {
       success?: boolean;
@@ -97,7 +87,6 @@ export async function GET(request: NextRequest) {
 
     if (json.success && json.data?.items) {
       const sanitized = sanitizeRealItems(json.data.items as ReservationItem[]);
-      console.error(`${LOG} 200 OK items=${sanitized.items.length}`);
       return NextResponse.json({
         ...json,
         data: { ...json.data, ...sanitized },

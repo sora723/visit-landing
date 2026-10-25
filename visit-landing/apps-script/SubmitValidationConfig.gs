@@ -16,7 +16,9 @@ var SUBMIT_VALIDATION_CONFIG = {
   BULK_IP_MAX_COUNT: 3,
   /** IP대량차단 시 _IP차단 자동 등록 유지 시간(시간) — expiresAt */
   BULK_IP_AUTO_BLOCK_HOURS: 24,
-  /** IP/전화 중복 검사 시 시트 최근 N행만 스캔 (전체 로드 금지) */
-  VALIDATION_RECENT_LOG_ROWS: 400,
-  VALIDATION_RECENT_SUBMISSION_ROWS: 800
+  /** IP/전화 중복 검사 시 시트 최근 N행만 스캔 (전체 로드 금지) — 중기: 스캔 축소 */
+  VALIDATION_RECENT_LOG_ROWS: 200,
+  VALIDATION_RECENT_SUBMISSION_ROWS: 200,
+  /** 전화 중복 아님(네거티브) 캐시 TTL — 짧은 재스캔 방지 */
+  DUPLICATE_PHONE_NEGATIVE_CACHE_SECONDS: 300
 };

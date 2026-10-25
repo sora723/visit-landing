@@ -6,7 +6,8 @@ import {
 import type { SiteLiveConfigData } from "@/lib/fetch-site-live-config";
 import { EMPTY_OWNERSHIP_VERIFICATION } from "@/lib/ownership-verification";
 
-const CACHE_TTL_MS = 5 * 60_000;
+/** fresh TTL — 폴링 90s와 맞춰 GAS 재조회 빈도 완화 */
+const CACHE_TTL_MS = 8 * 60_000;
 /** 만료 후에도 staleUntil 이전이면 즉시 반환하며 백그라운드 갱신 */
 const STALE_TTL_MS = 30 * 60_000;
 /**

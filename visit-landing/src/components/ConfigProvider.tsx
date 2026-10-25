@@ -31,7 +31,8 @@ import { SiteThemeProvider } from "@/components/SiteThemeProvider";
 import { CallClickTracking } from "@/components/CallClickTracking";
 
 /** GAS 동시 실행 완화 — 15s → 60s */
-const POLL_MS = 60_000;
+/** Master 시트 동시호출 완화 — 60s→90s */
+const POLL_MS = 90_000;
 
 export type ContentSource = "sheet" | "unavailable";
 

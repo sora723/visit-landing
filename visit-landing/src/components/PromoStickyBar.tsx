@@ -18,7 +18,8 @@ import {
 } from "@/lib/render-promo-canvas";
 
 /** GAS 동시 실행 완화 — 15s → 60s */
-const POLL_MS = 60_000;
+/** Master 시트 동시호출 완화 — 60s→90s */
+const POLL_MS = 90_000;
 
 /** 하단 프로모 — Google Sheet stickyPromoText 전용 (site.json 미사용) */
 export function PromoStickyBar({

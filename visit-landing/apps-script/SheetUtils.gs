@@ -18,8 +18,9 @@ var SHEET_NAMES = {
 var MASTER_SPREADSHEET_ID = '1rRLKLBIyZPjw1e4a14MPzaTNBib0vTKEpHEqfQg3pyA';
 
 /** Apps Script CacheService — site.config / domains 단기 캐시 */
-var SCRIPT_CACHE_TTL_SITE_CONFIG = 60;
-var SCRIPT_CACHE_TTL_DOMAIN_MAP = 60;
+/** site.config / domains — 폴링보다 길게 잡아 GAS·시트 동시호출 완화 */
+var SCRIPT_CACHE_TTL_SITE_CONFIG = 120;
+var SCRIPT_CACHE_TTL_DOMAIN_MAP = 120;
 var SCRIPT_CACHE_TTL_SCHEMA = 3600;
 
 function cacheGetJson_(key) {

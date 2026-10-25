@@ -132,20 +132,25 @@ export async function deletePendingSubmission(
 }
 
 export async function listPendingSubmissions(
-  limit = 20
+  limit = 20,
+  options?: { includeFailed?: boolean }
 ): Promise<PendingSubmissionRecord[]> {
   const cap = Math.min(Math.max(limit, 1), MAX_LIST);
+  const includeFailed = options?.includeFailed === true;
   const store = await getBlobStore();
   const out: PendingSubmissionRecord[] = [];
+
+  const want = (row: PendingSubmissionRecord) =>
+    row.status === "pending" ||
+    row.status === "sheet_logged" ||
+    (includeFailed && row.status === "failed");
 
   if (store) {
     const listed = await store.list();
     for (const blob of listed.blobs) {
       if (out.length >= cap) break;
       const row = await store.get(blob.key, { type: "json" });
-      if (row && (row.status === "pending" || row.status === "sheet_logged")) {
-        out.push(row);
-      }
+      if (row && want(row)) out.push(row);
     }
     return out;
   }
@@ -159,12 +164,51 @@ export async function listPendingSubmissions(
       const row = JSON.parse(
         await readFile(path.join(FS_DIR, file), "utf8")
       ) as PendingSubmissionRecord;
-      if (row.status === "pending" || row.status === "sheet_logged") {
-        out.push(row);
-      }
+      if (want(row)) out.push(row);
     } catch {
       /* skip corrupt */
     }
   }
   return out;
+}
+
+export async function summarizePendingSubmissions(limit = 50): Promise<{
+  total: number;
+  pending: number;
+  sheetLogged: number;
+  failed: number;
+  items: Array<{
+    submissionId: string;
+    siteCode: string;
+    status: PendingSubmissionStatus;
+    attempts: number;
+    lastError?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+}> {
+  const rows = await listPendingSubmissions(limit, { includeFailed: true });
+  let pending = 0;
+  let sheetLogged = 0;
+  let failed = 0;
+  for (const r of rows) {
+    if (r.status === "pending") pending++;
+    else if (r.status === "sheet_logged") sheetLogged++;
+    else if (r.status === "failed") failed++;
+  }
+  return {
+    total: rows.length,
+    pending,
+    sheetLogged,
+    failed,
+    items: rows.map((r) => ({
+      submissionId: r.submissionId,
+      siteCode: r.siteCode,
+      status: r.status,
+      attempts: r.attempts,
+      lastError: r.lastError,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    })),
+  };
 }

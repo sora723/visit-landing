@@ -34,7 +34,9 @@ alwaysApply: true
 - `Too many simultaneous invocations: Spreadsheets` = 동시 시트 호출 한도. 현장 늘수록 캐시 미스 때 확률↑.
 - `검증로그 없음`만으로 접수 유실 단정 금지. `SUBMIT_LOGGED`·알림톡·광고 전환을 같이 볼 것.
 - 시스템로그 `ERROR`의 `errorMessage`는 비는 경우가 많음 — `message` 컬럼 확인. `err.message` 없으면 공란일 수 있음.
-- **동시 실행 완화 (프론트)**: 설정/프로모 폴링 60초, 실시간예약 90초. keep-warm은 커스텀 도메인 현장만 순차 (L001 기본 데우기 금지).
+- **동시 실행 완화 (프론트)**: 설정/프로모 폴링 **90초**, 실시간예약 **120초**. CDN site-content **90초**. keep-warm은 커스텀 도메인 현장만 순차 (L001 기본 데우기 금지).
+- **접수 임시 원장**: Netlify Blobs에 먼저 저장 후 완료 UI. 시트 동기화 실패 건은 `/api/ops/pending-submissions` (WARM_SECRET) 또는 warm flush로 확인·재시도.
+- **중복 전화**: CacheService 우선 + 네거티브 캐시. 시트 최근행 스캔은 200행.
 
 ## 알림톡 발송 장애 & 접수 복구 운영
 

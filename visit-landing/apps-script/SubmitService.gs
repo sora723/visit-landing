@@ -141,6 +141,24 @@ function handleSubmitPostProcess(params) {
     '정규화연락처': validated.phone || ''
   });
 
+  /**
+   * 중기: 알림 성공 전에 전화 중복 캐시 기록 —
+   * 동시 접수가 시트 800행 스캔 대신 캐시로 중복 판정하도록.
+   */
+  if (
+    validation.validationStatus === '정상접수' ||
+    validation.validationStatus === '빠른접수' ||
+    validation.validationStatus === '중복접수'
+  ) {
+    markPhoneSubmittedCache_(
+      siteCode,
+      validated.phone,
+      (SUBMIT_VALIDATION_CONFIG &&
+        SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) ||
+        86400
+    );
+  }
+
   var notificationSent = false;
   var savedToSubmissions = false;
   var mirrored = false;
@@ -176,19 +194,6 @@ function handleSubmitPostProcess(params) {
       );
       savedToSubmissions = true;
       mirrored = true;
-
-      if (
-        validation.validationStatus === '정상접수' ||
-        validation.validationStatus === '빠른접수'
-      ) {
-        markPhoneSubmittedCache_(
-          siteCode,
-          validated.phone,
-          (SUBMIT_VALIDATION_CONFIG &&
-            SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) ||
-            86400
-        );
-      }
     }
   }
 
