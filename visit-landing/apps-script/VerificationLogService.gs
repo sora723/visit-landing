@@ -184,6 +184,12 @@ function processPendingVerificationLogs_(limit) {
       continue;
     }
 
+    /** 수기 처리 제외 건 — 자동 flush 로 카톡 재발송 금지 */
+    if (KNOWN_EXCLUDED_SUBMISSION_IDS[submissionId]) {
+      processed++;
+      continue;
+    }
+
     try {
       var payload = JSON.parse(raw);
       payload.submissionId = submissionId;
@@ -444,7 +450,8 @@ function loadRecentSystemLogMatches_(needles, limit) {
  */
 var KNOWN_EXCLUDED_SUBMISSION_IDS = {
   '8bfae10f-ccbd-4f9a-a87b-f714144550b2': true, // 유석희 님 (관리자 수동 처리 완료)
-  '709a0ffa-33ae-465d-b063-fb71112586b1': true  // 레거시 테스트 건
+  '709a0ffa-33ae-465d-b063-fb71112586b1': true, // 레거시 테스트 건
+  '1f26ce99-657d-4ef9-be99-31ef1c04c2eb': true // 이인오 님 (수기 전달 완료 — 카톡 재발송 금지)
 };
 
 function handleReprocessMissedSubmissions(params) {
@@ -506,32 +513,23 @@ function handleReprocessMissedSubmissions(params) {
 
   for (var i = values.length - 1; i >= 0 && recovered.length < maxLimit; i--) {
     var row = values[i];
-    var status = String(row[iStatus] || '').trim();
+    var rowStatus = String(row[iStatus] || '').trim();
     var submissionId = String(row[iId] || '').trim();
 
     if (!submissionId) continue;
     if (seenIds[submissionId]) continue;
+    seenIds[submissionId] = true;
 
-    var isPending = status === '검수중' || status === VERIFICATION_STATUS_PENDING;
-    var isFinalNotify = FINAL_EXPECT_NOTIFY[status] === true;
+    // 같은 ID에 토큰차단이 최신이어도 검수중이면 검수중 우선
+    var preferredStatus = getVerificationLogStatusBySubmissionId_(submissionId) || rowStatus;
+    var isPending = preferredStatus === '검수중';
+    var isFinalNotify = FINAL_EXPECT_NOTIFY[preferredStatus] === true;
     if (!isPending && !isFinalNotify) continue;
 
+    var status = preferredStatus;
+
     // 이미 접수관리에 있는 경우 스킵
-    if (submissionIds[submissionId]) {
-      seenIds[submissionId] = true;
-      continue;
-    }
-
-    // 같은 ID에 검수중+토큰차단이 있으면 검수중만 처리
-    if (!isPending) {
-      var preferred = getVerificationLogStatusBySubmissionId_(submissionId);
-      if (preferred === '검수중' || preferred === VERIFICATION_STATUS_PENDING) {
-        isPending = true;
-        status = preferred;
-      }
-    }
-
-    seenIds[submissionId] = true;
+    if (submissionIds[submissionId]) continue;
 
     // 명시적 제외 대상 스킵
     if (excludeMap[submissionId]) {
@@ -540,8 +538,7 @@ function handleReprocessMissedSubmissions(params) {
     }
 
     var raw = iPayload !== undefined ? String(row[iPayload] || '').trim() : '';
-    if (!raw && isPending) {
-      // 검수중 행이 토큰차단보다 위에 있어 payload 가 비면, 같은 ID 다른 행에서 찾기
+    if (!raw) {
       raw = findRawPayloadBySubmissionId_(values, iId, iPayload, submissionId);
     }
     if (!raw) {
@@ -569,12 +566,19 @@ function handleReprocessMissedSubmissions(params) {
       var notifyError = '';
       var savedToSubmissions = false;
       var resultStatus = status;
+      var formType = getField_(siteRow, '폼타입') || 'simple';
+      var validated = validateSubmitParams_(rawPayload, formType, {
+        requireBirthDate: false
+      });
+      var suspicionReasons = iReason !== undefined ? String(row[iReason] || '').trim() : '';
+      var pathUsed = 'direct';
 
       if (isPending) {
-        /** 정체 검수중 → 정상 postProcess (알림+접수관리) */
+        /** 정체 검수중 → postProcess 우선 */
         rawPayload.submissionId = submissionId;
         rawPayload.submittedAt = submittedAt.toISOString();
         rawPayload._skipPendingFlush = true;
+        pathUsed = 'postProcess';
         var postResult = handleSubmitPostProcess(rawPayload);
         notificationSent = postResult && postResult.notificationSent === true;
         savedToSubmissions = postResult && postResult.savedToSubmissions === true;
@@ -584,19 +588,21 @@ function handleReprocessMissedSubmissions(params) {
           notifyError =
             (postResult && postResult.error) || 'POSTPROCESS_NO_NOTIFY';
         }
-      } else {
-        var formType = getField_(siteRow, '폼타입') || 'simple';
-        var validated = validateSubmitParams_(rawPayload, formType);
-        var suspicionReasons = iReason !== undefined ? String(row[iReason] || '').trim() : '';
+      }
 
-        if (sendNotification) {
+      /**
+       * postProcess 가 알림 실패로 접수관리에 안 넣었거나,
+       * 이미 최종상태인데 접수관리만 비어 있으면 → 강제 복구
+       */
+      if (!savedToSubmissions) {
+        pathUsed = isPending ? 'postProcess+force' : 'direct';
+        if (sendNotification && !notificationSent) {
           var notifyResult = notifyManagerOnSubmission_(siteRow, validated, rawPayload);
           notificationSent = notifyResult && notifyResult.success === true;
           if (!notificationSent) {
             notifyError = notifyResult && notifyResult.error ? notifyResult.error : 'NOTIFY_FAILED';
           }
         }
-
         appendSubmissionRow_(
           siteRow,
           validated,
@@ -604,12 +610,20 @@ function handleReprocessMissedSubmissions(params) {
           submittedAt,
           rawPayload,
           {
-            validationStatus: status,
+            validationStatus: resultStatus || status,
             suspicionReasons: suspicionReasons,
             skipMirror: false
           }
         );
         savedToSubmissions = true;
+        if (isPending) {
+          updateVerificationLogBySubmissionId_(submissionId, {
+            '검증상태': resultStatus && resultStatus !== '검수중' ? resultStatus : '정상접수',
+            '의심사유': suspicionReasons || 'reprocess_force'
+          });
+          resultStatus =
+            resultStatus && resultStatus !== '검수중' ? resultStatus : '정상접수';
+        }
       }
 
       if (savedToSubmissions) {
@@ -621,23 +635,22 @@ function handleReprocessMissedSubmissions(params) {
         siteCode,
         '접수ID=' + submissionId +
           ', 상태=' + resultStatus +
-          ', 경로=' + (isPending ? 'postProcess' : 'direct') +
+          ', 경로=' + pathUsed +
           ', 알림전송=' +
-          ((sendNotification || isPending)
-            ? (notificationSent ? 'OK' : 'FAIL(' + notifyError + ')')
-            : 'SKIPPED') +
+          (notificationSent ? 'OK' : 'FAIL(' + notifyError + ')') +
           ', 접수관리=' + (savedToSubmissions ? 'Y' : 'N')
       );
 
       recovered.push({
         submissionId: submissionId,
         siteCode: siteCode,
-        name: (rawPayload && rawPayload.name) || '',
-        phone: (rawPayload && rawPayload.phone) || '',
+        name: validated.name || (rawPayload && rawPayload.name) || '',
+        phone: validated.phone || (rawPayload && rawPayload.phone) || '',
         status: resultStatus,
         notificationSent: notificationSent,
         savedToSubmissions: savedToSubmissions,
-        notifyError: notifyError
+        notifyError: notifyError,
+        path: pathUsed
       });
     } catch (err) {
       writeLog_(
@@ -663,7 +676,8 @@ function runReprocessMissedSubmissions() {
   var response = ui.alert(
     '누락 접수 재검열 및 복구',
     '순간 장애로 _검증로그에는 있으나 [접수관리] 시트에 등록되지 않은 건을 찾아\n' +
-    '알림톡을 재발송하고 [접수관리] 시트에 등록합니다.\n\n' +
+    '알림톡을 재발송하고 [접수관리] 시트에 등록합니다.\n' +
+    '(수기 처리로 제외 등록된 건은 건너뜁니다)\n\n' +
     '진행하시겠습니까?',
     ui.ButtonSet.YES_NO
   );
@@ -672,26 +686,50 @@ function runReprocessMissedSubmissions() {
     return;
   }
 
-  var result = handleReprocessMissedSubmissions({
-    limit: 30,
-    sendNotification: true
-  });
+  try {
+    var result = handleReprocessMissedSubmissions({
+      limit: 30,
+      sendNotification: true
+    });
 
-  if (!result.success) {
-    ui.alert('복구 실패: ' + (result.error || '알 수 없는 오류'));
-    return;
-  }
-
-  var msg = '복구 완료: 총 ' + result.processedCount + '건 복구됨\n';
-  if (result.recovered && result.recovered.length > 0) {
-    msg += '\n[복구 목록]\n';
-    for (var i = 0; i < result.recovered.length; i++) {
-      var r = result.recovered[i];
-      msg += '- ' + r.siteCode + ' ' + r.name + ' (' + r.status + ') 알림:' + (r.notificationSent ? '성공' : '실패') + '\n';
+    if (!result.success) {
+      ui.alert('복구 실패: ' + (result.error || '알 수 없는 오류'));
+      return;
     }
-  } else {
-    msg += '\n현재 누락된 접수 건이 없습니다.';
-  }
 
-  ui.alert(msg);
+    var msg = '복구 완료: 총 ' + result.processedCount + '건\n';
+    if (result.recovered && result.recovered.length > 0) {
+      msg += '\n[복구 목록]\n';
+      for (var i = 0; i < result.recovered.length; i++) {
+        var r = result.recovered[i];
+        msg +=
+          '- ' +
+          r.siteCode +
+          ' ' +
+          r.name +
+          ' (' +
+          r.status +
+          ') 알림:' +
+          (r.notificationSent ? '성공' : '실패') +
+          ' 접수관리:' +
+          (r.savedToSubmissions ? 'Y' : 'N') +
+          '\n';
+      }
+    } else {
+      msg += '\n새로 복구한 접수 건이 없습니다.';
+    }
+
+    if (result.skipped && result.skipped.length > 0) {
+      msg += '\n[건너뜀 ' + result.skipped.length + '건]\n';
+      var maxSkip = Math.min(result.skipped.length, 8);
+      for (var s = 0; s < maxSkip; s++) {
+        var sk = result.skipped[s];
+        msg += '- ' + (sk.submissionId || '').slice(0, 8) + '… ' + (sk.reason || '') + '\n';
+      }
+    }
+
+    ui.alert(msg);
+  } catch (err) {
+    ui.alert('복구 중 오류: ' + (err.message || String(err)));
+  }
 }

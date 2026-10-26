@@ -130,6 +130,21 @@ function handleSubmitPostProcess(params) {
     throw createAppError_('VALIDATION_ERROR', 'submissionId는 필수입니다');
   }
 
+  /** 수기 전달 등으로 제외된 접수는 알림·접수관리 자동 처리 안 함 */
+  if (
+    typeof KNOWN_EXCLUDED_SUBMISSION_IDS !== 'undefined' &&
+    KNOWN_EXCLUDED_SUBMISSION_IDS[submissionId]
+  ) {
+    return {
+      submissionId: submissionId,
+      alreadyProcessed: true,
+      validationStatus: '수기처리제외',
+      notificationSent: false,
+      savedToSubmissions: false,
+      excluded: true
+    };
+  }
+
   var existingStatus = getVerificationLogStatusBySubmissionId_(submissionId);
   if (
     existingStatus &&
