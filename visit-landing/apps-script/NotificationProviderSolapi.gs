@@ -151,7 +151,8 @@ function buildSolapiTemplateVariables_(notification) {
   var visitDate = notification.reserveDisplay || '미정';
   var birthDate = notification.birthDate || '';
   var region = notification.region || '';
-  var trafficSource = notification.trafficSource || '직접유입';
+  var trafficSource = String(notification.trafficSource || '').trim();
+  if (trafficSource === '직접유입') trafficSource = '';
 
   return {
     '#{현장명}': site,

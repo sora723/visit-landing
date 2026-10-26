@@ -199,17 +199,17 @@ function handleSubmitPostProcess(params) {
   });
 
   /**
-   * 중기: 알림 성공 전에 전화 중복 캐시 기록 —
-   * 동시 접수가 시트 800행 스캔 대신 캐시로 중복 판정하도록.
+   * 중기: 알림 성공 전에 「동일 내용」 중복 캐시 기록 —
+   * 전화만 같고 방문시간 등이 다르면 별도 접수로 허용.
    */
   if (
     validation.validationStatus === '정상접수' ||
     validation.validationStatus === '빠른접수' ||
     validation.validationStatus === '중복접수'
   ) {
-    markPhoneSubmittedCache_(
+    markIdenticalSubmissionCache_(
       siteCode,
-      validated.phone,
+      validated,
       (SUBMIT_VALIDATION_CONFIG &&
         SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) ||
         86400
@@ -586,18 +586,18 @@ function notifyManagerOnSubmission_(siteRow, submission, rawParams) {
   });
 }
 
+/**
+ * 알림톡 #{경로}/예상경로 — utm_source 만.
+ * 없거나 직접유입이면 공란 (랜딩URL·referer 넣지 않음)
+ */
 function buildTrafficSourceLabel_(submission, params) {
-  if (submission.utmSource) return submission.utmSource;
-  if (submission.utmMedium) return submission.utmMedium;
-  if (submission.utmCampaign) return submission.utmCampaign;
-  if (params.referer) {
-    try {
-      return new URL(params.referer).hostname;
-    } catch (e) {
-      return params.referer;
-    }
-  }
-  return '직접유입';
+  var fromSub = String((submission && submission.utmSource) || '').trim();
+  if (fromSub && fromSub !== '직접유입') return fromSub;
+  var fromParams = String(
+    (params && (params.utmSource || params.utm_source)) || ''
+  ).trim();
+  if (fromParams && fromParams !== '직접유입') return fromParams;
+  return '';
 }
 
 function normalizeSubmissionField_(value) {
@@ -614,6 +614,8 @@ function isSameSubmissionContent_(row, validated) {
   var rowConsult = getSiteField_(row, ['consultType', '상담유형']);
   var rowDate = getSiteField_(row, ['reserveDate', '예약날짜', 'visitDate']);
   var rowTime = getSiteField_(row, ['reserveTime', '예약시간', 'visitTime']);
+  var rowBirth = getSiteField_(row, ['birthDate', '생년월일']);
+  var rowRegion = getSiteField_(row, ['region', '지역']);
   var rowInquiry = getSiteField_(row, ['inquiry', '기타문의', 'source']);
   var rowAge = getSiteField_(row, ['ageRange', '연령대']);
 
@@ -623,6 +625,8 @@ function isSameSubmissionContent_(row, validated) {
     normalizeConsultTypeForCompare_(rowConsult) === normalizeConsultTypeForCompare_(validated.consultType) &&
     normalizeSubmissionField_(rowDate) === normalizeSubmissionField_(validated.reserveDate) &&
     normalizeSubmissionField_(rowTime) === normalizeSubmissionField_(validated.reserveTime) &&
+    normalizeSubmissionField_(rowBirth) === normalizeSubmissionField_(validated.birthDate) &&
+    normalizeSubmissionField_(rowRegion) === normalizeSubmissionField_(validated.region) &&
     normalizeSubmissionField_(rowInquiry) === normalizeSubmissionField_(validated.inquiry) &&
     normalizeSubmissionField_(rowAge) === normalizeSubmissionField_(validated.ageRange)
   );

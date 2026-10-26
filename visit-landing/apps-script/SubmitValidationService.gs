@@ -43,13 +43,41 @@ function isBehaviorSuspicious_(params) {
   return false;
 }
 
-function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
+/**
+ * 접수 내용 지문 — 전부 같으면 중복, 하나라도 다르면 신규
+ * (이름·전화·평형·방문일·시간·생년월일·지역·문의·연령대)
+ */
+function submissionContentFingerprint_(siteCode, validated) {
+  var v = validated || {};
+  return [
+    String(siteCode || '').trim(),
+    normalizePhone_(v.phone),
+    normalizeSubmissionField_(v.name),
+    normalizeConsultTypeForCompare_(v.consultType),
+    normalizeSubmissionField_(v.reserveDate),
+    normalizeSubmissionField_(v.reserveTime),
+    normalizeSubmissionField_(v.birthDate),
+    normalizeSubmissionField_(v.region),
+    normalizeSubmissionField_(v.inquiry),
+    normalizeSubmissionField_(v.ageRange)
+  ].join('|');
+}
+
+/**
+ * 동일 현장 + 동일 접수내용(전부) 이 TTL 안에 정상/빠른접수로 있으면 중복.
+ * 전화만 같고 방문시간 등이 다르면 중복 아님.
+ */
+function hasIdenticalSubmissionWithin_(siteCode, validated, ttlSeconds) {
+  var phone = normalizePhoneStrict_(validated && validated.phone);
+  if (!siteCode || !phone) return false;
+
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'ph:' + siteCode + ':' + normalizedPhone;
+  var fp = submissionContentFingerprint_(siteCode, validated);
+  var cacheKey = 'phc:' + fp;
   if (cache.get(cacheKey)) return true;
 
   var cfg = SUBMIT_VALIDATION_CONFIG || {};
-  var negKey = 'ph0:' + siteCode + ':' + normalizedPhone;
+  var negKey = 'phc0:' + fp;
   if (cache.get(negKey)) return false;
 
   var maxRows = Number(cfg.VALIDATION_RECENT_SUBMISSION_ROWS) || 200;
@@ -63,7 +91,9 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
     if (rowSite !== siteCode) continue;
 
     var rowPhone = normalizePhoneStrictFromSheet_(getSiteField_(row, ['phone', '연락처']));
-    if (rowPhone !== normalizedPhone) continue;
+    if (rowPhone !== phone) continue;
+
+    if (!isSameSubmissionContent_(row, validated)) continue;
 
     var status = String(getSiteField_(row, ['validationStatus', '검증상태']) || '').trim();
     if (status && status !== '정상접수' && status !== '빠른접수') continue;
@@ -83,10 +113,10 @@ function hasPhoneDuplicateWithin_(siteCode, normalizedPhone, ttlSeconds) {
   return false;
 }
 
-function markPhoneSubmittedCache_(siteCode, normalizedPhone, ttlSeconds) {
-  if (!siteCode || !normalizedPhone) return;
+function markIdenticalSubmissionCache_(siteCode, validated, ttlSeconds) {
+  if (!siteCode || !validated || !validated.phone) return;
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'ph:' + siteCode + ':' + normalizedPhone;
+  var cacheKey = 'phc:' + submissionContentFingerprint_(siteCode, validated);
   cache.put(cacheKey, '1', Math.min(21600, Math.max(60, Number(ttlSeconds) || 86400)));
 }
 
@@ -221,8 +251,14 @@ function classifySubmission_(params, validated, siteCode, options) {
     bumpIpAttemptCache_(siteCode, clientIp, bulkWindow);
   }
 
-  if (hasPhoneDuplicateWithin_(siteCode, strictPhone, cfg.DUPLICATE_PHONE_TTL_SECONDS)) {
-    return buildSuspicionResult_('중복접수', 'phone_24h', elapsed);
+  if (
+    hasIdenticalSubmissionWithin_(
+      siteCode,
+      validated,
+      cfg.DUPLICATE_PHONE_TTL_SECONDS
+    )
+  ) {
+    return buildSuspicionResult_('중복접수', 'same_content_24h', elapsed);
   }
 
   if (!adSignal) {

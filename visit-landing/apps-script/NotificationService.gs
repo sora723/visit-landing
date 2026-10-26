@@ -103,7 +103,7 @@ function buildSubmissionNotificationPayload_(params) {
     reserveDisplay: sub.reserveDisplay || '미정',
     birthDate: sub.birthDate || '',
     region: sub.region || '',
-    trafficSource: sub.trafficSource || '직접유입',
+    trafficSource: sub.trafficSource != null ? String(sub.trafficSource).trim() : '',
     submittedAt: sub.submittedAt || new Date(),
     isTest: false,
     /** 비우면 Script Properties 공통 템플릿/채널 */
