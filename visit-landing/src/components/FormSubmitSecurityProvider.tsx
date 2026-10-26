@@ -14,7 +14,6 @@ import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
 
 const AD_STORAGE_PREFIX = "vl_ad_";
 /** 서버 토큰 TTL(10분) 직전 갱신해 오래 열린 탭의 정상 접수를 보호 */
-const FORM_TOKEN_REFRESH_AFTER_MS = 9 * 60 * 1000;
 
 type BehaviorStats = {
   inputFocusCount: number;
@@ -183,12 +182,12 @@ export function FormSubmitSecurityProvider({
   const buildSubmitExtras = useCallback(async () => {
     const stats = statsRef.current;
     const ad = adContext.current;
-    const elapsedMs = Date.now() - pageLoadedAt.current;
-    let submitToken = formToken;
-
-    if (!submitToken || elapsedMs >= FORM_TOKEN_REFRESH_AFTER_MS) {
-      submitToken = await issueFormToken();
-    }
+    /**
+     * 매 제출마다 새 토큰 발급.
+     * (성공 직후 방문시간만 바꿔 재접수할 때, 이미 소모된 토큰으로
+     *  토큰차단 나던 문제 방지. 서버에서 일회용 소모는 유지.)
+     */
+    const submitToken = await issueFormToken();
 
     return {
       formToken: submitToken,
@@ -212,7 +211,7 @@ export function FormSubmitSecurityProvider({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       language: typeof navigator !== "undefined" ? navigator.language : undefined,
     };
-  }, [formToken, issueFormToken]);
+  }, [issueFormToken]);
 
   const value = useMemo(
     () => ({
