@@ -25,6 +25,48 @@ function handleSubmit(params) {
   if (isNaN(submittedAt.getTime())) submittedAt = new Date();
   var elapsed = computeElapsedSeconds_(params);
 
+  /**
+   * 재시도 idempotent — 이미 검수중/최종 상태면 토큰 재검증·행 추가 없이 반환.
+   * (재시도가 토큰차단 행을 쌓으면 postProcess 가 최신 상태만 보고 스킵되던 버그 방지)
+   */
+  var existingStatus = getVerificationLogStatusBySubmissionId_(submissionId);
+  if (existingStatus === VERIFICATION_STATUS_PENDING || existingStatus === '검수중') {
+    writeLog_('SUBMIT_IDEMPOTENT', siteCode, '접수ID=' + submissionId + ', 기존=검수중');
+    return {
+      submissionId: submissionId,
+      submittedAt: submittedAt.toISOString(),
+      savedToVerificationLog: true,
+      needsPostProcess: true,
+      notificationQueued: true,
+      allowConversion: false,
+      savedToSubmissions: false,
+      includeInLiveFeed: false,
+      notificationSent: false,
+      validationStatus: existingStatus,
+      alreadyLogged: true
+    };
+  }
+  if (existingStatus) {
+    writeLog_(
+      'SUBMIT_IDEMPOTENT',
+      siteCode,
+      '접수ID=' + submissionId + ', 기존=' + existingStatus
+    );
+    return {
+      submissionId: submissionId,
+      submittedAt: submittedAt.toISOString(),
+      savedToVerificationLog: true,
+      needsPostProcess: false,
+      notificationQueued: false,
+      allowConversion: false,
+      savedToSubmissions: false,
+      includeInLiveFeed: false,
+      notificationSent: false,
+      validationStatus: existingStatus,
+      alreadyLogged: true
+    };
+  }
+
   /** 저비용 게이트 — 실패해도 _검증로그는 남기고 성공 UI (접수자 미노출) */
   var earlyStatus = '';
   var earlyReasons = '';

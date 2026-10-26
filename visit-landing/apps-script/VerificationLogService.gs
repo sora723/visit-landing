@@ -57,29 +57,18 @@ function appendVerificationLogRow_(row) {
   appendRowByHeaders_(SHEET_NAMES.VERIFICATION_LOG, row);
 }
 
-/** submissionId 로 최근 행을 찾아 컬럼 갱신 (postProcess용) */
+/** submissionId 로 행을 찾아 컬럼 갱신 (postProcess용) — 검수중 행 우선 */
 function updateVerificationLogBySubmissionId_(submissionId, fields) {
   var id = String(submissionId || '').trim();
   if (!id || !fields) return false;
 
+  var info = getVerificationLogStatusInfoBySubmissionId_(id);
+  var rowIndex = info.rowIndex;
+  if (rowIndex < 0) return false;
+
   ensureVerificationLogSheet_();
   var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
   var map = getHeaderIndexMap_(sheet);
-  var idCol = map.submissionId;
-  if (idCol === undefined) return false;
-
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return false;
-
-  var idValues = sheet.getRange(2, idCol + 1, lastRow, idCol + 1).getValues();
-  var rowIndex = -1;
-  for (var i = idValues.length - 1; i >= 0; i--) {
-    if (String(idValues[i][0] || '').trim() === id) {
-      rowIndex = i + 2;
-      break;
-    }
-  }
-  if (rowIndex < 0) return false;
 
   Object.keys(fields).forEach(function (header) {
     var col = map[header];
@@ -89,26 +78,69 @@ function updateVerificationLogBySubmissionId_(submissionId, fields) {
   return true;
 }
 
+/**
+ * submissionId 의 검증상태.
+ * 같은 ID로 재시도 행(토큰차단 등)이 뒤에 쌓여도, 아직 처리 가능한
+ * 「검수중」이 있으면 그걸 우선 — postProcess 가 스킵되지 않게.
+ */
 function getVerificationLogStatusBySubmissionId_(submissionId) {
+  var info = getVerificationLogStatusInfoBySubmissionId_(submissionId);
+  return info.status || '';
+}
+
+/** 같은 submissionId 행들 중 raw_payload 가 있는 첫 값 */
+function findRawPayloadBySubmissionId_(values, idCol, payloadCol, submissionId) {
+  if (payloadCol === undefined || idCol === undefined) return '';
   var id = String(submissionId || '').trim();
-  if (!id) return '';
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][idCol] || '').trim() !== id) continue;
+    var raw = String(values[i][payloadCol] || '').trim();
+    if (raw) return raw;
+  }
+  return '';
+}
+
+function getVerificationLogStatusInfoBySubmissionId_(submissionId) {
+  var id = String(submissionId || '').trim();
+  if (!id) return { status: '', rowIndex: -1 };
   ensureVerificationLogSheet_();
   var sheet = getSheet_(SHEET_NAMES.VERIFICATION_LOG);
   var map = getHeaderIndexMap_(sheet);
   var idCol = map.submissionId;
   var statusCol = map['검증상태'];
-  if (idCol === undefined || statusCol === undefined) return '';
+  if (idCol === undefined || statusCol === undefined) {
+    return { status: '', rowIndex: -1 };
+  }
 
   var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return '';
+  if (lastRow < 2) return { status: '', rowIndex: -1 };
 
-  var idValues = sheet.getRange(2, idCol + 1, lastRow, idCol + 1).getValues();
-  for (var i = idValues.length - 1; i >= 0; i--) {
-    if (String(idValues[i][0] || '').trim() === id) {
-      return String(sheet.getRange(i + 2, statusCol + 1).getValue() || '').trim();
+  var width = Math.max(idCol, statusCol) + 1;
+  var values = sheet.getRange(2, 1, lastRow, width).getValues();
+  var pendingRow = -1;
+  var pendingStatus = '';
+  var latestRow = -1;
+  var latestStatus = '';
+
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][idCol] || '').trim() !== id) continue;
+    var st = String(values[i][statusCol] || '').trim();
+    var rowIndex = i + 2;
+    if (latestRow < 0) {
+      latestRow = rowIndex;
+      latestStatus = st;
+    }
+    if (st === '검수중' || st === VERIFICATION_STATUS_PENDING) {
+      pendingRow = rowIndex;
+      pendingStatus = st;
+      break;
     }
   }
-  return '';
+
+  if (pendingRow > 0) {
+    return { status: pendingStatus || '검수중', rowIndex: pendingRow };
+  }
+  return { status: latestStatus, rowIndex: latestRow };
 }
 
 /**
@@ -470,6 +502,7 @@ function handleReprocessMissedSubmissions(params) {
 
   var recovered = [];
   var skipped = [];
+  var seenIds = {};
 
   for (var i = values.length - 1; i >= 0 && recovered.length < maxLimit; i--) {
     var row = values[i];
@@ -477,10 +510,28 @@ function handleReprocessMissedSubmissions(params) {
     var submissionId = String(row[iId] || '').trim();
 
     if (!submissionId) continue;
-    if (!FINAL_EXPECT_NOTIFY[status]) continue;
+    if (seenIds[submissionId]) continue;
+
+    var isPending = status === '검수중' || status === VERIFICATION_STATUS_PENDING;
+    var isFinalNotify = FINAL_EXPECT_NOTIFY[status] === true;
+    if (!isPending && !isFinalNotify) continue;
 
     // 이미 접수관리에 있는 경우 스킵
-    if (submissionIds[submissionId]) continue;
+    if (submissionIds[submissionId]) {
+      seenIds[submissionId] = true;
+      continue;
+    }
+
+    // 같은 ID에 검수중+토큰차단이 있으면 검수중만 처리
+    if (!isPending) {
+      var preferred = getVerificationLogStatusBySubmissionId_(submissionId);
+      if (preferred === '검수중' || preferred === VERIFICATION_STATUS_PENDING) {
+        isPending = true;
+        status = preferred;
+      }
+    }
+
+    seenIds[submissionId] = true;
 
     // 명시적 제외 대상 스킵
     if (excludeMap[submissionId]) {
@@ -489,6 +540,10 @@ function handleReprocessMissedSubmissions(params) {
     }
 
     var raw = iPayload !== undefined ? String(row[iPayload] || '').trim() : '';
+    if (!raw && isPending) {
+      // 검수중 행이 토큰차단보다 위에 있어 payload 가 비면, 같은 ID 다른 행에서 찾기
+      raw = findRawPayloadBySubmissionId_(values, iId, iPayload, submissionId);
+    }
     if (!raw) {
       skipped.push({ submissionId: submissionId, reason: 'NO_RAW_PAYLOAD' });
       continue;
@@ -503,10 +558,6 @@ function handleReprocessMissedSubmissions(params) {
         continue;
       }
 
-      var formType = getField_(siteRow, '폼타입') || 'simple';
-      var validated = validateSubmitParams_(rawPayload, formType);
-      var suspicionReasons = iReason !== undefined ? String(row[iReason] || '').trim() : '';
-
       var submittedAt = new Date();
       if (iTime !== undefined && row[iTime]) {
         var recTime = row[iTime];
@@ -516,47 +567,76 @@ function handleReprocessMissedSubmissions(params) {
 
       var notificationSent = false;
       var notifyError = '';
+      var savedToSubmissions = false;
+      var resultStatus = status;
 
-      if (sendNotification) {
-        var notifyResult = notifyManagerOnSubmission_(siteRow, validated, rawPayload);
-        notificationSent = notifyResult && notifyResult.success === true;
+      if (isPending) {
+        /** 정체 검수중 → 정상 postProcess (알림+접수관리) */
+        rawPayload.submissionId = submissionId;
+        rawPayload.submittedAt = submittedAt.toISOString();
+        rawPayload._skipPendingFlush = true;
+        var postResult = handleSubmitPostProcess(rawPayload);
+        notificationSent = postResult && postResult.notificationSent === true;
+        savedToSubmissions = postResult && postResult.savedToSubmissions === true;
+        resultStatus =
+          (postResult && postResult.validationStatus) || status;
         if (!notificationSent) {
-          notifyError = notifyResult && notifyResult.error ? notifyResult.error : 'NOTIFY_FAILED';
+          notifyError =
+            (postResult && postResult.error) || 'POSTPROCESS_NO_NOTIFY';
         }
+      } else {
+        var formType = getField_(siteRow, '폼타입') || 'simple';
+        var validated = validateSubmitParams_(rawPayload, formType);
+        var suspicionReasons = iReason !== undefined ? String(row[iReason] || '').trim() : '';
+
+        if (sendNotification) {
+          var notifyResult = notifyManagerOnSubmission_(siteRow, validated, rawPayload);
+          notificationSent = notifyResult && notifyResult.success === true;
+          if (!notificationSent) {
+            notifyError = notifyResult && notifyResult.error ? notifyResult.error : 'NOTIFY_FAILED';
+          }
+        }
+
+        appendSubmissionRow_(
+          siteRow,
+          validated,
+          submissionId,
+          submittedAt,
+          rawPayload,
+          {
+            validationStatus: status,
+            suspicionReasons: suspicionReasons,
+            skipMirror: false
+          }
+        );
+        savedToSubmissions = true;
       }
 
-      // 접수관리 시트 추가 및 미러링
-      var appendResult = appendSubmissionRow_(
-        siteRow,
-        validated,
-        submissionId,
-        submittedAt,
-        rawPayload,
-        {
-          validationStatus: status,
-          suspicionReasons: suspicionReasons,
-          skipMirror: false
-        }
-      );
-
-      submissionIds[submissionId] = true;
+      if (savedToSubmissions) {
+        submissionIds[submissionId] = true;
+      }
 
       writeLog_(
         'SUBMIT_REPROCESS_OK',
         siteCode,
         '접수ID=' + submissionId +
-          ', 상태=' + status +
-          ', 알림전송=' + (sendNotification ? (notificationSent ? 'OK' : 'FAIL(' + notifyError + ')') : 'SKIPPED') +
-          ', 접수관리=Y'
+          ', 상태=' + resultStatus +
+          ', 경로=' + (isPending ? 'postProcess' : 'direct') +
+          ', 알림전송=' +
+          ((sendNotification || isPending)
+            ? (notificationSent ? 'OK' : 'FAIL(' + notifyError + ')')
+            : 'SKIPPED') +
+          ', 접수관리=' + (savedToSubmissions ? 'Y' : 'N')
       );
 
       recovered.push({
         submissionId: submissionId,
         siteCode: siteCode,
-        name: validated.name,
-        phone: validated.phone,
-        status: status,
+        name: (rawPayload && rawPayload.name) || '',
+        phone: (rawPayload && rawPayload.phone) || '',
+        status: resultStatus,
         notificationSent: notificationSent,
+        savedToSubmissions: savedToSubmissions,
         notifyError: notifyError
       });
     } catch (err) {
