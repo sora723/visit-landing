@@ -123,6 +123,9 @@ function handleSubmit(params) {
 /**
  * POST action=submit.postProcess
  * _검증로그 이후: 검수 → 알림톡 → 알림 성공 시에만 접수관리(+현장미러)
+ *
+ * Netlify after/warm/flush 가 동시에 같은 submissionId 를 치면
+ * 카톡·접수관리가 N번 나가던 문제 → ScriptLock + 접수ID 존재 체크로 1회만.
  */
 function handleSubmitPostProcess(params) {
   var submissionId = String(params.submissionId || '').trim();
@@ -145,12 +148,108 @@ function handleSubmitPostProcess(params) {
     };
   }
 
+  var lock = LockService.getScriptLock();
+  var gotLock = false;
+  try {
+    gotLock = lock.tryLock(30000);
+  } catch (lockErr) {
+    gotLock = false;
+  }
+  if (!gotLock) {
+    writeLog_('POSTPROCESS_LOCK_BUSY', '', '접수ID=' + submissionId);
+    return {
+      submissionId: submissionId,
+      alreadyProcessed: true,
+      validationStatus: 'lock_busy',
+      notificationSent: false,
+      savedToSubmissions: false
+    };
+  }
+
+  var result;
+  try {
+    result = runSubmitPostProcessLocked_(params, submissionId);
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (releaseErr) {}
+  }
+
+  /** 락 밖에서 다른 검수중 flush — 중첩 lock 방지 */
+  if (result && params._skipPendingFlush !== true) {
+    try {
+      processPendingVerificationLogs_(3);
+    } catch (flushErr) {
+      writeLog_(
+        'POSTPROCESS_PENDING_FAIL',
+        '',
+        'afterSelfFlush ' + (flushErr.message || String(flushErr))
+      );
+    }
+  }
+
+  return result;
+}
+
+function postProcessDoneCacheKey_(submissionId) {
+  return 'ppdone:' + String(submissionId || '').trim();
+}
+
+function markPostProcessDone_(submissionId) {
+  try {
+    CacheService.getScriptCache().put(
+      postProcessDoneCacheKey_(submissionId),
+      '1',
+      21600
+    );
+  } catch (e) {}
+}
+
+function isPostProcessDoneCached_(submissionId) {
+  try {
+    return CacheService.getScriptCache().get(postProcessDoneCacheKey_(submissionId)) === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+function submissionIdExistsInSubmissions_(submissionId) {
+  var id = String(submissionId || '').trim();
+  if (!id) return false;
+  var set = loadSubmissionIdSet_();
+  return set[id] === true;
+}
+
+function runSubmitPostProcessLocked_(params, submissionId) {
+  if (isPostProcessDoneCached_(submissionId)) {
+    return {
+      submissionId: submissionId,
+      alreadyProcessed: true,
+      validationStatus: 'done_cache',
+      notificationSent: false,
+      savedToSubmissions: false
+    };
+  }
+
+  if (submissionIdExistsInSubmissions_(submissionId)) {
+    markPostProcessDone_(submissionId);
+    writeLog_('POSTPROCESS_SKIP_EXISTS', '', '접수ID=' + submissionId);
+    return {
+      submissionId: submissionId,
+      alreadyProcessed: true,
+      validationStatus: 'already_in_submissions',
+      notificationSent: false,
+      savedToSubmissions: true
+    };
+  }
+
   var existingStatus = getVerificationLogStatusBySubmissionId_(submissionId);
   if (
     existingStatus &&
     existingStatus !== VERIFICATION_STATUS_PENDING &&
     existingStatus !== '검수중'
   ) {
+    markPostProcessDone_(submissionId);
     return {
       submissionId: submissionId,
       alreadyProcessed: true,
@@ -189,6 +288,7 @@ function handleSubmitPostProcess(params) {
     }
   }
 
+  /** 상태를 먼저 확정 → 동시 flush 가 같은 건을 다시 집지 않게 */
   updateVerificationLogBySubmissionId_(submissionId, {
     '검증상태': validation.validationStatus,
     '의심사유': validation.suspicionReasons || '',
@@ -237,22 +337,29 @@ function handleSubmitPostProcess(params) {
     }
 
     if (notificationSent) {
-      appendSubmissionRow_(
-        siteRow,
-        validated,
-        submissionId,
-        submittedAt,
-        params,
-        {
-          validationStatus: validation.validationStatus,
-          suspicionReasons: validation.suspicionReasons,
-          skipMirror: false
-        }
-      );
-      savedToSubmissions = true;
-      mirrored = true;
+      if (submissionIdExistsInSubmissions_(submissionId)) {
+        savedToSubmissions = true;
+        writeLog_('POSTPROCESS_SKIP_DUP_APPEND', siteCode, '접수ID=' + submissionId);
+      } else {
+        appendSubmissionRow_(
+          siteRow,
+          validated,
+          submissionId,
+          submittedAt,
+          params,
+          {
+            validationStatus: validation.validationStatus,
+            suspicionReasons: validation.suspicionReasons,
+            skipMirror: false
+          }
+        );
+        savedToSubmissions = true;
+        mirrored = true;
+      }
     }
   }
+
+  markPostProcessDone_(submissionId);
 
   writeLog_(
     notificationSent ? 'SUBMIT_POST_OK' : 'SUBMIT_POST_SKIP',
@@ -266,19 +373,6 @@ function handleSubmitPostProcess(params) {
       ', 접수관리=' +
       (savedToSubmissions ? 'Y' : 'N')
   );
-
-  // 다른 정체 검수중을 소량 함께 처리 (재귀 방지: flush 경로는 _skipPendingFlush)
-  if (params._skipPendingFlush !== true) {
-    try {
-      processPendingVerificationLogs_(3);
-    } catch (flushErr) {
-      writeLog_(
-        'POSTPROCESS_PENDING_FAIL',
-        siteCode,
-        'afterSelfFlush ' + (flushErr.message || String(flushErr))
-      );
-    }
-  }
 
   return {
     submissionId: submissionId,
@@ -409,6 +503,16 @@ function validateSubmitParams_(params, formType, options) {
  */
 function appendSubmissionRow_(siteRow, data, submissionId, submittedAt, rawParams, options) {
   var opts = options || {};
+  var id = String(submissionId || '').trim();
+  if (id && !opts.forceDuplicate && submissionIdExistsInSubmissions_(id)) {
+    writeLog_(
+      'SUBMISSION_APPEND_SKIP',
+      getSiteCodeFromRow_(siteRow),
+      '이미 접수관리에 있음 id=' + id
+    );
+    return null;
+  }
+
   var rowData = buildSubmissionRowData_(
     siteRow,
     data,
