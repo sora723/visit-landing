@@ -220,17 +220,19 @@ function submissionIdExistsInSubmissions_(submissionId) {
   return set[id] === true;
 }
 
-function runSubmitPostProcessLocked_(params, submissionId) {
-  if (isPostProcessDoneCached_(submissionId)) {
-    return {
-      submissionId: submissionId,
-      alreadyProcessed: true,
-      validationStatus: 'done_cache',
-      notificationSent: false,
-      savedToSubmissions: false
-    };
-  }
+function isNotifyExpectedStatus_(status) {
+  var s = String(status || '').trim();
+  return (
+    s === '정상접수' ||
+    s === '빠른접수' ||
+    s === '허수의심' ||
+    s === '광고신호없음' ||
+    s === '중복접수'
+  );
+}
 
+function runSubmitPostProcessLocked_(params, submissionId) {
+  /** 접수관리에 이미 있으면 완전 종료 — 카톡/행 추가 없음 */
   if (submissionIdExistsInSubmissions_(submissionId)) {
     markPostProcessDone_(submissionId);
     writeLog_('POSTPROCESS_SKIP_EXISTS', '', '접수ID=' + submissionId);
@@ -243,11 +245,25 @@ function runSubmitPostProcessLocked_(params, submissionId) {
     };
   }
 
+  /**
+   * done 캐시만 있고 접수관리에 없으면 캐시 오인 → 무시하고 복구 진행
+   * (알림 실패 후 done 찍히던 옛 경로 대비)
+   */
+  if (isPostProcessDoneCached_(submissionId)) {
+    writeLog_('POSTPROCESS_DONE_CACHE_IGNORE', '', '접수ID=' + submissionId);
+  }
+
   var existingStatus = getVerificationLogStatusBySubmissionId_(submissionId);
+  /**
+   * 이미 최종 상태여도 접수관리에 없으면 알림·저장 복구 진행.
+   * (상태만 바뀌고 카톡/접수가 빠진 경우)
+   * 차단·허니팟 등 알림 비대상은 스킵.
+   */
   if (
     existingStatus &&
     existingStatus !== VERIFICATION_STATUS_PENDING &&
-    existingStatus !== '검수중'
+    existingStatus !== '검수중' &&
+    !isNotifyExpectedStatus_(existingStatus)
   ) {
     markPostProcessDone_(submissionId);
     return {
@@ -356,10 +372,25 @@ function runSubmitPostProcessLocked_(params, submissionId) {
         savedToSubmissions = true;
         mirrored = true;
       }
+    } else {
+      /**
+       * 알림 실패 → 다시 검수중으로 되돌려 flush/warm 이 재시도하게 함.
+       * done 캐시는 찍지 않음.
+       */
+      updateVerificationLogBySubmissionId_(submissionId, {
+        '검증상태': '검수중',
+        '의심사유':
+          String(validation.suspicionReasons || '').trim()
+            ? String(validation.suspicionReasons).trim() + ',notify_retry'
+            : 'notify_retry'
+      });
+      writeLog_('SUBMIT_POST_NOTIFY_FAIL', siteCode, '접수ID=' + submissionId);
     }
   }
 
-  markPostProcessDone_(submissionId);
+  if (savedToSubmissions || validation.shouldNotify !== true) {
+    markPostProcessDone_(submissionId);
+  }
 
   writeLog_(
     notificationSent ? 'SUBMIT_POST_OK' : 'SUBMIT_POST_SKIP',
