@@ -86,10 +86,53 @@ async function gasSubmitOnce(
   }
 }
 
+type GasPostProcessData = {
+  alreadyProcessed?: boolean;
+  excluded?: boolean;
+  validationStatus?: string;
+  shouldNotify?: boolean;
+  notificationSent?: boolean;
+  savedToSubmissions?: boolean;
+};
+
+/**
+ * postProcess HTTP success ≠ 접수·카톡 완료.
+ * lock_busy / 알림 미완이면 원장 유지해 warm이 재시도하게 함.
+ */
+function isPostProcessSettled_(data: GasPostProcessData | undefined): {
+  settled: boolean;
+  reason?: string;
+} {
+  if (!data) {
+    return { settled: false, reason: "empty_postProcess_data" };
+  }
+  if (data.excluded === true) {
+    return { settled: true };
+  }
+  const status = String(data.validationStatus || "").trim();
+  if (status === "lock_busy") {
+    return { settled: false, reason: "lock_busy" };
+  }
+  if (data.savedToSubmissions === true) {
+    return { settled: true };
+  }
+  /** 알림 대상인데 접수관리 미적재 — notify_retry / 부분실패 */
+  if (data.shouldNotify === true) {
+    return {
+      settled: false,
+      reason: data.notificationSent
+        ? "notify_ok_submissions_missing"
+        : "notify_pending",
+    };
+  }
+  /** shouldNotify false·차단·이미 처리 종료 */
+  return { settled: true };
+}
+
 async function gasPostProcessOnce(
   appsScriptUrl: string,
   record: PendingSubmissionRecord
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; settled: boolean; error?: string }> {
   try {
     const res = await postAppsScriptAction(
       appsScriptUrl,
@@ -103,18 +146,29 @@ async function gasPostProcessOnce(
     );
     const json = (await res.json()) as {
       success?: boolean;
+      data?: GasPostProcessData;
       error?: { message?: string };
     };
     if (json?.success !== true) {
       return {
         ok: false,
+        settled: false,
         error: json?.error?.message || "GAS postProcess failed",
       };
     }
-    return { ok: true };
+    const settle = isPostProcessSettled_(json.data);
+    if (!settle.settled) {
+      return {
+        ok: false,
+        settled: false,
+        error: settle.reason || "postProcess_incomplete",
+      };
+    }
+    return { ok: true, settled: true };
   } catch (err) {
     return {
       ok: false,
+      settled: false,
       error: err instanceof Error ? err.message : String(err),
     };
   }
@@ -179,16 +233,16 @@ export async function syncPendingSubmissionRecord(
 
   if (working.status === "sheet_logged" && needsPostProcess) {
     const post = await gasPostProcessOnce(appsScriptUrl, working);
-    if (!post.ok) {
+    if (!post.ok || !post.settled) {
       await updatePendingSubmission(working.submissionId, {
         lastError: post.error,
       });
       console.error(
-        "[sync-pending] postProcess failed (sheet kept)",
+        "[sync-pending] postProcess incomplete (pending kept)",
         working.submissionId,
         post.error
       );
-      // 검증로그는 남았으므로 원장 유지 — warm이 재시도
+      // 검증로그는 남았고 Blobs도 유지 — warm이 postProcess 재시도
       return { synced: true, error: post.error };
     }
   }
