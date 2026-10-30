@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -81,6 +82,8 @@ export function ConfigProvider({
   const router = useRouter();
   const pathname = usePathname();
   const [submitting, setSubmitting] = useState(false);
+  /** React state보다 먼저 잠금 — 연타로 UUID·카톡 N건 방지 */
+  const submittingLockRef = useRef(false);
   const [config, setConfig] = useState(initialConfig);
   const [contentSource, setContentSource] = useState(initialSource);
 
@@ -136,6 +139,10 @@ export function ConfigProvider({
 
   const submit = useCallback(
     async (input: ReservationSubmitInput, options?: { redirect?: boolean }) => {
+      if (submittingLockRef.current) {
+        return { success: false, message: "이미 접수 처리 중입니다" };
+      }
+      submittingLockRef.current = true;
       setSubmitting(true);
       try {
         const result = await submitReservation(
@@ -228,6 +235,7 @@ export function ConfigProvider({
           message: err instanceof Error ? err.message : "접수에 실패했습니다",
         };
       } finally {
+        submittingLockRef.current = false;
         setSubmitting(false);
       }
     },

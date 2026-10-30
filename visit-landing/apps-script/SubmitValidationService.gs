@@ -64,60 +64,154 @@ function submissionContentFingerprint_(siteCode, validated) {
 }
 
 /**
- * 동일 현장 + 동일 접수내용(전부) 이 TTL 안에 정상/빠른접수로 있으면 중복.
- * 전화만 같고 방문시간 등이 다르면 중복 아님.
+ * 알림·접수 이력이 있는 검증상태 — 동일내용 중복 판정에 포함.
+ * 검수중은 제외(동시 연타 시 서로 막아 카톡 0건 되는 것 방지).
+ * 동시성은 markIdenticalSubmissionCache_ claim 으로 막음.
  */
-function hasIdenticalSubmissionWithin_(siteCode, validated, ttlSeconds) {
+function isIdenticalMatchStatus_(status) {
+  var s = String(status || '').trim();
+  if (!s) return true;
+  return (
+    s === '정상접수' ||
+    s === '빠른접수' ||
+    s === '허수의심' ||
+    s === '광고신호없음' ||
+    s === '중복접수'
+  );
+}
+
+/**
+ * 동일 현장+동일 접수내용 최근 건 조회.
+ * options.submissionId — 자기 자신(재시도)은 중복으로 치지 않음.
+ * returns { hit, ageMs, reason } | null
+ */
+function findIdenticalSubmissionWithin_(siteCode, validated, ttlSeconds, options) {
+  var opts = options || {};
+  var currentId = String(opts.submissionId || '').trim();
   var phone = normalizePhoneStrict_(validated && validated.phone);
-  if (!siteCode || !phone) return false;
+  if (!siteCode || !phone) return null;
 
   var cache = CacheService.getScriptCache();
   var fp = submissionContentFingerprint_(siteCode, validated);
   var cacheKey = 'phc:' + fp;
-  if (cache.get(cacheKey)) return true;
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    if (currentId && String(cached) === currentId) {
+      /** 같은 submissionId 의 알림 재시도 — 중복 아님 */
+    } else {
+      return { hit: true, ageMs: 0, reason: 'same_content_cache' };
+    }
+  }
 
   var cfg = SUBMIT_VALIDATION_CONFIG || {};
   var negKey = 'phc0:' + fp;
-  if (cache.get(negKey)) return false;
+  if (cache.get(negKey)) return null;
 
-  var maxRows = Number(cfg.VALIDATION_RECENT_SUBMISSION_ROWS) || 200;
-  var rows = readRecentSheetObjects_(SHEET_NAMES.SUBMISSION, maxRows);
   var now = Date.now();
   var windowMs = (ttlSeconds || 86400) * 1000;
+  var bestAge = null;
 
-  for (var i = rows.length - 1; i >= 0; i--) {
-    var row = rows[i];
+  var maxSubRows = Number(cfg.VALIDATION_RECENT_SUBMISSION_ROWS) || 200;
+  var subRows = readRecentSheetObjects_(SHEET_NAMES.SUBMISSION, maxSubRows);
+  for (var i = subRows.length - 1; i >= 0; i--) {
+    var row = subRows[i];
     var rowSite = getSiteField_(row, ['siteCode', '현장코드']);
     if (rowSite !== siteCode) continue;
 
-    var rowPhone = normalizePhoneStrictFromSheet_(getSiteField_(row, ['phone', '연락처']));
-    if (rowPhone !== phone) continue;
+    var rowId = String(
+      getSiteField_(row, ['submissionId', '접수ID', 'id']) || ''
+    ).trim();
+    if (currentId && rowId && rowId === currentId) continue;
 
+    var rowPhone = normalizePhoneStrictFromSheet_(
+      getSiteField_(row, ['phone', '연락처'])
+    );
+    if (rowPhone !== phone) continue;
     if (!isSameSubmissionContent_(row, validated)) continue;
 
-    var status = String(getSiteField_(row, ['validationStatus', '검증상태']) || '').trim();
-    if (status && status !== '정상접수' && status !== '빠른접수') continue;
+    var status = String(
+      getSiteField_(row, ['validationStatus', '검증상태']) || ''
+    ).trim();
+    if (!isIdenticalMatchStatus_(status)) continue;
 
     var submittedAt = row['createdAt'] || row['접수일시'];
     if (!submittedAt) continue;
-    var submittedDate = submittedAt instanceof Date ? submittedAt : new Date(submittedAt);
+    var submittedDate =
+      submittedAt instanceof Date ? submittedAt : new Date(submittedAt);
     if (isNaN(submittedDate.getTime())) continue;
-    if (now - submittedDate.getTime() <= windowMs) {
-      /** CacheService 최대 6시간 — 24h 전체는 시트 최근행으로 보완 */
-      cache.put(cacheKey, '1', Math.min(21600, Math.max(60, ttlSeconds || 86400)));
-      return true;
+    var age = now - submittedDate.getTime();
+    if (age < 0) age = 0;
+    if (age <= windowMs && (bestAge === null || age < bestAge)) {
+      bestAge = age;
     }
   }
+
+  var maxLogRows = Number(cfg.VALIDATION_RECENT_LOG_ROWS) || 200;
+  var logRows = readRecentSheetObjects_(SHEET_NAMES.VERIFICATION_LOG, maxLogRows);
+  for (var j = logRows.length - 1; j >= 0; j--) {
+    var logRow = logRows[j];
+    var logSite = String(logRow.siteCode || logRow['현장코드'] || '').trim();
+    if (logSite !== siteCode) continue;
+
+    var logId = String(logRow.submissionId || logRow['접수ID'] || '').trim();
+    if (currentId && logId && logId === currentId) continue;
+
+    var logPhone = normalizePhoneStrictFromSheet_(
+      logRow['정규화연락처'] || logRow['연락처'] || logRow.phone || ''
+    );
+    if (logPhone !== phone) continue;
+    if (!isSameSubmissionContent_(logRow, validated)) continue;
+
+    var logStatus = String(logRow['검증상태'] || '').trim();
+    if (!isIdenticalMatchStatus_(logStatus)) continue;
+
+    var recorded = logRow['기록시간'] || logRow.createdAt || logRow['접수일시'];
+    var recordedMs = parseSheetDateMs_(recorded);
+    if (isNaN(recordedMs)) continue;
+    var logAge = now - recordedMs;
+    if (logAge < 0) logAge = 0;
+    if (logAge <= windowMs && (bestAge === null || logAge < bestAge)) {
+      bestAge = logAge;
+    }
+  }
+
+  if (bestAge !== null) {
+    cache.put(
+      cacheKey,
+      currentId || '1',
+      Math.min(21600, Math.max(60, ttlSeconds || 86400))
+    );
+    var notifyBlockMs =
+      (Number(cfg.IDENTICAL_CONTENT_NOTIFY_BLOCK_SECONDS) || 600) * 1000;
+    return {
+      hit: true,
+      ageMs: bestAge,
+      reason:
+        bestAge <= notifyBlockMs ? 'same_content_10m' : 'same_content_24h'
+    };
+  }
+
   var negTtl = Number(cfg.DUPLICATE_PHONE_NEGATIVE_CACHE_SECONDS) || 300;
   cache.put(negKey, '1', Math.min(21600, Math.max(60, negTtl)));
-  return false;
+  return null;
 }
 
-function markIdenticalSubmissionCache_(siteCode, validated, ttlSeconds) {
+function hasIdenticalSubmissionWithin_(siteCode, validated, ttlSeconds, options) {
+  return !!findIdenticalSubmissionWithin_(siteCode, validated, ttlSeconds, options);
+}
+
+/**
+ * 알림 직전 claim — 동시 postProcess 연타 시 첫 건만 카톡.
+ * 값은 submissionId (같은 ID 재시도는 통과).
+ */
+function markIdenticalSubmissionCache_(siteCode, validated, ttlSeconds, submissionId) {
   if (!siteCode || !validated || !validated.phone) return;
   var cache = CacheService.getScriptCache();
   var cacheKey = 'phc:' + submissionContentFingerprint_(siteCode, validated);
-  cache.put(cacheKey, '1', Math.min(21600, Math.max(60, Number(ttlSeconds) || 86400)));
+  var existing = cache.get(cacheKey);
+  var id = String(submissionId || '').trim() || '1';
+  if (existing && existing !== id && existing !== '1') return;
+  cache.put(cacheKey, id, Math.min(21600, Math.max(60, Number(ttlSeconds) || 86400)));
 }
 
 function parseSheetDateMs_(value) {
@@ -213,6 +307,9 @@ function classifySubmission_(params, validated, siteCode, options) {
   var adSignal = hasAdTrafficSignal_(params);
   var behaviorSuspicious = isBehaviorSuspicious_(params);
   var clientIp = normalizeClientIp_(params.clientIp);
+  var submissionId = String(
+    opts.submissionId || params.submissionId || ''
+  ).trim();
 
   if (!opts.skipHoneypot && String(params.company || '').trim()) {
     return buildValidationResult_('허니팟차단', 'honeypot', false, false, elapsed);
@@ -251,14 +348,30 @@ function classifySubmission_(params, validated, siteCode, options) {
     bumpIpAttemptCache_(siteCode, clientIp, bulkWindow);
   }
 
-  if (
-    hasIdenticalSubmissionWithin_(
-      siteCode,
-      validated,
-      cfg.DUPLICATE_PHONE_TTL_SECONDS
-    )
-  ) {
-    return buildSuspicionResult_('중복접수', 'same_content_24h', elapsed);
+  var identical = findIdenticalSubmissionWithin_(
+    siteCode,
+    validated,
+    cfg.DUPLICATE_PHONE_TTL_SECONDS,
+    { submissionId: submissionId }
+  );
+  if (identical && identical.hit) {
+    var notifyBlockSec =
+      Number(cfg.IDENTICAL_CONTENT_NOTIFY_BLOCK_SECONDS) || 600;
+    var withinNotifyBlock =
+      identical.ageMs == null || identical.ageMs <= notifyBlockSec * 1000;
+    var dupReason = withinNotifyBlock
+      ? identical.reason === 'same_content_cache'
+        ? 'same_content_10m'
+        : identical.reason || 'same_content_10m'
+      : 'same_content_24h';
+    return buildValidationResult_(
+      '중복접수',
+      dupReason,
+      false,
+      true,
+      elapsed,
+      { shouldNotify: !withinNotifyBlock }
+    );
   }
 
   if (!adSignal) {

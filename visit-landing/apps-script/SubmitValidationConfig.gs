@@ -7,8 +7,13 @@ var SUBMIT_VALIDATION_CONFIG = {
   LONG_STAY_MARK_SECONDS: 1800,
   FAST_SUBMIT_SECONDS: 7,
   VERY_FAST_SUBMIT_SECONDS: 2,
-  /** 동일 접수내용(전부 일치) 재접수 차단 창 — 하나라도 다르면 허용 */
+  /** 동일 접수내용(전부 일치) 재접수 판정 창 — 하나라도 다르면 허용 */
   DUPLICATE_PHONE_TTL_SECONDS: 86400,
+  /**
+   * 동일 내용이 이 시간 안에 이미 접수(알림 대상)된 경우 → 중복 + 카톡 미발송
+   * (연타·다중 탭으로 카톡 N번 가는 피로 방지)
+   */
+  IDENTICAL_CONTENT_NOTIFY_BLOCK_SECONDS: 600,
   ENABLE_FAST_SUBMIT_CONVERSION: true,
   REQUIRE_AD_SIGNAL_FOR_CONVERSION: true,
   /** 동일 IP · 동일 현장 — 짧은 시간 대량 접수 제한 (GFA 명의DB 묶음 공격 대응) */

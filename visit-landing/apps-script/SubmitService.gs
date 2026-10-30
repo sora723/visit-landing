@@ -284,7 +284,8 @@ function runSubmitPostProcessLocked_(params, submissionId) {
 
   var validation = classifySubmission_(params, validated, siteCode, {
     skipTokenConsume: true,
-    skipHoneypot: true
+    skipHoneypot: true,
+    submissionId: submissionId
   });
   var longStaySeconds =
     Number(
@@ -315,20 +316,17 @@ function runSubmitPostProcessLocked_(params, submissionId) {
   });
 
   /**
-   * 중기: 알림 성공 전에 「동일 내용」 중복 캐시 기록 —
-   * 전화만 같고 방문시간 등이 다르면 별도 접수로 허용.
+   * 알림 직전 동일내용 claim — 허수의심 포함.
+   * ScriptLock 아래에서 첫 건만 통과, 10분 안 연타는 중복(카톡X).
    */
-  if (
-    validation.validationStatus === '정상접수' ||
-    validation.validationStatus === '빠른접수' ||
-    validation.validationStatus === '중복접수'
-  ) {
+  if (validation.shouldNotify === true) {
     markIdenticalSubmissionCache_(
       siteCode,
       validated,
       (SUBMIT_VALIDATION_CONFIG &&
         SUBMIT_VALIDATION_CONFIG.DUPLICATE_PHONE_TTL_SECONDS) ||
-        86400
+        86400,
+      submissionId
     );
   }
 
