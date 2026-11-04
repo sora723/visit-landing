@@ -54,7 +54,13 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
       ? live.conversionTracking
       : EMPTY_CONVERSION_TRACKING;
   const naverLeadHtml = tracking.naverConversionScript?.trim() || "";
-  const fireNaverLead = Boolean(verified && submissionId && naverLeadHtml);
+  /**
+   * GFA/CTS는 사이트맵의 `/complete`(쿼리 없음)를 열어 lead 문자열을 찾음.
+   * verified 없을 때도 lead 패턴은 SSR에 항상 노출하고,
+   * 실제 wcs.trans 는 접수 완료(verified+submissionId)일 때만 호출.
+   */
+  const embedNaverLead = Boolean(naverLeadHtml);
+  const fireNaverLeadTrans = Boolean(verified && submissionId && naverLeadHtml);
   const ownershipRaw =
     live.source === "sheet"
       ? live.ownershipVerification.ownershipRawHtml?.trim() || ""
@@ -66,17 +72,18 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
   );
   const ownershipWaId = isNaverWaId(ownershipRaw) ? ownershipRaw : null;
   const showNaverPvOnly =
-    !fireNaverLead &&
+    !embedNaverLead &&
     Boolean(ownershipRaw && ownershipHtmlIsNaver(ownershipRaw));
 
   return (
     <>
-      {fireNaverLead ? (
+      {embedNaverLead ? (
         <NaverLeadSyncScripts
           html={naverLeadHtml}
-          submissionId={submissionId!}
+          submissionId={submissionId}
           inflowDomain={inflowDomain}
           ownershipWaId={ownershipWaId}
+          fireTrans={fireNaverLeadTrans}
         />
       ) : showNaverPvOnly ? (
         <NaverCommonPvScripts
@@ -92,7 +99,7 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
         conversionAllowed={verified}
         autoReturn={autoReturn}
         returnTo={returnTo || homeHref}
-        skipNaverConversion={fireNaverLead}
+        skipNaverConversion={embedNaverLead}
       />
     </>
   );
