@@ -53,14 +53,7 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
     live.source === "sheet"
       ? live.conversionTracking
       : EMPTY_CONVERSION_TRACKING;
-  const naverLeadHtml = tracking.naverConversionScript?.trim() || "";
-  /**
-   * GFA/CTS는 사이트맵의 `/complete`(쿼리 없음)를 열어 lead 문자열을 찾음.
-   * verified 없을 때도 lead 패턴은 SSR에 항상 노출하고,
-   * 실제 wcs.trans 는 접수 완료(verified+submissionId)일 때만 호출.
-   */
-  const embedNaverLead = Boolean(naverLeadHtml);
-  const fireNaverLeadTrans = Boolean(verified && submissionId && naverLeadHtml);
+  const naverLeadOptIn = Boolean(tracking.naverConversionScript?.trim());
   const ownershipRaw =
     live.source === "sheet"
       ? live.ownershipVerification.ownershipRawHtml?.trim() || ""
@@ -70,27 +63,26 @@ export default async function CompletePage({ searchParams }: CompletePageProps) 
     live.domain,
     readHostnameFromHeaders(hdrs)
   );
-  const ownershipWaId = isNaverWaId(ownershipRaw) ? ownershipRaw : null;
-  const showNaverPvOnly =
-    !embedNaverLead &&
-    Boolean(ownershipRaw && ownershipHtmlIsNaver(ownershipRaw));
+  /** lead WA — 소유확인코드만. 없거나 WA 아니면 빈 문자열 */
+  const ownershipWaId = isNaverWaId(ownershipRaw) ? ownershipRaw : "";
+  const hasNaverOwnership = Boolean(
+    ownershipRaw && ownershipHtmlIsNaver(ownershipRaw)
+  );
+  /**
+   * 기본 lead 평문 설치: naverConversionScript 옵트인 또는 네이버 소유확인.
+   * 본문은 고정, WA 는 소유확인코드(없으면 '').
+   */
+  const embedNaverLead = naverLeadOptIn || hasNaverOwnership;
 
   return (
     <>
-      {embedNaverLead ? (
-        <NaverLeadSyncScripts
-          html={naverLeadHtml}
-          submissionId={submissionId}
-          inflowDomain={inflowDomain}
-          ownershipWaId={ownershipWaId}
-          fireTrans={fireNaverLeadTrans}
-        />
-      ) : showNaverPvOnly ? (
+      {hasNaverOwnership ? (
         <NaverCommonPvScripts
           html={ownershipRaw}
           inflowDomain={inflowDomain}
         />
       ) : null}
+      {embedNaverLead ? <NaverLeadSyncScripts waId={ownershipWaId} /> : null}
       <CompletePageClient
         siteName={config.siteName}
         homeHref={homeHref}
