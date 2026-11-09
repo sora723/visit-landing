@@ -37,18 +37,29 @@ export function prefersCompletePageConversion(
 
 /**
  * 접수 성공 UI 직후 광고 픽셀 전환 여부.
- * submit 동기 응답의 allowConversion(항상 false)과 분리 —
- * 조기 차단(허니팟/토큰)만 제외하고 완료 페이지에서 전환한다.
+ * sheet-first(submit.full)는 allowConversion 을 신뢰.
+ * 레거시 Blobs ack 는 needsPostProcess(조기차단 아님)로 판정.
  */
 export function shouldFireClientConversion(result: {
   submissionId?: string;
   needsPostProcess?: boolean;
+  allowConversion?: boolean;
   validationStatus?: string;
 }): boolean {
   if (!result.submissionId) return false;
-  if (result.needsPostProcess === false) return false;
   const status = String(result.validationStatus || "").trim();
-  if (status === "허니팟차단" || status === "토큰차단") return false;
+  if (
+    status === "허니팟차단" ||
+    status === "토큰차단" ||
+    status === "IP대량차단" ||
+    status === "중복접수"
+  ) {
+    return false;
+  }
+  if (typeof result.allowConversion === "boolean") {
+    return result.allowConversion;
+  }
+  if (result.needsPostProcess === false) return false;
   return true;
 }
 

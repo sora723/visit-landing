@@ -3,9 +3,9 @@
  * VisitLanding — submit
  *
  * 흐름:
- *   1) Netlify가 즉시 수락(완료 UI) → after()로 action=submit
- *   2) action=submit → _검증로그 저장 (submissionId는 Netlify 발급값 우선)
- *   3) action=submit.postProcess → 검수 → 알림톡 → (알림 성공 건만) 접수관리
+ *   1) action=submit.full (권장) 또는 submit → _검증로그
+ *   2) action=submit.postProcess → 접수관리 저장 → 알림톡
+ *      (동일내용 연타만 알림 스킵. 행동/광고신호 검수 없음)
  */
 
 var DUPLICATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 기본 120분, 현장별 설정 우선
@@ -121,10 +121,53 @@ function handleSubmit(params) {
 }
 
 /**
+ * POST action=submit.full
+ * _검증로그 → 접수관리 → 알림톡 을 한 요청에서 처리 (시트 우선).
+ */
+function handleSubmitFull(params) {
+  var submitResult = handleSubmit(params);
+  if (!submitResult || submitResult.needsPostProcess !== true) {
+    return submitResult;
+  }
+  var postParams = {};
+  var keys = Object.keys(params || {});
+  for (var i = 0; i < keys.length; i++) {
+    postParams[keys[i]] = params[keys[i]];
+  }
+  postParams.submissionId = submitResult.submissionId;
+  postParams.submittedAt = submitResult.submittedAt;
+  postParams._skipPendingFlush = true;
+  var postResult = handleSubmitPostProcess(postParams);
+  return {
+    submissionId: submitResult.submissionId,
+    submittedAt: submitResult.submittedAt,
+    savedToVerificationLog: true,
+    needsPostProcess: false,
+    notificationQueued: false,
+    allowConversion:
+      postResult && postResult.allowConversion === true
+        ? true
+        : submitResult.allowConversion === true,
+    savedToSubmissions:
+      postResult && postResult.savedToSubmissions === true,
+    includeInLiveFeed:
+      postResult && postResult.includeInLiveFeed === true,
+    notificationSent:
+      postResult && postResult.notificationSent === true,
+    validationStatus:
+      (postResult && postResult.validationStatus) ||
+      submitResult.validationStatus,
+    shouldNotify: postResult && postResult.shouldNotify === true,
+    mirrored: postResult && postResult.mirrored === true,
+    alreadyLogged: submitResult.alreadyLogged === true
+  };
+}
+
+/**
  * POST action=submit.postProcess
- * _검증로그 이후: 검수 → 알림톡 → 알림 성공 시에만 접수관리(+현장미러)
+ * _검증로그 이후: 접수관리 → 알림톡
  *
- * Netlify after/warm/flush 가 동시에 같은 submissionId 를 치면
+ * Netlify/warm/flush 가 동시에 같은 submissionId 를 치면
  * 카톡·접수관리가 N번 나가던 문제 → ScriptLock + 접수ID 존재 체크로 1회만.
  */
 function handleSubmitPostProcess(params) {
@@ -316,8 +359,7 @@ function runSubmitPostProcessLocked_(params, submissionId) {
   });
 
   /**
-   * 알림 직전 동일내용 claim — 허수의심 포함.
-   * ScriptLock 아래에서 첫 건만 통과, 10분 안 연타는 중복(카톡X).
+   * 동일내용 claim — ScriptLock 아래 첫 건만 통과, 연타는 중복(카톡X).
    */
   if (validation.shouldNotify === true) {
     markIdenticalSubmissionCache_(
@@ -335,10 +377,30 @@ function runSubmitPostProcessLocked_(params, submissionId) {
   var mirrored = false;
 
   if (validation.shouldNotify === true) {
+    /** 시트(접수관리) 먼저 → 그다음 알림 */
+    if (submissionIdExistsInSubmissions_(submissionId)) {
+      savedToSubmissions = true;
+      writeLog_('POSTPROCESS_SKIP_DUP_APPEND', siteCode, '접수ID=' + submissionId);
+    } else {
+      appendSubmissionRow_(
+        siteRow,
+        validated,
+        submissionId,
+        submittedAt,
+        params,
+        {
+          validationStatus: validation.validationStatus,
+          suspicionReasons: validation.suspicionReasons,
+          skipMirror: false
+        }
+      );
+      savedToSubmissions = true;
+      mirrored = true;
+    }
+
     var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
     notificationSent = notificationResult && notificationResult.success === true;
 
-    // 일시 오류 대비 1회 재시도
     if (!notificationSent) {
       try {
         Utilities.sleep(400);
@@ -347,45 +409,13 @@ function runSubmitPostProcessLocked_(params, submissionId) {
       notificationSent = notificationResult && notificationResult.success === true;
       if (notificationSent) {
         writeLog_('NOTIFICATION_RETRY_OK', siteCode, '접수ID=' + submissionId);
-      }
-    }
-
-    if (notificationSent) {
-      if (submissionIdExistsInSubmissions_(submissionId)) {
-        savedToSubmissions = true;
-        writeLog_('POSTPROCESS_SKIP_DUP_APPEND', siteCode, '접수ID=' + submissionId);
       } else {
-        appendSubmissionRow_(
-          siteRow,
-          validated,
-          submissionId,
-          submittedAt,
-          params,
-          {
-            validationStatus: validation.validationStatus,
-            suspicionReasons: validation.suspicionReasons,
-            skipMirror: false
-          }
-        );
-        savedToSubmissions = true;
-        mirrored = true;
+        writeLog_('SUBMIT_POST_NOTIFY_FAIL', siteCode, '접수ID=' + submissionId);
       }
-    } else {
-      /**
-       * 알림 실패 → 다시 검수중으로 되돌려 flush/warm 이 재시도하게 함.
-       * done 캐시는 찍지 않음.
-       */
-      updateVerificationLogBySubmissionId_(submissionId, {
-        '검증상태': '검수중',
-        '의심사유':
-          String(validation.suspicionReasons || '').trim()
-            ? String(validation.suspicionReasons).trim() + ',notify_retry'
-            : 'notify_retry'
-      });
-      writeLog_('SUBMIT_POST_NOTIFY_FAIL', siteCode, '접수ID=' + submissionId);
     }
   }
 
+  /** 시트 반영되면 완료 — 알림 실패해도 검수중으로 되돌리지 않음 */
   if (savedToSubmissions || validation.shouldNotify !== true) {
     markPostProcessDone_(submissionId);
   }
@@ -410,7 +440,7 @@ function runSubmitPostProcessLocked_(params, submissionId) {
     shouldNotify: validation.shouldNotify === true,
     notificationSent: notificationSent,
     savedToSubmissions: savedToSubmissions,
-    includeInLiveFeed: notificationSent,
+    includeInLiveFeed: savedToSubmissions,
     mirrored: mirrored
   };
 }

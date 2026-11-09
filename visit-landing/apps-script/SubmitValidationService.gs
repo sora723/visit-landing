@@ -298,14 +298,14 @@ function buildBulkIpBlockResult_(elapsed, count, maxCount, windowSeconds) {
 /**
  * options.skipTokenConsume — submit에서 이미 토큰 소모한 뒤 postProcess용
  * options.skipHoneypot — submit에서 이미 허니팟 처리한 뒤
+ *
+ * 정책: 허니팟·토큰·전화·명시 IP차단·동일내용 연타(알림 블록창)만 막음.
+ * 그 외 행동/광고신호/빠른접수 검수는 하지 않고 알림·접수관리로 보냄.
  */
 function classifySubmission_(params, validated, siteCode, options) {
   var opts = options || {};
   var cfg = SUBMIT_VALIDATION_CONFIG;
-  var reasons = [];
   var elapsed = computeElapsedSeconds_(params);
-  var adSignal = hasAdTrafficSignal_(params);
-  var behaviorSuspicious = isBehaviorSuspicious_(params);
   var clientIp = normalizeClientIp_(params.clientIp);
   var submissionId = String(
     opts.submissionId || params.submissionId || ''
@@ -328,25 +328,6 @@ function classifySubmission_(params, validated, siteCode, options) {
     return buildValidationResult_('오류', 'invalid_phone', false, false, elapsed);
   }
   validated.phone = strictPhone;
-
-  var bulkWindow = Number(cfg.BULK_IP_WINDOW_SECONDS) || 600;
-  var bulkMax = Number(cfg.BULK_IP_MAX_COUNT) || 3;
-  if (clientIp && bulkMax > 0) {
-    var recentIpCount = countIpAttemptsWithin_(siteCode, clientIp, bulkWindow);
-    if (recentIpCount >= bulkMax) {
-      bumpIpAttemptCache_(siteCode, clientIp, bulkWindow);
-      registerTemporaryIpBlockFromBulk_(
-        clientIp,
-        siteCode,
-        recentIpCount,
-        bulkMax,
-        bulkWindow
-      );
-      return buildBulkIpBlockResult_(elapsed, recentIpCount, bulkMax, bulkWindow);
-    }
-    /** 이번 시도 반영 — 검증로그 비동기여도 4건째 차단 유지 */
-    bumpIpAttemptCache_(siteCode, clientIp, bulkWindow);
-  }
 
   var identical = findIdenticalSubmissionWithin_(
     siteCode,
@@ -374,40 +355,14 @@ function classifySubmission_(params, validated, siteCode, options) {
     );
   }
 
-  if (!adSignal) {
-    reasons.push('no_ad_signal');
-    if (behaviorSuspicious) reasons.push('behavior');
-    if (elapsed != null && elapsed <= cfg.VERY_FAST_SUBMIT_SECONDS) reasons.push('very_fast');
-    if (
-      !cfg.REQUIRE_AD_SIGNAL_FOR_CONVERSION &&
-      !behaviorSuspicious &&
-      elapsed != null &&
-      elapsed >= cfg.FAST_SUBMIT_SECONDS
-    ) {
-      return buildValidationResult_('정상접수', reasons.join(','), true, true, elapsed);
-    }
-    var noAdStatus = behaviorSuspicious ? '허수의심' : '광고신호없음';
-    return buildSuspicionResult_(noAdStatus, reasons.join(','), elapsed);
-  }
-
-  reasons.push('ad_signal');
-  if (
-    (elapsed != null && elapsed <= cfg.VERY_FAST_SUBMIT_SECONDS) ||
-    behaviorSuspicious
-  ) {
-    if (elapsed != null && elapsed <= cfg.VERY_FAST_SUBMIT_SECONDS) reasons.push('very_fast');
-    if (behaviorSuspicious) reasons.push('behavior');
-    return buildSuspicionResult_('허수의심', reasons.join(','), elapsed);
-  }
-
-  if (elapsed != null && elapsed < cfg.FAST_SUBMIT_SECONDS) {
-    reasons.push('fast_submit');
-    var allowFast = cfg.ENABLE_FAST_SUBMIT_CONVERSION === true;
-    return buildValidationResult_('빠른접수', reasons.join(','), allowFast, true, elapsed);
-  }
-
-  reasons.push('normal_timing');
-  return buildValidationResult_('정상접수', reasons.join(','), true, true, elapsed);
+  return buildValidationResult_(
+    '정상접수',
+    'pass_through',
+    true,
+    true,
+    elapsed,
+    { shouldNotify: true }
+  );
 }
 
 function buildSuspicionResult_(status, reasons, elapsed) {

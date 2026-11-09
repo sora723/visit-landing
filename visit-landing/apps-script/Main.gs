@@ -51,6 +51,9 @@ function routeAction_(action, params) {
     case 'submit':
       return handleSubmit(params);
 
+    case 'submit.full':
+      return handleSubmitFull(params);
+
     case 'submit.postProcess':
       return handleSubmitPostProcess(params);
 

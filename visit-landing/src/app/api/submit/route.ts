@@ -7,23 +7,17 @@ import {
   FORM_TOKEN_HMAC_SECRET_ENV,
   verifyFormToken,
 } from "@/lib/form-token";
-import {
-  savePendingSubmission,
-  type PendingSubmissionRecord,
-} from "@/lib/pending-submission-store";
 import { normalizeBirthDate } from "@/lib/birth-date";
 import { resolveRequestSiteCode } from "@/lib/resolve-site-code";
-import {
-  flushPendingSubmissions,
-  syncPendingSubmissionRecord,
-} from "@/lib/sync-pending-submission";
+import { flushPendingSubmissions } from "@/lib/sync-pending-submission";
 
 export const dynamic = "force-dynamic";
-/** after() 시트 동기화·재시도 여유 */
+/** 시트 저장 + 알림까지 동기 대기 */
 export const maxDuration = 60;
 
 const DEMO_BLOCK_MS = 120 * 60 * 1000;
 const NO_STORE = { "Cache-Control": API_NO_STORE_CACHE_CONTROL };
+const APPS_SCRIPT_FULL_TIMEOUT_MS = 45_000;
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
@@ -43,26 +37,13 @@ function normalizePhone(raw: unknown): string {
   return String(raw ?? "").replace(/\D/g, "").slice(0, 11);
 }
 
-/**
- * 임시 원장 확보 후 백그라운드:
- * 1) 해당 건 GAS 동기화(재시도)
- * 2) 잔여 pending flush
- */
-function scheduleSheetSync(record: PendingSubmissionRecord) {
+/** 과거 Blobs pending 잔여분 정리 — 신규 접수의 성공 경로에는 관여하지 않음 */
+function scheduleLegacyPendingFlush() {
   after(async () => {
-    try {
-      await syncPendingSubmissionRecord(record);
-    } catch (err) {
-      console.error(
-        "[api/submit] background sync failed",
-        record.submissionId,
-        err
-      );
-    }
     try {
       await flushPendingSubmissions(5);
     } catch (err) {
-      console.error("[api/submit] background pending flush failed", err);
+      console.error("[api/submit] legacy pending flush failed", err);
     }
   });
 }
@@ -99,7 +80,7 @@ function handleDemoSubmit(
         submissionId: `demo-${Date.now()}`,
         demo: true,
         savedToVerificationLog: true,
-        savedToPendingStore: true,
+        savedToPendingStore: false,
         needsPostProcess: false,
         notificationSent: false,
         allowConversion: false,
@@ -123,8 +104,8 @@ function handleDemoSubmit(
 }
 
 /**
- * 조기 차단 여부(전환 픽셀용). 실제 차단 기록·검증로그는 GAS submit이 수행.
- * HMAC 토큰은 Netlify에서 사전 검증 가능.
+ * 조기 차단(허니팟·토큰) — 전환 픽셀 억제용.
+ * 실제 차단·검증로그는 GAS submit.full 이 수행.
  */
 function resolveEarlyGate(
   body: Record<string, unknown>,
@@ -147,6 +128,18 @@ function resolveEarlyGate(
 
   return { needsPostProcess: true, validationStatus: "검수중" };
 }
+
+type GasFullData = {
+  submissionId?: string;
+  submittedAt?: string;
+  savedToVerificationLog?: boolean;
+  needsPostProcess?: boolean;
+  notificationSent?: boolean;
+  allowConversion?: boolean;
+  savedToSubmissions?: boolean;
+  includeInLiveFeed?: boolean;
+  validationStatus?: string;
+};
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -217,11 +210,9 @@ export async function POST(request: NextRequest) {
   const submissionId = randomUUID();
   const submittedAt = new Date().toISOString();
   const earlyGate = resolveEarlyGate(body, siteCode);
-  const needsPostProcess = earlyGate.needsPostProcess;
-  const nowIso = submittedAt;
 
   const payload: Record<string, unknown> = {
-    action: "submit",
+    action: "submit.full",
     siteCode,
     submissionId,
     submittedAt,
@@ -260,59 +251,81 @@ export async function POST(request: NextRequest) {
     clientIp,
   };
 
-  const pendingRecord: PendingSubmissionRecord = {
-    submissionId,
-    siteCode,
-    submittedAt,
-    needsPostProcess,
-    payload,
-    status: "pending",
-    attempts: 0,
-    createdAt: nowIso,
-    updatedAt: nowIso,
+  let gasJson: {
+    success?: boolean;
+    data?: GasFullData;
+    error?: { message?: string; code?: string };
   };
 
   try {
-    await savePendingSubmission(pendingRecord);
+    const res = await fetch(appsScriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      signal: AbortSignal.timeout(APPS_SCRIPT_FULL_TIMEOUT_MS),
+    });
+    gasJson = (await res.json()) as typeof gasJson;
   } catch (err) {
-    console.error("[api/submit] pending store save failed", err);
+    console.error("[api/submit] GAS submit.full failed", err);
     return NextResponse.json(
       {
         success: false,
         data: null,
         error: {
-          code: "PENDING_STORE_ERROR",
+          code: "SUBMIT_UPSTREAM_ERROR",
           message: "접수 저장에 실패했습니다. 잠시 후 다시 시도해주세요.",
         },
-        _debug: { clientIp, mode: "pending-store-fail", siteCode },
+        _debug: { clientIp, mode: "gas-full-fail", siteCode },
       },
-      { status: 503, headers: NO_STORE }
+      { status: 502, headers: NO_STORE }
     );
   }
 
-  // 임시 원장 확보 후 완료 UI — 시트·알림은 after()에서 재시도
-  scheduleSheetSync(pendingRecord);
+  const data = gasJson?.data;
+  const logged = gasJson?.success === true && data?.savedToVerificationLog === true;
+  if (!logged) {
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: {
+          code: gasJson?.error?.code || "SUBMIT_REJECTED",
+          message:
+            gasJson?.error?.message ||
+            "접수 저장에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        },
+        _debug: { clientIp, mode: "gas-full-reject", siteCode },
+      },
+      { status: 400, headers: NO_STORE }
+    );
+  }
+
+  scheduleLegacyPendingFlush();
+
+  const validationStatus =
+    data?.validationStatus || earlyGate.validationStatus;
+  const needsPostProcess = data?.needsPostProcess === true;
 
   return NextResponse.json(
     {
       success: true,
       data: {
-        submissionId,
-        submittedAt,
-        savedToPendingStore: true,
-        /** 시트 반영은 비동기 — 원장은 pending store에 확보됨 */
-        savedToVerificationLog: false,
+        submissionId: data?.submissionId || submissionId,
+        submittedAt: data?.submittedAt || submittedAt,
+        savedToPendingStore: false,
+        savedToVerificationLog: true,
         needsPostProcess,
-        notificationQueued: needsPostProcess,
-        notificationSent: false,
-        allowConversion: false,
-        savedToSubmissions: false,
-        includeInLiveFeed: false,
-        validationStatus: earlyGate.validationStatus,
-        acceptedBy: "netlify-pending-store",
+        notificationQueued: false,
+        notificationSent: data?.notificationSent === true,
+        allowConversion: data?.allowConversion === true,
+        savedToSubmissions: data?.savedToSubmissions === true,
+        includeInLiveFeed: data?.includeInLiveFeed === true,
+        validationStatus,
+        acceptedBy: "apps-script-sheet-first",
       },
       error: null,
-      _debug: { clientIp, mode: "live-pending-ack", siteCode },
+      _debug: { clientIp, mode: "live-sheet-first", siteCode },
     },
     { headers: NO_STORE }
   );
