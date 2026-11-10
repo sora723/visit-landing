@@ -1,0 +1,50 @@
+---
+description: BUSY Blobs flush·복구 운영 (sheet_logged 금지, L002 테스트)
+alwaysApply: true
+---
+
+# BUSY / Blobs flush 운영
+
+배포 기준: `18b33cc` 이후. 이전 채팅보다 **이 규칙 우선**.
+
+## 한 줄
+
+**신규 BUSY(`awaiting_sheet`·`pending`)만 자동 살리고, 이미 `sheet_logged`인 건(오늘 정상·옛 잔여)은 기본 경로에서 건드리지 않기.**
+
+## 당장 (운영)
+
+### 기본 flush / warm
+
+- 자동 복구 대상: **`awaiting_sheet` · `pending`만**
+- **`sheet_logged`는 손대지 않음** — `includeSheetLogged=1` 명시 전엔 금지
+- warm flush **1회 1~2건** (`WARM_FLUSH_BATCH_SIZE`), `notify.flush`는 배치 끝 1회
+- 복구 = Blobs **저장된 payload 그대로** 재전송 (`formToken` 포함). **토큰 우회 없음**
+- Blobs **무조건 삭제 금지**
+
+### 로그
+
+- 같은 `접수ID`가 여러 줄 → **한 건의 단계 로그**. UUID 충돌 아님
+- 실BUSY 의심: Slack `BUSY_PENDING_SAVED` → 같은 ID로 `BUSY_PENDING_RECOVERED` / `_검증로그`
+
+### ops BUSY 테스트
+
+- **L002만** (현장 미지정 테스트도 L002). L009·L016 등 **임의 테스트 금지**
+- body에 **그 사이트 접수 필드** + `formToken` (접수 필드 **사이트별 고정 금지**)
+- 테스트 직후 **아무 현장 `sheet_logged` flush 하지 말 것**
+
+### Blobs `sheet_logged` 잔여 (L016 등)
+
+- **지금은 일괄 복구/삭제 하지 말 것**
+- 나중에 **건별**로 접수관리에 이미 있는지 확인 후, 있을 때만 정리
+
+## 앞으로 (안정화)
+
+- keep-warm URL: **`https://david-ad.kr/api/warm`** — Actions에서 실제로 도는지 확인
+- flush 1~2건 유지
+
+## 하지 말 것
+
+- `sheet_logged` 일괄 flush
+- 잔여 Blobs 무조건 삭제
+- 현장 미지정 테스트 / L009·L016 임의 테스트
+- 정상 접수(`sheet_logged`·접수관리 존재)를 flush로 다시 불러오기
