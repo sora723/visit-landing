@@ -6,6 +6,7 @@ import { appendSystemLog } from "@/lib/ops-system-log";
 import {
   DEFAULT_FLUSH_STATUSES,
   deletePendingSubmission,
+  isLegacySheetLoggedRecord,
   listPendingSubmissions,
   type PendingSubmissionRecord,
   type PendingSubmissionStatus,
@@ -18,6 +19,8 @@ const APPS_SCRIPT_FLUSH_TIMEOUT_MS = 45_000;
 const PENDING_FLUSH_LIMIT = 5;
 const SYNC_ATTEMPTS = 3;
 const MAX_RECORD_ATTEMPTS = 8;
+/** warm/after 한 번에 처리할 pending 상한 — 여러 건 몰림·60s 대비 */
+export const WARM_FLUSH_BATCH_SIZE = 2;
 
 function getAppsScriptUrl() {
   return process.env.APPS_SCRIPT_URL?.replace(/\/$/, "") ?? "";
@@ -177,7 +180,14 @@ async function gasPostProcessOnce(
   }
 }
 
-/** 단건 동기화 — 시트 저장 우선, postProcess는 best-effort */
+function flushStatusRank(status: PendingSubmissionStatus): number {
+  if (status === "awaiting_sheet") return 0;
+  if (status === "pending") return 1;
+  if (status === "sheet_logged") return 2;
+  return 9;
+}
+
+/** 단건 동기화 — 시트 저장 우선, postProcess는 best-effort. notify.flush 는 배치 끝에서 1회. */
 export async function syncPendingSubmissionRecord(
   record: PendingSubmissionRecord
 ): Promise<{ synced: boolean; error?: string }> {
@@ -250,16 +260,6 @@ export async function syncPendingSubmissionRecord(
     }
   }
 
-  try {
-    await postAppsScriptAction(
-      appsScriptUrl,
-      { action: "notify.flush", limit: PENDING_FLUSH_LIMIT },
-      APPS_SCRIPT_FLUSH_TIMEOUT_MS
-    );
-  } catch (err) {
-    console.error("[sync-pending] notify.flush failed", err);
-  }
-
   if (
     working.status === "awaiting_sheet" ||
     working.status === "pending" ||
@@ -277,13 +277,16 @@ export async function syncPendingSubmissionRecord(
 
 /**
  * after / warm / ops flush.
- * 기본은 awaiting_sheet·pending만 — sheet_logged 잔여는 카톡 재발송 위험으로 제외.
- * includeSheetLogged=true 일 때만 옛 sheet_logged 복구.
+ * awaiting_sheet → pending → sheet_logged(신규) 우선.
+ * 2026-11-10 이전 sheet_logged(옛 잔여)는 기본 제외 — includeLegacySheetLogged 로만.
+ * notify.flush 는 배치 끝 1회.
  */
 export async function flushPendingSubmissions(
-  limit = 5,
+  limit = WARM_FLUSH_BATCH_SIZE,
   options?: {
+    /** @deprecated includeLegacySheetLogged 사용 */
     includeSheetLogged?: boolean;
+    includeLegacySheetLogged?: boolean;
     statuses?: PendingSubmissionStatus[];
   }
 ): Promise<{
@@ -291,20 +294,60 @@ export async function flushPendingSubmissions(
   synced: number;
   failed: number;
   statuses: PendingSubmissionStatus[];
+  skippedLegacySheetLogged: number;
 }> {
+  const includeLegacy =
+    options?.includeLegacySheetLogged === true ||
+    options?.includeSheetLogged === true;
   const statuses: PendingSubmissionStatus[] = options?.statuses?.length
     ? options.statuses
-    : options?.includeSheetLogged
-      ? [...DEFAULT_FLUSH_STATUSES, "sheet_logged"]
-      : [...DEFAULT_FLUSH_STATUSES];
-  const rows = await listPendingSubmissions(limit, { statuses });
+    : [...DEFAULT_FLUSH_STATUSES];
+
+  const listed = await listPendingSubmissions(80, { statuses });
+  let skippedLegacySheetLogged = 0;
+  const eligible = listed.filter((row) => {
+    if (row.status === "failed") return false;
+    if (!includeLegacy && isLegacySheetLoggedRecord(row)) {
+      skippedLegacySheetLogged++;
+      return false;
+    }
+    return true;
+  });
+  eligible.sort((a, b) => {
+    const byStatus = flushStatusRank(a.status) - flushStatusRank(b.status);
+    if (byStatus !== 0) return byStatus;
+    return String(a.createdAt).localeCompare(String(b.createdAt));
+  });
+  const rows = eligible.slice(0, Math.max(1, limit));
+
   let synced = 0;
   let failed = 0;
   for (const row of rows) {
-    if (row.status === "failed") continue;
     const result = await syncPendingSubmissionRecord(row);
     if (result.synced) synced++;
     else failed++;
   }
-  return { processed: rows.length, synced, failed, statuses };
+
+  if (rows.length > 0) {
+    const appsScriptUrl = getAppsScriptUrl();
+    if (appsScriptUrl) {
+      try {
+        await postAppsScriptAction(
+          appsScriptUrl,
+          { action: "notify.flush", limit: PENDING_FLUSH_LIMIT },
+          APPS_SCRIPT_FLUSH_TIMEOUT_MS
+        );
+      } catch (err) {
+        console.error("[sync-pending] notify.flush failed", err);
+      }
+    }
+  }
+
+  return {
+    processed: rows.length,
+    synced,
+    failed,
+    statuses,
+    skippedLegacySheetLogged,
+  };
 }

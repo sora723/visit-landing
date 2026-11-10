@@ -138,7 +138,7 @@ function scheduleAfterVerificationLog(opts: {
       }
     }
     try {
-      await flushPendingSubmissions(5);
+      await flushPendingSubmissions();
     } catch (err) {
       console.error("[api/submit] awaiting_sheet flush failed", err);
     }

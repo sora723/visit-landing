@@ -35,7 +35,7 @@ alwaysApply: true
 - `검증로그 없음`만으로 접수 유실 단정 금지. `SUBMIT_LOGGED`·알림톡·광고 전환을 같이 볼 것.
 - 시스템로그 `ERROR`의 `errorMessage`는 비는 경우가 많음 — `message` 컬럼 확인. `err.message` 없으면 공란일 수 있음.
 - **동시 실행 완화 (프론트)**: 설정/프로모 폴링 **90초**, 실시간예약 **120초**. CDN site-content **90초**. keep-warm은 커스텀 도메인 현장만 순차 (L001 기본 데우기 금지).
-- **접수 흐름 (Sheet-first)**: Stage A=`submit` → **`_검증로그` 성공 시에만 완료 UI**. after에서 검수→접수관리→카톡. BUSY/순간실패 때만 Blobs `awaiting_sheet`(완료 UI 없음, 동일 submissionId 재시도) + 시스템로그 `BUSY_PENDING_SAVED` + Slack(`OPS_ALERT_WEBHOOK_URL`). 복구 시 `BUSY_PENDING_RECOVERED`. warm/ops: Blobs **저장된 payload 그대로**(formToken 포함) →검증로그→postProcess. **토큰 우회 없음**. Blobs **무조건 삭제 금지**. `BLOBS_FIRST_STAGE_A` 미설정/0. 검수=연타·허니팟·토큰·명시 IP차단만. `siteCode` 격리. ops BUSY 테스트는 formToken+식별만 공통, **접수 필드는 사이트마다 다르므로 고정 금지**(호출 body로만 전달).
+- **접수 흐름 (Sheet-first)**: Stage A=`submit` → **`_검증로그` 성공 시에만 완료 UI**. after에서 검수→접수관리→카톡. BUSY/순간실패 때만 Blobs `awaiting_sheet`(완료 UI 없음, 동일 submissionId 재시도) + 시스템로그 `BUSY_PENDING_SAVED` + Slack(`OPS_ALERT_WEBHOOK_URL`). 복구 시 `BUSY_PENDING_RECOVERED`. warm/ops: Blobs **저장된 payload 그대로**(formToken 포함) →검증로그→postProcess. **토큰 우회 없음**. warm flush **1회 1~2건**, `notify.flush` 배치 끝 1회. 대상=`awaiting_sheet`→`pending`→**신규 `sheet_logged`**. **2026-11-10 이전 `sheet_logged` 옛 잔여는 기본 제외**(카톡 위험, `includeLegacySheetLogged=1`만). Blobs **무조건 삭제 금지**. `BLOBS_FIRST_STAGE_A` 미설정/0. 검수=연타·허니팟·토큰·명시 IP차단만. `siteCode` 격리. ops BUSY 테스트는 formToken+식별만 공통, **접수 필드는 사이트마다 다르므로 고정 금지**(호출 body로만 전달).
 - **테스트 현장**: 현장 미지정(「테스트하자」「슬랙테스트」등) → **무조건 L002**. 다른 현장은 **사용자가 현장코드 명시 요청 전까지 테스트 금지**.
 - **중복 전화**: CacheService 우선 + 네거티브 캐시. 시트 최근행 스캔은 200행.
 

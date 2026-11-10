@@ -14,7 +14,10 @@ import {
 } from "@/lib/fetch-domain-site-code-map";
 import { fetchSiteLiveConfigFromSheetBlocking } from "@/lib/fetch-site-live-config";
 import { isTenantHostname } from "@/lib/platform-hostname";
-import { flushPendingSubmissions } from "@/lib/sync-pending-submission";
+import {
+  flushPendingSubmissions,
+  WARM_FLUSH_BATCH_SIZE,
+} from "@/lib/sync-pending-submission";
 
 export const dynamic = "force-dynamic";
 /** Netlify/서버리스 — 다현장 순차 warm + pending 접수 flush */
@@ -97,7 +100,7 @@ export async function GET(request: NextRequest) {
       error?: string;
     } | null = null;
     try {
-      pendingFlush = await flushPendingSubmissions(8);
+      pendingFlush = await flushPendingSubmissions(WARM_FLUSH_BATCH_SIZE);
     } catch (err) {
       console.error("[api/warm] pending flush failed:", err);
       pendingFlush = {
