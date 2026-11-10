@@ -4,7 +4,8 @@
  * Authorization: Bearer $WARM_SECRET 또는 x-warm-secret
  *
  * ?includePayload=1 — items[].payload 포함 (이름·전화 등, 운영 조회용)
- * ?flush=1 — awaiting_sheet 등 복구 시도
+ * ?flush=1 — awaiting_sheet·pending 복구 (sheet_logged 제외 — 카톡 재발송 방지)
+ * ?includeSheetLogged=1 — flush 시 옛 sheet_logged 포함 (카톡 가능)
  * ?limit=50 — 목록 상한 (최대 80)
  */
 
@@ -50,14 +51,19 @@ export async function GET(request: NextRequest) {
   const limitRaw = Number(request.nextUrl.searchParams.get("limit") || 50);
   const limit = Number.isFinite(limitRaw) ? limitRaw : 50;
 
+  const includeSheetLogged =
+    request.nextUrl.searchParams.get("includeSheetLogged") === "1" ||
+    request.nextUrl.searchParams.get("includeSheetLogged") === "true";
+
   let flushResult: {
     processed: number;
     synced: number;
     failed: number;
+    statuses?: string[];
   } | null = null;
 
   if (flush) {
-    flushResult = await flushPendingSubmissions(10);
+    flushResult = await flushPendingSubmissions(10, { includeSheetLogged });
   }
 
   const summary = await summarizePendingSubmissions(limit, { includePayload });

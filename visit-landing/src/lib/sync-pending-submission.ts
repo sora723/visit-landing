@@ -4,9 +4,11 @@
 
 import { appendSystemLog } from "@/lib/ops-system-log";
 import {
+  DEFAULT_FLUSH_STATUSES,
   deletePendingSubmission,
   listPendingSubmissions,
   type PendingSubmissionRecord,
+  type PendingSubmissionStatus,
   updatePendingSubmission,
 } from "@/lib/pending-submission-store";
 
@@ -273,13 +275,29 @@ export async function syncPendingSubmissionRecord(
   return { synced: true };
 }
 
-/** after / warm 에서 미동기화 건 처리 */
-export async function flushPendingSubmissions(limit = 5): Promise<{
+/**
+ * after / warm / ops flush.
+ * 기본은 awaiting_sheet·pending만 — sheet_logged 잔여는 카톡 재발송 위험으로 제외.
+ * includeSheetLogged=true 일 때만 옛 sheet_logged 복구.
+ */
+export async function flushPendingSubmissions(
+  limit = 5,
+  options?: {
+    includeSheetLogged?: boolean;
+    statuses?: PendingSubmissionStatus[];
+  }
+): Promise<{
   processed: number;
   synced: number;
   failed: number;
+  statuses: PendingSubmissionStatus[];
 }> {
-  const rows = await listPendingSubmissions(limit);
+  const statuses: PendingSubmissionStatus[] = options?.statuses?.length
+    ? options.statuses
+    : options?.includeSheetLogged
+      ? [...DEFAULT_FLUSH_STATUSES, "sheet_logged"]
+      : [...DEFAULT_FLUSH_STATUSES];
+  const rows = await listPendingSubmissions(limit, { statuses });
   let synced = 0;
   let failed = 0;
   for (const row of rows) {
@@ -288,5 +306,5 @@ export async function flushPendingSubmissions(limit = 5): Promise<{
     if (result.synced) synced++;
     else failed++;
   }
-  return { processed: rows.length, synced, failed };
+  return { processed: rows.length, synced, failed, statuses };
 }

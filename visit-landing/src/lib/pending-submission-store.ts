@@ -136,21 +136,41 @@ export async function deletePendingSubmission(
   }
 }
 
+/** warm/ops 기본 flush — sheet_logged 제외(옛 잔여 카톡 재발송 방지) */
+export const DEFAULT_FLUSH_STATUSES: PendingSubmissionStatus[] = [
+  "awaiting_sheet",
+  "pending",
+];
+
 export async function listPendingSubmissions(
   limit = 20,
-  options?: { includeFailed?: boolean }
+  options?: {
+    includeFailed?: boolean;
+    /** 지정 시 해당 status만. 미지정이면 awaiting/pending/sheet_logged(+failed) */
+    statuses?: PendingSubmissionStatus[];
+  }
 ): Promise<PendingSubmissionRecord[]> {
   const cap = Math.min(Math.max(limit, 1), MAX_LIST);
   const includeFailed = options?.includeFailed === true;
+  const statusFilter = options?.statuses?.length
+    ? new Set(options.statuses)
+    : null;
   const store = await getBlobStore();
   const out: PendingSubmissionRecord[] = [];
 
-  const want = (row: PendingSubmissionRecord) =>
-    row.status === "awaiting_sheet" ||
-    row.status === "pending" ||
-    row.status === "sheet_logged" ||
-    (includeFailed && row.status === "failed");
-
+  const want = (row: PendingSubmissionRecord) => {
+    if (statusFilter) {
+      if (!statusFilter.has(row.status)) return false;
+      if (row.status === "failed" && !includeFailed) return false;
+      return true;
+    }
+    return (
+      row.status === "awaiting_sheet" ||
+      row.status === "pending" ||
+      row.status === "sheet_logged" ||
+      (includeFailed && row.status === "failed")
+    );
+  };
   if (store) {
     const listed = await store.list();
     for (const blob of listed.blobs) {
