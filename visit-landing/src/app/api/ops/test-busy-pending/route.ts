@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     body = {};
   }
 
-  const siteCode = String(body.siteCode ?? "L013").trim() || "L013";
+  const siteCode = String(body.siteCode ?? "L002").trim() || "L002";
   const submissionId = randomUUID();
   const submittedAt = new Date().toISOString();
   const name = String(body.name ?? "테스트BUSY").trim() || "테스트BUSY";
