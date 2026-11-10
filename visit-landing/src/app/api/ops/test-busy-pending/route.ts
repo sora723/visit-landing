@@ -1,15 +1,22 @@
 /**
  * POST /api/ops/test-busy-pending
- * BUSY → Blobs awaiting_sheet + 시스템로그 + Slack 만 검증.
+ * 실접수와 같은 payload 형태로 Blobs awaiting_sheet + 시스템로그 + Slack 만 검증.
  * GAS submit/postProcess/카톡/flush 호출 없음.
  *
+ * 복구(warm/ops flush)는 Blobs에 저장된 payload를 그대로 재전송한다.
+ * formToken 포함 — 토큰 우회 없음.
+ *
  * Authorization: Bearer $WARM_SECRET
- * body: 선택 필드 덮어쓰기 가능. 기본값은 L002 실접수 검증 통과용 풀필드.
+ * body: siteCode·이름·연락처·생년월일·평형·방문일·시간 선택 덮어쓰기
  */
 
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { API_NO_STORE_CACHE_CONTROL } from "@/lib/api-cache-headers";
+import {
+  FORM_TOKEN_HMAC_SECRET_ENV,
+  mintFormToken,
+} from "@/lib/form-token";
 import { alertBusyPendingSaved } from "@/lib/ops-slack";
 import { appendSystemLog } from "@/lib/ops-system-log";
 import { savePendingSubmission } from "@/lib/pending-submission-store";
@@ -35,6 +42,10 @@ function expectedWarmSecret(): string {
   return String(process.env.WARM_SECRET ?? "").trim();
 }
 
+function formTokenSecret(): string {
+  return String(process.env[FORM_TOKEN_HMAC_SECRET_ENV] ?? "").trim();
+}
+
 export async function POST(request: NextRequest) {
   const expected = expectedWarmSecret();
   const provided = readWarmSecret(request);
@@ -50,6 +61,21 @@ export async function POST(request: NextRequest) {
   }
 
   const siteCode = String(body.siteCode ?? "L002").trim() || "L002";
+  const secret = formTokenSecret();
+  const minted = secret ? mintFormToken(siteCode, secret) : null;
+  const formToken =
+    String(body.formToken ?? "").trim() || minted?.formToken || "";
+  if (!formToken) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "formToken 발급 실패 — FORM_TOKEN_HMAC_SECRET 또는 body.formToken 필요",
+      },
+      { status: 500, headers: NO_STORE }
+    );
+  }
+
   const submissionId = randomUUID();
   const submittedAt = new Date().toISOString();
   const name = String(body.name ?? "슬랙테스트BUSY").trim() || "슬랙테스트BUSY";
@@ -58,7 +84,6 @@ export async function POST(request: NextRequest) {
     String(body.phone ?? defaultPhone).replace(/\D/g, "") || defaultPhone;
   const reason = "ops_test_busy_pending_no_kakao";
 
-  /** L002 birthDateEnabled + simple/full 폼 대비 풀필드 */
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const yyyy = tomorrow.getFullYear();
@@ -67,35 +92,26 @@ export async function POST(request: NextRequest) {
   const defaultVisitDate = `${yyyy}-${mm}-${dd}`;
 
   const birthDate =
-    String(body.birthDate ?? body["생년월일"] ?? "19900115").trim() ||
-    "19900115";
-  const unitType = String(body.unitType ?? body.consultType ?? "84A").trim() || "84A";
+    String(body.birthDate ?? "19900115").trim() || "19900115";
+  const unitType = String(body.unitType ?? "84A").trim() || "84A";
   const visitDate =
-    String(body.visitDate ?? body.reserveDate ?? defaultVisitDate).trim() ||
-    defaultVisitDate;
-  const visitTime =
-    String(body.visitTime ?? body.reserveTime ?? "14:00").trim() || "14:00";
-  const region = String(body.region ?? body["지역"] ?? "서울").trim() || "서울";
-  const ageRange = String(body.ageRange ?? "40대").trim() || "40대";
+    String(body.visitDate ?? defaultVisitDate).trim() || defaultVisitDate;
+  const visitTime = String(body.visitTime ?? "14:00").trim() || "14:00";
 
+  /** 실접수 필드 + formToken (복구 시 이 payload 그대로 재전송) */
   const payload: Record<string, unknown> = {
     action: "submit",
     siteCode,
     submissionId,
     submittedAt,
+    formToken,
     name,
     phone,
-    privacyAgreed: true,
     birthDate,
-    생년월일: birthDate,
     unitType,
-    consultType: unitType,
     visitDate,
     visitTime,
-    reserveDate: visitDate,
-    reserveTime: visitTime,
-    region,
-    ageRange,
+    privacyAgreed: true,
     source: "ops_test_busy",
     isTest: true,
   };
@@ -129,7 +145,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       ok: true,
-      note: "카톡/flush 없음. Slack·시스템로그만 확인. flush 시 카톡 가능(isTest).",
+      note: "실접수와 동일 필드(formToken 포함)로 Blobs 저장. 복구=payload 재전송(토큰 우회 없음).",
       submissionId,
       siteCode,
       status: "awaiting_sheet",
@@ -140,8 +156,7 @@ export async function POST(request: NextRequest) {
         unitType,
         visitDate,
         visitTime,
-        region,
-        ageRange,
+        formToken: true,
         isTest: true,
       },
     },

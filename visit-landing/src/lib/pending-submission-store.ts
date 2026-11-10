@@ -2,7 +2,8 @@
  * BUSY/순간실패 임시 원장 — 완료 UI 없음.
  * Netlify Blobs(강일관성) 우선, 로컬/미구성 시 .data 폴백.
  *
- * awaiting_sheet: _검증로그 전. warm/ops 가 Blobs→검증로그→postProcess.
+ * awaiting_sheet: _검증로그 전. warm/ops 가 Blobs payload 그대로 →검증로그→postProcess.
+ * (실접수 formToken·필드 포함 재전송. 토큰 우회 없음.)
  * sheet_logged: 검증로그까지 간 옛 잔여(무조건 삭제 금지 — 미접수일 때만 정리).
  * 키는 submissionId. payload.siteCode 로 현장 격리.
  */
