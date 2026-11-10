@@ -2,6 +2,7 @@
  * 임시 원장 → Apps Script(_검증로그 / postProcess) 동기화 + 재시도
  */
 
+import { appendSystemLog } from "@/lib/ops-system-log";
 import {
   deletePendingSubmission,
   listPendingSubmissions,
@@ -186,7 +187,7 @@ export async function syncPendingSubmissionRecord(
   let working = record;
   let needsPostProcess = record.needsPostProcess;
 
-  if (working.status === "pending") {
+  if (working.status === "pending" || working.status === "awaiting_sheet") {
     let lastError = "";
     let logged = false;
     for (let i = 0; i < SYNC_ATTEMPTS; i++) {
@@ -257,6 +258,17 @@ export async function syncPendingSubmissionRecord(
     console.error("[sync-pending] notify.flush failed", err);
   }
 
+  if (
+    working.status === "awaiting_sheet" ||
+    working.status === "pending" ||
+    working.status === "sheet_logged"
+  ) {
+    await appendSystemLog({
+      siteCode: working.siteCode,
+      logAction: "BUSY_PENDING_RECOVERED",
+      message: `접수ID=${working.submissionId}, status=${working.status}→done`,
+    });
+  }
   await deletePendingSubmission(working.submissionId);
   return { synced: true };
 }

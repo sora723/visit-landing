@@ -21,6 +21,7 @@ import type { ReservationSubmitInput, SiteConfig } from "@/lib/types";
 import {
   getTrackingContext,
   notifyReservationSubmitted,
+  SubmitBusyError,
   submitReservation,
 } from "@/lib/api";
 import { appendSiteCodeQuery, siteContentApiPath } from "@/lib/resolve-site-code";
@@ -145,45 +146,60 @@ export function ConfigProvider({
       submittingLockRef.current = true;
       setSubmitting(true);
       try {
-        const result = await submitReservation(
-          {
-            name: input.name.trim(),
-            phone: normalizeMobilePhone(input.phone),
-            privacyAgreed: true,
-            unitType: input.unitType,
-            visitDate: input.visitDate,
-            visitTime: input.visitTime,
-            birthDate: input.birthDate,
-            region: input.region,
-            source: input.source,
-            company: input.company,
-            formToken: input.formToken,
-            pageLoadedAt: input.pageLoadedAt,
-            napm: input.napm,
-            utmContent: input.utmContent,
-            landingUrl: input.landingUrl,
-            inputFocusCount: input.inputFocusCount,
-            inputChangeCount: input.inputChangeCount,
-            clickCount: input.clickCount,
-            scrollDepth: input.scrollDepth,
-            firstInputAt: input.firstInputAt,
-            lastInputAt: input.lastInputAt,
-            userAgent: input.userAgent,
-            screenWidth: input.screenWidth,
-            screenHeight: input.screenHeight,
-            timezone: input.timezone,
-            language: input.language,
-            ...getTrackingContext(),
-            // sessionStorage UTM(광고 랜딩 후 URL에서 빠질 때)을 URL보다 우선
-            ...(input.utmSource ? { utmSource: input.utmSource } : {}),
-            ...(input.utmMedium ? { utmMedium: input.utmMedium } : {}),
-            ...(input.utmCampaign ? { utmCampaign: input.utmCampaign } : {}),
-            ...(input.utmContent ? { utmContent: input.utmContent } : {}),
-            ...(input.landingUrl ? { landingUrl: input.landingUrl } : {}),
-            ...(input.referer ? { referer: input.referer } : {}),
-          },
-          siteCode
-        );
+        const basePayload = {
+          name: input.name.trim(),
+          phone: normalizeMobilePhone(input.phone),
+          privacyAgreed: true as const,
+          unitType: input.unitType,
+          visitDate: input.visitDate,
+          visitTime: input.visitTime,
+          birthDate: input.birthDate,
+          region: input.region,
+          source: input.source,
+          company: input.company,
+          formToken: input.formToken,
+          pageLoadedAt: input.pageLoadedAt,
+          napm: input.napm,
+          utmContent: input.utmContent,
+          landingUrl: input.landingUrl,
+          inputFocusCount: input.inputFocusCount,
+          inputChangeCount: input.inputChangeCount,
+          clickCount: input.clickCount,
+          scrollDepth: input.scrollDepth,
+          firstInputAt: input.firstInputAt,
+          lastInputAt: input.lastInputAt,
+          userAgent: input.userAgent,
+          screenWidth: input.screenWidth,
+          screenHeight: input.screenHeight,
+          timezone: input.timezone,
+          language: input.language,
+          ...getTrackingContext(),
+          ...(input.utmSource ? { utmSource: input.utmSource } : {}),
+          ...(input.utmMedium ? { utmMedium: input.utmMedium } : {}),
+          ...(input.utmCampaign ? { utmCampaign: input.utmCampaign } : {}),
+          ...(input.utmContent ? { utmContent: input.utmContent } : {}),
+          ...(input.landingUrl ? { landingUrl: input.landingUrl } : {}),
+          ...(input.referer ? { referer: input.referer } : {}),
+        };
+
+        let result: Awaited<ReturnType<typeof submitReservation>>;
+        try {
+          result = await submitReservation(basePayload, siteCode);
+        } catch (firstErr) {
+          if (!(firstErr instanceof SubmitBusyError) || !firstErr.submissionId) {
+            throw firstErr;
+          }
+          /** BUSY: 동일 submissionId로 1회 재시도 (Blobs awaiting_sheet 와 맞춤) */
+          await new Promise((r) => setTimeout(r, 800));
+          result = await submitReservation(
+            {
+              ...basePayload,
+              submissionId: firstErr.submissionId,
+              submittedAt: firstErr.submittedAt,
+            },
+            siteCode
+          );
+        }
 
         const fireClientConversion = shouldFireClientConversion(result);
         notifyReservationSubmitted(input.name.trim(), {

@@ -122,7 +122,8 @@ function handleSubmit(params) {
 
 /**
  * POST action=submit.full
- * _검증로그 → 접수관리 → 알림톡 을 한 요청에서 처리 (시트 우선).
+ * Stage A: _검증로그 → 접수관리 (시트 우선). 카톡은 Netlify after Stage B.
+ * params._deferNotify !== false 이면 알림 생략(기본 연기).
  */
 function handleSubmitFull(params) {
   var submitResult = handleSubmit(params);
@@ -137,13 +138,22 @@ function handleSubmitFull(params) {
   postParams.submissionId = submitResult.submissionId;
   postParams.submittedAt = submitResult.submittedAt;
   postParams._skipPendingFlush = true;
+  /** 기본: 시트만. 카톡은 Stage B */
+  if (params && params._deferNotify === false) {
+    postParams._skipNotify = false;
+  } else {
+    postParams._skipNotify = true;
+  }
   var postResult = handleSubmitPostProcess(postParams);
+  var shouldNotify = postResult && postResult.shouldNotify === true;
+  var notificationSent = postResult && postResult.notificationSent === true;
   return {
     submissionId: submitResult.submissionId,
     submittedAt: submitResult.submittedAt,
     savedToVerificationLog: true,
     needsPostProcess: false,
-    notificationQueued: false,
+    notificationQueued: shouldNotify && !notificationSent,
+    needsNotifyStageB: shouldNotify && !notificationSent,
     allowConversion:
       postResult && postResult.allowConversion === true
         ? true
@@ -152,12 +162,11 @@ function handleSubmitFull(params) {
       postResult && postResult.savedToSubmissions === true,
     includeInLiveFeed:
       postResult && postResult.includeInLiveFeed === true,
-    notificationSent:
-      postResult && postResult.notificationSent === true,
+    notificationSent: notificationSent,
     validationStatus:
       (postResult && postResult.validationStatus) ||
       submitResult.validationStatus,
-    shouldNotify: postResult && postResult.shouldNotify === true,
+    shouldNotify: shouldNotify,
     mirrored: postResult && postResult.mirrored === true,
     alreadyLogged: submitResult.alreadyLogged === true
   };
@@ -275,8 +284,14 @@ function isNotifyExpectedStatus_(status) {
 }
 
 function runSubmitPostProcessLocked_(params, submissionId) {
-  /** 접수관리에 이미 있으면 완전 종료 — 카톡/행 추가 없음 */
-  if (submissionIdExistsInSubmissions_(submissionId)) {
+  /**
+   * 접수관리에 이미 있으면 기본은 종료.
+   * Stage B(_notifyOnly)는 시트 저장 후 카톡만 보내므로 통과.
+   */
+  if (
+    submissionIdExistsInSubmissions_(submissionId) &&
+    params._notifyOnly !== true
+  ) {
     markPostProcessDone_(submissionId);
     writeLog_('POSTPROCESS_SKIP_EXISTS', '', '접수ID=' + submissionId);
     return {
@@ -376,48 +391,75 @@ function runSubmitPostProcessLocked_(params, submissionId) {
   var savedToSubmissions = false;
   var mirrored = false;
 
+  var skipNotify = params._skipNotify === true;
+  var notifyOnly = params._notifyOnly === true;
+
   if (validation.shouldNotify === true) {
-    /** 시트(접수관리) 먼저 → 그다음 알림 */
-    if (submissionIdExistsInSubmissions_(submissionId)) {
-      savedToSubmissions = true;
-      writeLog_('POSTPROCESS_SKIP_DUP_APPEND', siteCode, '접수ID=' + submissionId);
+    /** Stage A: 시트(접수관리) 먼저 */
+    if (!notifyOnly) {
+      if (submissionIdExistsInSubmissions_(submissionId)) {
+        savedToSubmissions = true;
+        writeLog_('POSTPROCESS_SKIP_DUP_APPEND', siteCode, '접수ID=' + submissionId);
+      } else {
+        appendSubmissionRow_(
+          siteRow,
+          validated,
+          submissionId,
+          submittedAt,
+          params,
+          {
+            validationStatus: validation.validationStatus,
+            suspicionReasons: validation.suspicionReasons,
+            skipMirror: false
+          }
+        );
+        savedToSubmissions = true;
+        mirrored = true;
+      }
     } else {
-      appendSubmissionRow_(
-        siteRow,
-        validated,
-        submissionId,
-        submittedAt,
-        params,
-        {
-          validationStatus: validation.validationStatus,
-          suspicionReasons: validation.suspicionReasons,
-          skipMirror: false
-        }
-      );
-      savedToSubmissions = true;
-      mirrored = true;
+      savedToSubmissions = submissionIdExistsInSubmissions_(submissionId);
     }
 
-    var notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
-    notificationSent = notificationResult && notificationResult.success === true;
+    /** Stage B: 카톡 (완료 UI 응답 이후 Netlify after 에서 호출) */
+    if (!skipNotify) {
+      var notificationResult = notifyManagerOnSubmission_(
+        siteRow,
+        validated,
+        params
+      );
+      notificationSent =
+        notificationResult && notificationResult.success === true;
 
-    if (!notificationSent) {
-      try {
-        Utilities.sleep(400);
-      } catch (sleepErr) {}
-      notificationResult = notifyManagerOnSubmission_(siteRow, validated, params);
-      notificationSent = notificationResult && notificationResult.success === true;
-      if (notificationSent) {
-        writeLog_('NOTIFICATION_RETRY_OK', siteCode, '접수ID=' + submissionId);
-      } else {
-        writeLog_('SUBMIT_POST_NOTIFY_FAIL', siteCode, '접수ID=' + submissionId);
+      if (!notificationSent) {
+        try {
+          Utilities.sleep(400);
+        } catch (sleepErr) {}
+        notificationResult = notifyManagerOnSubmission_(
+          siteRow,
+          validated,
+          params
+        );
+        notificationSent =
+          notificationResult && notificationResult.success === true;
+        if (notificationSent) {
+          writeLog_('NOTIFICATION_RETRY_OK', siteCode, '접수ID=' + submissionId);
+        } else {
+          writeLog_('SUBMIT_POST_NOTIFY_FAIL', siteCode, '접수ID=' + submissionId);
+        }
       }
     }
   }
 
-  /** 시트 반영되면 완료 — 알림 실패해도 검수중으로 되돌리지 않음 */
-  if (savedToSubmissions || validation.shouldNotify !== true) {
+  /**
+   * 시트만 끝난 Stage A(_skipNotify)는 done 미표시 → Stage B notifyOnly 가능.
+   * 알림까지 끝났거나 알림 비대상이면 done.
+   */
+  if (validation.shouldNotify !== true) {
     markPostProcessDone_(submissionId);
+  } else if (!skipNotify && (notificationSent || savedToSubmissions)) {
+    markPostProcessDone_(submissionId);
+  } else if (skipNotify && savedToSubmissions) {
+    writeLog_('SUBMIT_SHEET_OK_DEFER_NOTIFY', siteCode, '접수ID=' + submissionId);
   }
 
   writeLog_(

@@ -1,12 +1,17 @@
 /**
- * 접수 임시 원장 — 완료 UI 전에 먼저 남김.
+ * BUSY/순간실패 임시 원장 — 완료 UI 없음.
  * Netlify Blobs(강일관성) 우선, 로컬/미구성 시 .data 폴백.
+ *
+ * awaiting_sheet: _검증로그 전. warm/ops 가 Blobs→검증로그→postProcess.
+ * sheet_logged: 검증로그까지 간 옛 잔여(무조건 삭제 금지 — 미접수일 때만 정리).
+ * 키는 submissionId. payload.siteCode 로 현장 격리.
  */
 
 import { mkdir, readdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 export type PendingSubmissionStatus =
+  | "awaiting_sheet"
   | "pending"
   | "sheet_logged"
   | "done"
@@ -141,6 +146,7 @@ export async function listPendingSubmissions(
   const out: PendingSubmissionRecord[] = [];
 
   const want = (row: PendingSubmissionRecord) =>
+    row.status === "awaiting_sheet" ||
     row.status === "pending" ||
     row.status === "sheet_logged" ||
     (includeFailed && row.status === "failed");
@@ -172,8 +178,12 @@ export async function listPendingSubmissions(
   return out;
 }
 
-export async function summarizePendingSubmissions(limit = 50): Promise<{
+export async function summarizePendingSubmissions(
+  limit = 50,
+  options?: { includePayload?: boolean }
+): Promise<{
   total: number;
+  awaitingSheet: number;
   pending: number;
   sheetLogged: number;
   failed: number;
@@ -185,19 +195,27 @@ export async function summarizePendingSubmissions(limit = 50): Promise<{
     lastError?: string;
     createdAt: string;
     updatedAt: string;
+    submittedAt?: string;
+    needsPostProcess?: boolean;
+    /** includePayload=1 일 때만 */
+    payload?: Record<string, unknown>;
   }>;
 }> {
+  const includePayload = options?.includePayload === true;
   const rows = await listPendingSubmissions(limit, { includeFailed: true });
   let pending = 0;
+  let awaitingSheet = 0;
   let sheetLogged = 0;
   let failed = 0;
   for (const r of rows) {
-    if (r.status === "pending") pending++;
+    if (r.status === "awaiting_sheet") awaitingSheet++;
+    else if (r.status === "pending") pending++;
     else if (r.status === "sheet_logged") sheetLogged++;
     else if (r.status === "failed") failed++;
   }
   return {
     total: rows.length,
+    awaitingSheet,
     pending,
     sheetLogged,
     failed,
@@ -209,6 +227,9 @@ export async function summarizePendingSubmissions(limit = 50): Promise<{
       lastError: r.lastError,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
+      submittedAt: r.submittedAt,
+      needsPostProcess: r.needsPostProcess,
+      ...(includePayload ? { payload: r.payload } : {}),
     })),
   };
 }

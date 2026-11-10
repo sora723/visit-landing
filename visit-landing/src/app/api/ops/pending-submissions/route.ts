@@ -2,6 +2,10 @@
  * GET /api/ops/pending-submissions
  * 임시 원장(pending) 현황 — 유실·재시도 가시화
  * Authorization: Bearer $WARM_SECRET 또는 x-warm-secret
+ *
+ * ?includePayload=1 — items[].payload 포함 (이름·전화 등, 운영 조회용)
+ * ?flush=1 — awaiting_sheet 등 복구 시도
+ * ?limit=50 — 목록 상한 (최대 80)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -40,6 +44,11 @@ export async function GET(request: NextRequest) {
   const flush =
     request.nextUrl.searchParams.get("flush") === "1" ||
     request.nextUrl.searchParams.get("flush") === "true";
+  const includePayload =
+    request.nextUrl.searchParams.get("includePayload") === "1" ||
+    request.nextUrl.searchParams.get("includePayload") === "true";
+  const limitRaw = Number(request.nextUrl.searchParams.get("limit") || 50);
+  const limit = Number.isFinite(limitRaw) ? limitRaw : 50;
 
   let flushResult: {
     processed: number;
@@ -51,12 +60,13 @@ export async function GET(request: NextRequest) {
     flushResult = await flushPendingSubmissions(10);
   }
 
-  const summary = await summarizePendingSubmissions(50);
+  const summary = await summarizePendingSubmissions(limit, { includePayload });
 
   return NextResponse.json(
     {
       ok: true,
       at: new Date().toISOString(),
+      includePayload,
       summary,
       flush: flushResult,
     },

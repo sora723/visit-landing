@@ -43,7 +43,23 @@ export type SubmitReservationResult = {
   validationStatus?: string;
   /** false면 허니팟/토큰 등 조기 차단 — 픽셀 전환 금지 */
   needsPostProcess?: boolean;
+  siteCode?: string;
 };
+
+export class SubmitBusyError extends Error {
+  code = "BACKEND_BUSY";
+  submissionId?: string;
+  submittedAt?: string;
+  constructor(
+    message: string,
+    meta?: { submissionId?: string; submittedAt?: string }
+  ) {
+    super(message);
+    this.name = "SubmitBusyError";
+    this.submissionId = meta?.submissionId;
+    this.submittedAt = meta?.submittedAt;
+  }
+}
 
 export async function submitReservation(
   payload: SubmitPayload,
@@ -61,7 +77,15 @@ export async function submitReservation(
   const json = await res.json();
 
   if (!json.success) {
-    throw new Error(json.error?.message ?? "접수에 실패했습니다");
+    const code = String(json.error?.code || "");
+    const message = json.error?.message ?? "접수에 실패했습니다";
+    if (code === "BACKEND_BUSY") {
+      throw new SubmitBusyError(message, {
+        submissionId: json.data?.submissionId,
+        submittedAt: json.data?.submittedAt,
+      });
+    }
+    throw new Error(message);
   }
 
   return json.data;

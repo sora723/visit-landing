@@ -263,6 +263,9 @@ export interface SubmitPayload {
   napm?: string;
   formToken?: string;
   pageLoadedAt?: number;
+  /** BUSY 재시도 시 동일 ID 유지 */
+  submissionId?: string;
+  submittedAt?: string;
   company?: string;
   inputFocusCount?: number;
   inputChangeCount?: number;

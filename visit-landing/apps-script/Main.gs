@@ -100,9 +100,28 @@ function routeAction_(action, params) {
     case 'submission.reprocessMissed':
       return handleReprocessMissedSubmissions(params);
 
+    /** Netlify → 시스템로그 한 줄 (BUSY 임시보관 등) */
+    case 'ops.log':
+      return handleOpsLog_(params);
+
     default:
       throw createAppError_('VALIDATION_ERROR', '알 수 없는 action: ' + action);
   }
+}
+
+/**
+ * action=ops.log
+ * params: siteCode, logAction (기본 BUSY_PENDING_SAVED), message
+ */
+function handleOpsLog_(params) {
+  var siteCode = normalizeSiteCode_(params.siteCode) || String(params.siteCode || '').trim();
+  var logAction = String(params.logAction || params.actionName || 'OPS_LOG').trim() || 'OPS_LOG';
+  var message = String(params.message || '').trim();
+  if (!message) {
+    throw createAppError_('VALIDATION_ERROR', 'message는 필수입니다');
+  }
+  writeLog_(logAction, siteCode, message);
+  return { logged: true, action: logAction, siteCode: siteCode };
 }
 
 function parsePostBody_(e) {
