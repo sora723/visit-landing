@@ -4,8 +4,8 @@
  * Authorization: Bearer $WARM_SECRET 또는 x-warm-secret
  *
  * ?includePayload=1 — items[].payload 포함 (이름·전화 등, 운영 조회용)
- * ?flush=1 — awaiting/pending/신규 sheet_logged 복구 (1회 기본 2건)
- * ?includeSheetLogged=1 | includeLegacySheetLogged=1 — 2026-11-10 이전 옛 잔여 포함(카톡 가능)
+ * ?flush=1 — awaiting_sheet·pending 만 (1회 기본 2건). sheet_logged 잔여 제외
+ * ?includeSheetLogged=1 — sheet_logged 잔여 포함(카톡 가능) — 명시 시에만
  * ?limit=50 — 목록 상한 (최대 80)
  */
 
@@ -54,9 +54,7 @@ export async function GET(request: NextRequest) {
   const limitRaw = Number(request.nextUrl.searchParams.get("limit") || 50);
   const limit = Number.isFinite(limitRaw) ? limitRaw : 50;
 
-  const includeLegacySheetLogged =
-    request.nextUrl.searchParams.get("includeLegacySheetLogged") === "1" ||
-    request.nextUrl.searchParams.get("includeLegacySheetLogged") === "true" ||
+  const includeSheetLogged =
     request.nextUrl.searchParams.get("includeSheetLogged") === "1" ||
     request.nextUrl.searchParams.get("includeSheetLogged") === "true";
 
@@ -65,12 +63,11 @@ export async function GET(request: NextRequest) {
     synced: number;
     failed: number;
     statuses?: string[];
-    skippedLegacySheetLogged?: number;
   } | null = null;
 
   if (flush) {
     flushResult = await flushPendingSubmissions(WARM_FLUSH_BATCH_SIZE, {
-      includeLegacySheetLogged,
+      includeSheetLogged,
     });
   }
 

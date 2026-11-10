@@ -137,28 +137,14 @@ export async function deletePendingSubmission(
   }
 }
 
-/** warm/ops 기본 flush 대상 (앞으로의 sheet_logged 포함) */
+/**
+ * warm/ops 기본 flush — awaiting_sheet·pending 만.
+ * sheet_logged(잔여)는 기본 제외. 명시 includeSheetLogged=1 일 때만.
+ */
 export const DEFAULT_FLUSH_STATUSES: PendingSubmissionStatus[] = [
   "awaiting_sheet",
   "pending",
-  "sheet_logged",
 ];
-
-/**
- * 이 시각 이전 createdAt 의 sheet_logged = 옛 잔여(카톡 위험).
- * 기본 flush에서 제외. includeLegacySheetLogged=1 일 때만.
- */
-export const SHEET_LOGGED_AUTO_FLUSH_AFTER = "2026-11-10T00:00:00.000Z";
-
-export function isLegacySheetLoggedRecord(
-  row: PendingSubmissionRecord
-): boolean {
-  if (row.status !== "sheet_logged") return false;
-  const created = Date.parse(String(row.createdAt || ""));
-  const cutoff = Date.parse(SHEET_LOGGED_AUTO_FLUSH_AFTER);
-  if (!Number.isFinite(created) || !Number.isFinite(cutoff)) return false;
-  return created < cutoff;
-}
 
 export async function listPendingSubmissions(
   limit = 20,

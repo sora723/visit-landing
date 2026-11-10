@@ -6,7 +6,6 @@ import { appendSystemLog } from "@/lib/ops-system-log";
 import {
   DEFAULT_FLUSH_STATUSES,
   deletePendingSubmission,
-  isLegacySheetLoggedRecord,
   listPendingSubmissions,
   type PendingSubmissionRecord,
   type PendingSubmissionStatus,
@@ -277,15 +276,15 @@ export async function syncPendingSubmissionRecord(
 
 /**
  * after / warm / ops flush.
- * awaiting_sheet → pending → sheet_logged(신규) 우선.
- * 2026-11-10 이전 sheet_logged(옛 잔여)는 기본 제외 — includeLegacySheetLogged 로만.
+ * 기본: awaiting_sheet → pending 만 (sheet_logged 잔여 금지).
+ * includeSheetLogged=true 일 때만 sheet_logged 포함.
  * notify.flush 는 배치 끝 1회.
  */
 export async function flushPendingSubmissions(
   limit = WARM_FLUSH_BATCH_SIZE,
   options?: {
-    /** @deprecated includeLegacySheetLogged 사용 */
     includeSheetLogged?: boolean;
+    /** @deprecated includeSheetLogged 와 동일 */
     includeLegacySheetLogged?: boolean;
     statuses?: PendingSubmissionStatus[];
   }
@@ -294,25 +293,18 @@ export async function flushPendingSubmissions(
   synced: number;
   failed: number;
   statuses: PendingSubmissionStatus[];
-  skippedLegacySheetLogged: number;
 }> {
-  const includeLegacy =
-    options?.includeLegacySheetLogged === true ||
-    options?.includeSheetLogged === true;
+  const includeSheetLogged =
+    options?.includeSheetLogged === true ||
+    options?.includeLegacySheetLogged === true;
   const statuses: PendingSubmissionStatus[] = options?.statuses?.length
     ? options.statuses
-    : [...DEFAULT_FLUSH_STATUSES];
+    : includeSheetLogged
+      ? [...DEFAULT_FLUSH_STATUSES, "sheet_logged"]
+      : [...DEFAULT_FLUSH_STATUSES];
 
   const listed = await listPendingSubmissions(80, { statuses });
-  let skippedLegacySheetLogged = 0;
-  const eligible = listed.filter((row) => {
-    if (row.status === "failed") return false;
-    if (!includeLegacy && isLegacySheetLoggedRecord(row)) {
-      skippedLegacySheetLogged++;
-      return false;
-    }
-    return true;
-  });
+  const eligible = listed.filter((row) => row.status !== "failed");
   eligible.sort((a, b) => {
     const byStatus = flushStatusRank(a.status) - flushStatusRank(b.status);
     if (byStatus !== 0) return byStatus;
@@ -348,6 +340,5 @@ export async function flushPendingSubmissions(
     synced,
     failed,
     statuses,
-    skippedLegacySheetLogged,
   };
 }
