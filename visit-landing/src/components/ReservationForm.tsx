@@ -239,7 +239,7 @@ export function ReservationForm({
           disabled={submitting}
           className="h-9 shrink-0 rounded bg-[var(--color-gold)] px-3 text-xs font-medium text-white disabled:opacity-60 md:h-10 md:px-3.5 lg:px-4 lg:text-[13px] xl:px-5"
         >
-          {submitting ? "처리 중..." : buttonText}
+          {submitting ? "접수 중..." : buttonText}
         </button>
       </form>
     );
@@ -389,7 +389,7 @@ export function ReservationForm({
             : "reservation-submit-btn cta-primary min-h-14 w-full text-base disabled:opacity-60"
         }
       >
-        {submitting ? "처리 중..." : buttonText}
+        {submitting ? "접수 중..." : buttonText}
       </button>
     </form>
   );

@@ -11,6 +11,16 @@ alwaysApply: true
 
 **신규 BUSY(`awaiting_sheet`·`pending`)만 자동 살리고, 이미 `sheet_logged`인 건(오늘 정상·옛 잔여)은 기본 경로에서 건드리지 않기.**
 
+## 클라이언트 BUSY UX (visit-landing 통합·L00x)
+
+- 통합 배포 1사이트. 현장은 `siteCode`(L001 형식)로 콘텐츠만 분기.
+- BUSY/일시오류: **실패 문구 즉시 표시 금지**, 버튼 **「접수 중...」** 유지
+- 동일 `submissionId` 재요청 (idempotent), 최대 **10초**
+- `_검증로그` 성공(`savedToVerificationLog`) 시에만 성공 UI → `/complete`
+- Blobs-only(`stored:false` / awaiting_sheet)로는 성공 UI **금지**
+- 10초 초과 → 「잠시 후 다시 시도해 주세요.」
+- 구현: `src/lib/submit-busy-wait.ts` + `ConfigProvider` submit
+
 ## 당장 (운영)
 
 ### 기본 flush / warm

@@ -22,8 +22,11 @@ import {
   getTrackingContext,
   notifyReservationSubmitted,
   SubmitBusyError,
-  submitReservation,
 } from "@/lib/api";
+import {
+  BUSY_WAIT_TIMEOUT_MESSAGE,
+  submitReservationWithBusyWait,
+} from "@/lib/submit-busy-wait";
 import { appendSiteCodeQuery, siteContentApiPath } from "@/lib/resolve-site-code";
 import { normalizeMobilePhone } from "@/lib/phone";
 import { buildSitePageTitle } from "@/lib/site-page-title";
@@ -182,24 +185,12 @@ export function ConfigProvider({
           ...(input.referer ? { referer: input.referer } : {}),
         };
 
-        let result: Awaited<ReturnType<typeof submitReservation>>;
-        try {
-          result = await submitReservation(basePayload, siteCode);
-        } catch (firstErr) {
-          if (!(firstErr instanceof SubmitBusyError) || !firstErr.submissionId) {
-            throw firstErr;
-          }
-          /** BUSY: 동일 submissionId로 1회 재시도 (Blobs awaiting_sheet 와 맞춤) */
-          await new Promise((r) => setTimeout(r, 800));
-          result = await submitReservation(
-            {
-              ...basePayload,
-              submissionId: firstErr.submissionId,
-              submittedAt: firstErr.submittedAt,
-            },
-            siteCode
-          );
-        }
+        /** BUSY/일시오류: 실패 UI 없이 「접수 중...」 유지, 동일 submissionId 최대 10초 재시도.
+         * 성공 UI·/complete 는 _검증로그(savedToVerificationLog) 성공 시에만. */
+        const result = await submitReservationWithBusyWait(
+          basePayload,
+          siteCode
+        );
 
         const fireClientConversion = shouldFireClientConversion(result);
         notifyReservationSubmitted(input.name.trim(), {
@@ -246,9 +237,15 @@ export function ConfigProvider({
           navigatedToComplete,
         };
       } catch (err) {
+        const message =
+          err instanceof SubmitBusyError
+            ? BUSY_WAIT_TIMEOUT_MESSAGE
+            : err instanceof Error
+              ? err.message
+              : "접수에 실패했습니다";
         return {
           success: false,
-          message: err instanceof Error ? err.message : "접수에 실패했습니다",
+          message,
         };
       } finally {
         submittingLockRef.current = false;

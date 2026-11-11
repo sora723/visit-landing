@@ -88,7 +88,19 @@ export async function submitReservation(
     throw new Error(message);
   }
 
-  return json.data;
+  const data = json.data as SubmitReservationResult | undefined;
+  // Sheet-first: _검증로그 성공만 완료 UI. Blobs-only 는 success 로 취급 금지.
+  if (!data?.savedToVerificationLog) {
+    throw new SubmitBusyError(
+      "일시적으로 접수가 지연되고 있습니다. 같은 내용으로 다시 시도해주세요.",
+      {
+        submissionId: data?.submissionId,
+        submittedAt: undefined,
+      }
+    );
+  }
+
+  return data;
 }
 
 export function getTrackingContext(): Pick<
