@@ -376,6 +376,7 @@ export async function POST(request: NextRequest) {
     phone,
     privacyAgreed: true,
     unitType: body.unitType ?? "",
+    consultType: body.consultType ?? "",
     visitDate: body.visitDate ?? "",
     visitTime: body.visitTime ?? "",
     birthDate,

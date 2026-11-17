@@ -236,6 +236,11 @@ export interface SiteConfig {
     regionEnabled?: boolean;
     /** 비우면 시 단위 기본 목록 */
     regionOptions?: string[];
+    /**
+     * 유형 드롭다운 목록 — 값이 있으면 성함·연락처 아래 노출
+     * (시트 typeOptions / 유형옵션)
+     */
+    typeOptions?: string[];
   };
 }
 
@@ -279,6 +284,8 @@ export interface SubmitPayload {
   phone: string;
   privacyAgreed: boolean;
   unitType?: string;
+  /** 유형 드롭다운 — 접수관리 상담유형/관심타입 */
+  consultType?: string;
   visitDate?: string;
   visitTime?: string;
   /** 정규화 YYYY-MM-DD (월·일 00 가능) */
@@ -317,6 +324,7 @@ export interface ReservationSubmitInput {
   name: string;
   phone: string;
   unitType?: string;
+  consultType?: string;
   visitDate?: string;
   visitTime?: string;
   birthDate?: string;

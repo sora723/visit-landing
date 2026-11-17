@@ -303,6 +303,25 @@ function resolveRegionOptionsFromSheet(
   return undefined;
 }
 
+function resolveTypeOptionsFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): string[] | undefined {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const fromRow = parsePipeList(
+    [row.typeOptions, row["유형옵션"], row["상담유형옵션"]]
+      .map((v) => String(v ?? "").trim())
+      .find(Boolean)
+  );
+  if (fromRow.length) return fromRow;
+  const fromExt = ext.reservationForm?.typeOptions;
+  if (Array.isArray(fromExt) && fromExt.length) return fromExt.map(String);
+  if (typeof fromExt === "string" && fromExt.trim()) {
+    return parsePipeList(fromExt);
+  }
+  return undefined;
+}
+
 function resolvePopupReservationEnabledFromSheet(
   content: ContentManagementRow,
   ext: ContentExtendedData
@@ -544,6 +563,7 @@ export function buildSiteConfigFromSheet(
       birthDateEnabled: resolveBirthDateEnabledFromSheet(content, ext),
       regionEnabled: resolveRegionEnabledFromSheet(content, ext),
       regionOptions: resolveRegionOptionsFromSheet(content, ext),
+      typeOptions: resolveTypeOptionsFromSheet(content, ext),
     },
   };
 }

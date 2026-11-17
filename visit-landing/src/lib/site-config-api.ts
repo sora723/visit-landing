@@ -37,6 +37,7 @@ export type SiteConfigApiData = {
   birthDateEnabled?: boolean;
   regionEnabled?: boolean;
   regionOptions?: string[];
+  typeOptions?: string[];
   mainColor?: string;
   subColor?: string;
   accentColor?: string;
@@ -416,6 +417,7 @@ export function parseSiteConfigApiResponse(
     birthDateEnabled: data.birthDateEnabled === true,
     regionEnabled: data.regionEnabled === true,
     regionOptions: parseStringArray(data.regionOptions),
+    typeOptions: parseStringArray(data.typeOptions),
     mainColor: optionalString(data.mainColor),
     subColor: optionalString(data.subColor),
     accentColor: optionalString(data.accentColor),

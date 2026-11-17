@@ -154,6 +154,7 @@ export function ConfigProvider({
           phone: normalizeMobilePhone(input.phone),
           privacyAgreed: true as const,
           unitType: input.unitType,
+          consultType: input.consultType,
           visitDate: input.visitDate,
           visitTime: input.visitTime,
           birthDate: input.birthDate,
@@ -194,7 +195,7 @@ export function ConfigProvider({
 
         const fireClientConversion = shouldFireClientConversion(result);
         notifyReservationSubmitted(input.name.trim(), {
-          unitType: input.unitType,
+          unitType: input.unitType || input.consultType,
           visitDate: input.visitDate,
           visitTime: input.visitTime,
           isDuplicate: result.isDuplicate,

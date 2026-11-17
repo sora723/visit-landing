@@ -84,6 +84,9 @@ function routeAction_(action, params) {
     case 'setup.enableVisitTime':
       return handleSetupEnableVisitTime(params);
 
+    case 'setup.reservationFormColumns':
+      return ensureReservationFormColumns();
+
     case 'setup.formTokenHmac':
       return handleSetupFormTokenHmac(params);
 

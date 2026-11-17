@@ -109,6 +109,8 @@ export interface ContentManagementRow {
   regionEnabled?: boolean | string;
   /** 지역 드롭다운 — 비우면 시 단위 기본 목록 */
   regionOptions?: string;
+  /** 유형 드롭다운 — 값이 있으면 노출 (`|` 또는 `,`) */
+  typeOptions?: string;
   /** Y/N — 팝업 내 방문예약 폼 노출 (기본 Y, N이면 이벤트 이미지만) */
   popupReservationEnabled?: boolean | string;
   /** CtaSection 아래 대형 홍보 이미지 URL */
@@ -212,6 +214,7 @@ export interface ContentExtendedData {
     birthDateEnabled?: boolean;
     regionEnabled?: boolean;
     regionOptions?: string[] | string;
+    typeOptions?: string[] | string;
   };
   settings?: {
     popupReservationEnabled?: boolean;

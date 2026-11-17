@@ -33,6 +33,7 @@ var VISIT_LANDING_REQUIRED_HEADERS = {
     'unitTypeOptions', 'visitDateDays', 'visitDateOptions',
     'unitTypeEnabled', 'visitDateEnabled', 'visitTimeEnabled',
     'birthDateEnabled', 'regionEnabled', 'regionOptions',
+    'typeOptions',
     'popupReservationEnabled',
     'mainColor', 'subColor', 'accentColor',
     'liveStatusTitleColor', 'ctaSectionTitleColor', 'sectionTitleColor',

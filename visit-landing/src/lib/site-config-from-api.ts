@@ -271,6 +271,9 @@ export function buildSiteConfigFromApi(
       regionOptions: api.regionOptions?.length
         ? api.regionOptions
         : fallback.reservationForm?.regionOptions,
+      typeOptions: api.typeOptions?.length
+        ? api.typeOptions
+        : fallback.reservationForm?.typeOptions,
     },
   };
 }

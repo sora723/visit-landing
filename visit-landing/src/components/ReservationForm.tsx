@@ -12,9 +12,11 @@ import {
   resolveRegionOptions,
 } from "@/lib/region-options";
 import {
+  isTypeFieldEnabled,
   isUnitTypeFieldEnabled,
   isVisitDateFieldEnabled,
   isVisitTimeFieldEnabled,
+  resolveTypeOptions,
   resolveUnitTypeOptions,
   resolveVisitDateOptions,
   resolveVisitTimeOptions,
@@ -48,6 +50,7 @@ export function ReservationForm({
   const [company, setCompany] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [consultType, setConsultType] = useState("");
   const [unitType, setUnitType] = useState("");
   const [visitDate, setVisitDate] = useState("");
   const [visitTime, setVisitTime] = useState("");
@@ -63,7 +66,9 @@ export function ReservationForm({
     () => resolveUnitTypeOptions(config),
     [config]
   );
+  const typeOptions = useMemo(() => resolveTypeOptions(config), [config]);
   const regionOptions = useMemo(() => resolveRegionOptions(config), [config]);
+  const showType = isTypeFieldEnabled(config);
   const showUnitType = isUnitTypeFieldEnabled(config);
   const showVisitDate = isVisitDateFieldEnabled(config);
   const showVisitTime = isVisitTimeFieldEnabled(config);
@@ -101,6 +106,7 @@ export function ReservationForm({
       {
         name,
         phone,
+        consultType: showType ? consultType || undefined : undefined,
         unitType: showUnitType ? unitType || undefined : undefined,
         visitDate: showVisitDate ? visitDate || undefined : undefined,
         visitTime: showVisitTime ? visitTime || undefined : undefined,
@@ -118,6 +124,7 @@ export function ReservationForm({
     }
     setName("");
     setPhone("");
+    setConsultType("");
     setUnitType("");
     setVisitDate("");
     setVisitTime("");
@@ -159,6 +166,18 @@ export function ReservationForm({
           required
           className="h-9 w-[108px] shrink-0 rounded border border-[var(--color-text)]/35 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[120px] md:px-2 lg:w-[132px] lg:text-[13px] xl:w-[148px] xl:px-3"
         />
+        {showType && (
+          <ScrollableSelect
+            value={consultType}
+            onChange={setConsultType}
+            options={typeOptions}
+            placeholder="유형(선택)"
+            className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
+            listMaxHeight={180}
+            dropUp
+            compact
+          />
+        )}
         {showBirthDate && (
           <input
             type="text"
@@ -287,6 +306,22 @@ export function ReservationForm({
             required
           />
         </div>
+        {showType && (
+          <div className={isCompact ? undefined : "sm:col-span-2"}>
+            <label className={labelBase}>
+              유형 <span className="font-normal text-[#b0a898]">(선택)</span>
+            </label>
+            <ScrollableSelect
+              value={consultType}
+              onChange={setConsultType}
+              options={typeOptions}
+              placeholder="유형 선택"
+              className="w-full"
+              listMaxHeight={200}
+              dropUp={variant === "sheet"}
+            />
+          </div>
+        )}
         {showBirthDate && (
           <div>
             <label className={labelBase}>

@@ -563,7 +563,8 @@ function validateSubmitParams_(params, formType, options) {
     name: name,
     phone: phone,
     ageRange: '',
-    consultType: String(params.unitType || params.consultType || '').trim(),
+    // 유형(consultType) 우선 — 없으면 관심평형(unitType) 폴백 (기존 현장 호환)
+    consultType: String(params.consultType || params.unitType || '').trim(),
     reserveDate: String(params.visitDate || params.reserveDate || '').trim(),
     reserveTime: String(params.visitTime || params.reserveTime || '').trim(),
     birthDate: birthParsed.value,

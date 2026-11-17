@@ -58,6 +58,20 @@ export function isVisitTimeFieldEnabled(config: SiteConfig): boolean {
   return config.reservationForm?.visitTimeEnabled === true;
 }
 
+/** 유형 옵션 — 시트 typeOptions / 유형옵션 (비우면 필드 없음) */
+export function resolveTypeOptions(
+  config: SiteConfig
+): { value: string; label: string }[] {
+  const list = config.reservationForm?.typeOptions;
+  if (!list?.length) return [];
+  return list.map((t) => ({ value: t, label: t }));
+}
+
+/** 유형옵션에 값이 있을 때만 성함·연락처 아래 노출 */
+export function isTypeFieldEnabled(config: SiteConfig): boolean {
+  return (config.reservationForm?.typeOptions?.length ?? 0) > 0;
+}
+
 /** 평형 코드 → "84A형 문의" */
 export function formatUnitInquiryLabel(unit: string): string {
   const t = unit.trim();
