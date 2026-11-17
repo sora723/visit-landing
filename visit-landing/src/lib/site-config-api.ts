@@ -169,7 +169,7 @@ function parseOverview(value: unknown): SiteConfigApiOverview | undefined {
 function parseImageItems(
   value: unknown,
   fallbackTitle: string
-): { title: string; items: SiteConfig["premium"]["items"] } | undefined {
+): SiteConfig["premium"] | undefined {
   if (!isRecord(value)) return undefined;
   const items = Array.isArray(value.items)
     ? value.items
@@ -187,10 +187,22 @@ function parseImageItems(
         })
         .filter((item): item is NonNullable<typeof item> => item !== null)
     : [];
+  const extraImages = parseLocationExtraImages(value.extraImages);
+  const extraImagesAfter = parseLocationExtraImages(value.extraImagesAfter);
   return {
     title: String(value.title ?? fallbackTitle).trim() || fallbackTitle,
     items,
+    ...(extraImages.length > 0 ? { extraImages } : {}),
+    ...(extraImagesAfter.length > 0 ? { extraImagesAfter } : {}),
   };
+}
+
+/** premiumData / futureData JSON 정규화 (extraImages 포함) */
+export function normalizeImageItemsSection(
+  value: unknown,
+  fallbackTitle: string
+): SiteConfig["premium"] | undefined {
+  return parseImageItems(value, fallbackTitle);
 }
 
 function parseCommunityGalleryImages(
@@ -217,7 +229,8 @@ function parseCommunity(value: unknown): SiteConfigApiCommunity | undefined {
   const base = parseImageItems(value, "커뮤니티");
   if (!base) return undefined;
   return {
-    ...base,
+    title: base.title,
+    items: base.items,
     galleryImages: parseCommunityGalleryImages(value.galleryImages),
   };
 }

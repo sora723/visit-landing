@@ -90,15 +90,35 @@
 ```json
 {
   "title": "프리미엄 커뮤니티",
+  "extraImages": [
+    {
+      "image": "https://example.com/premium-banner.jpg",
+      "imagePc": "https://example.com/premium-banner-pc.jpg",
+      "imageMobile": "https://example.com/premium-banner-mobile.jpg",
+      "alt": "프리미엄 배너"
+    }
+  ],
   "items": [
     {
       "title": "역세권",
       "description": "KTX 원주역 도보권 프리미엄 입지",
       "image": "https://example.com/premium1.jpg"
     }
+  ],
+  "extraImagesAfter": [
+    {
+      "image": "https://example.com/premium-below.jpg"
+    }
   ]
 }
 ```
+
+| 키 | 화면 위치 |
+|---|---|
+| `extraImages` | 제목 ↔ 카드 **사이** |
+| `extraImagesAfter` | 카드 **아래** |
+
+→ `#프리미엄` 섹션. `image` / `imagePc` / `imageMobile` 규칙은 입지 `extraImages`와 동일.
 
 ### locationData — 입지환경
 
@@ -151,15 +171,32 @@
 ```json
 {
   "title": "미래가치",
+  "extraImages": [
+    {
+      "image": "https://example.com/future-banner.jpg"
+    }
+  ],
   "items": [
     {
       "title": "혁신도시 성장",
       "description": "원주혁신도시 중심 개발로 지속적인 가치 상승",
       "image": "https://example.com/future1.jpg"
     }
+  ],
+  "extraImagesAfter": [
+    {
+      "image": "https://example.com/future-below.jpg"
+    }
   ]
 }
 ```
+
+| 키 | 화면 위치 |
+|---|---|
+| `extraImages` | 제목 ↔ 카드 **사이** |
+| `extraImagesAfter` | 카드 **아래** |
+
+→ `#미래가치` 섹션. 키·이미지 필드 규칙은 프리미엄/`locationData`와 동일.
 
 ### noticeText — 안내 공지
 

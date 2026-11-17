@@ -4,7 +4,10 @@
  */
 
 import { buildSitePageTitle } from "@/lib/site-page-title";
-import { normalizeLocationData } from "./site-config-api";
+import {
+  normalizeImageItemsSection,
+  normalizeLocationData,
+} from "./site-config-api";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
 import { normalizeFooter } from "./footer-config";
@@ -381,10 +384,14 @@ export function buildSiteConfigFromSheet(
     image: "",
     specs: [] as { label: string; value: string }[],
   });
-  const premium = parseJson(content.premiumData, {
-    title: "프리미엄",
-    items: [] as { title: string; description: string; image: string }[],
-  });
+  const premium =
+    normalizeImageItemsSection(
+      parseJson(content.premiumData, null),
+      "프리미엄"
+    ) ?? {
+      title: "프리미엄",
+      items: [],
+    };
   const location =
     normalizeLocationData(parseJson(content.locationData, null)) ?? {
       title: "입지환경",
@@ -392,10 +399,14 @@ export function buildSiteConfigFromSheet(
       blocks: [],
       items: [],
     };
-  const futureValue = parseJson(content.futureData, {
-    title: "미래가치",
-    items: [] as { title: string; description: string; image: string }[],
-  });
+  const futureValue =
+    normalizeImageItemsSection(
+      parseJson(content.futureData, null),
+      "미래가치"
+    ) ?? {
+      title: "미래가치",
+      items: [],
+    };
   const unitTypes = resolveUnitTypesFromContent(content);
   const community = parseJson(content.communityData, {
     title: "커뮤니티",

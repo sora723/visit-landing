@@ -112,41 +112,86 @@ export function OverviewSection() {
 export function PremiumSection() {
   const { config } = useConfig();
   const { premium } = config;
-  if (!premium.items.length) return null;
+  const extraImages = premium.extraImages ?? [];
+  const extraImagesAfter = premium.extraImagesAfter ?? [];
+  const hasExtras =
+    extraImages.some(locationImagePresent) ||
+    extraImagesAfter.some(locationImagePresent);
+  const [lightbox, setLightbox] = useState<
+    { slot: "before" | "after"; index: number } | null
+  >(null);
+  const activeExtra =
+    lightbox?.slot === "before"
+      ? extraImages[lightbox.index]
+      : lightbox?.slot === "after"
+        ? extraImagesAfter[lightbox.index]
+        : undefined;
+  const lightboxSrc = useResponsiveImage(
+    activeExtra ?? { image: "" },
+    "lightbox"
+  );
+
+  if (!premium.items.length && !hasExtras) return null;
 
   return (
     <section id="프리미엄" className="scroll-mt-[var(--site-top-offset)] bg-[#f0ece4] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="PREMIUM AMENITY" title={premium.title} />
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {premium.items.map((item, i) => (
-            <article
-              key={item.title}
-              className="overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.08)] transition-transform duration-250 hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(15,29,58,0.14)]"
-            >
-              {item.image && (
-                <div className="relative aspect-video overflow-hidden bg-[#e8e4dc]">
-                  <ResponsiveImg
-                    source={item}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition-transform duration-400 hover:scale-105"
-                  />
-                  <div className="absolute left-3 top-3 rounded bg-[var(--color-navy)]/75 px-2.5 py-1 backdrop-blur-sm">
-                    <span className="text-[9px] tracking-[0.2em] text-[var(--color-gold)]">
-                      PREMIUM {String(i + 1).padStart(2, "0")}
-                    </span>
+        {extraImages.length > 0 ? (
+          <SectionExtraImageStack
+            images={extraImages}
+            className={premium.items.length || extraImagesAfter.length ? "mb-10" : ""}
+            tone="light"
+            label="프리미엄 이미지"
+            onOpen={(index) => setLightbox({ slot: "before", index })}
+          />
+        ) : null}
+        {premium.items.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {premium.items.map((item, i) => (
+              <article
+                key={item.title}
+                className="overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.08)] transition-transform duration-250 hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(15,29,58,0.14)]"
+              >
+                {item.image && (
+                  <div className="relative aspect-video overflow-hidden bg-[#e8e4dc]">
+                    <ResponsiveImg
+                      source={item}
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-transform duration-400 hover:scale-105"
+                    />
+                    <div className="absolute left-3 top-3 rounded bg-[var(--color-navy)]/75 px-2.5 py-1 backdrop-blur-sm">
+                      <span className="text-[9px] tracking-[0.2em] text-[var(--color-gold)]">
+                        PREMIUM {String(i + 1).padStart(2, "0")}
+                      </span>
+                    </div>
                   </div>
+                )}
+                <div className="px-[22px] py-5">
+                  <h3 className="text-lg font-extrabold text-[var(--color-text)]">{item.title}</h3>
+                  <p className="mt-2.5 text-[13px] leading-[1.75] text-[#7a7060]">
+                    {item.description}
+                  </p>
                 </div>
-              )}
-              <div className="px-[22px] py-5">
-                <h3 className="text-lg font-extrabold text-[var(--color-text)]">{item.title}</h3>
-                <p className="mt-2.5 text-[13px] leading-[1.75] text-[#7a7060]">
-                  {item.description}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+        {extraImagesAfter.length > 0 ? (
+          <SectionExtraImageStack
+            images={extraImagesAfter}
+            className={premium.items.length || extraImages.length ? "mt-10" : ""}
+            tone="light"
+            label="프리미엄 이미지"
+            onOpen={(index) => setLightbox({ slot: "after", index })}
+          />
+        ) : null}
+        <ImageLightbox
+          src={lightboxSrc}
+          alt={activeExtra?.alt || premium.title || "프리미엄 이미지"}
+          open={lightbox !== null && !!lightboxSrc}
+          onClose={() => setLightbox(null)}
+        />
       </div>
     </section>
   );
@@ -235,6 +280,57 @@ function LocationExtraResponsiveImg({
   );
 }
 
+function SectionExtraImageStack({
+  images,
+  className,
+  onOpen,
+  tone = "dark",
+  label = "이미지",
+}: {
+  images: LocationExtraImage[];
+  className?: string;
+  onOpen: (index: number) => void;
+  /** dark=입지(네이비), light=프리미엄·미래가치 */
+  tone?: "dark" | "light";
+  label?: string;
+}) {
+  const visible = images
+    .map((img, index) => ({ img, index }))
+    .filter(({ img }) => locationImagePresent(img));
+  if (visible.length === 0) return null;
+
+  const frameClass =
+    tone === "light"
+      ? "overflow-hidden rounded-xl border border-[var(--color-navy)]/10 bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
+      : "overflow-hidden rounded-xl border border-white/[0.2] bg-white/[0.2]";
+
+  return (
+    <div className={`flex flex-col gap-6 sm:gap-8 ${className ?? ""}`}>
+      {visible.map(({ img, index }) => (
+        <div key={`section-extra-${index}`} className={frameClass}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onOpen(index);
+            }}
+            className="group relative block w-full touch-manipulation"
+            aria-label={`${img.alt || label} 확대`}
+          >
+            <LocationExtraResponsiveImg
+              source={img}
+              alt={img.alt || label}
+              className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+            />
+            <ZoomExpandHint />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function LocationExtraImageStack({
   images,
   className,
@@ -244,38 +340,14 @@ function LocationExtraImageStack({
   className?: string;
   onOpen: (index: number) => void;
 }) {
-  const visible = images
-    .map((img, index) => ({ img, index }))
-    .filter(({ img }) => locationImagePresent(img));
-  if (visible.length === 0) return null;
-
   return (
-    <div className={`flex flex-col gap-6 sm:gap-8 ${className ?? ""}`}>
-      {visible.map(({ img, index }) => (
-        <div
-          key={`location-extra-${index}`}
-          className="overflow-hidden rounded-xl border border-white/[0.2] bg-white/[0.2]"
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onOpen(index);
-            }}
-            className="group relative block w-full touch-manipulation"
-            aria-label={`${img.alt || "입지"} 이미지 확대`}
-          >
-            <LocationExtraResponsiveImg
-              source={img}
-              alt={img.alt || "입지 이미지"}
-              className="h-auto w-full cursor-zoom-in object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-            />
-            <ZoomExpandHint />
-          </button>
-        </div>
-      ))}
-    </div>
+    <SectionExtraImageStack
+      images={images}
+      className={className}
+      onOpen={onOpen}
+      tone="dark"
+      label="입지 이미지"
+    />
   );
 }
 
@@ -459,28 +531,77 @@ export function LocationSection() {
 export function FutureValueSection() {
   const { config } = useConfig();
   const { futureValue } = config;
-  if (!futureValue.items.length) return null;
+  const extraImages = futureValue.extraImages ?? [];
+  const extraImagesAfter = futureValue.extraImagesAfter ?? [];
+  const hasExtras =
+    extraImages.some(locationImagePresent) ||
+    extraImagesAfter.some(locationImagePresent);
+  const [lightbox, setLightbox] = useState<
+    { slot: "before" | "after"; index: number } | null
+  >(null);
+  const activeExtra =
+    lightbox?.slot === "before"
+      ? extraImages[lightbox.index]
+      : lightbox?.slot === "after"
+        ? extraImagesAfter[lightbox.index]
+        : undefined;
+  const lightboxSrc = useResponsiveImage(
+    activeExtra ?? { image: "" },
+    "lightbox"
+  );
+
+  if (!futureValue.items.length && !hasExtras) return null;
 
   return (
     <section id="미래가치" className="scroll-mt-[var(--site-top-offset)] bg-[var(--color-bg)] px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="FUTURE VALUE" title={futureValue.title} />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {futureValue.items.map((item) => (
-            <article
-              key={item.title}
-              className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
-            >
-              {item.image && (
-                <ResponsiveImg source={item} alt={item.title} className="aspect-video w-full object-cover" />
-              )}
-              <div className="p-5">
-                <h3 className="text-base font-bold text-[var(--color-navy)]">{item.title}</h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-[#7a7060]">{item.description}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        {extraImages.length > 0 ? (
+          <SectionExtraImageStack
+            images={extraImages}
+            className={
+              futureValue.items.length || extraImagesAfter.length ? "mb-10" : ""
+            }
+            tone="light"
+            label="미래가치 이미지"
+            onOpen={(index) => setLightbox({ slot: "before", index })}
+          />
+        ) : null}
+        {futureValue.items.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {futureValue.items.map((item) => (
+              <article
+                key={item.title}
+                className="overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(15,29,58,0.06)]"
+              >
+                {item.image && (
+                  <ResponsiveImg source={item} alt={item.title} className="aspect-video w-full object-cover" />
+                )}
+                <div className="p-5">
+                  <h3 className="text-base font-bold text-[var(--color-navy)]">{item.title}</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[#7a7060]">{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+        {extraImagesAfter.length > 0 ? (
+          <SectionExtraImageStack
+            images={extraImagesAfter}
+            className={
+              futureValue.items.length || extraImages.length ? "mt-10" : ""
+            }
+            tone="light"
+            label="미래가치 이미지"
+            onOpen={(index) => setLightbox({ slot: "after", index })}
+          />
+        ) : null}
+        <ImageLightbox
+          src={lightboxSrc}
+          alt={activeExtra?.alt || futureValue.title || "미래가치 이미지"}
+          open={lightbox !== null && !!lightboxSrc}
+          onClose={() => setLightbox(null)}
+        />
       </div>
     </section>
   );
