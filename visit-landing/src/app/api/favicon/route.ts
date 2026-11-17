@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return new NextResponse(favicon.body, {
+  const body = Uint8Array.from(favicon.body);
+  return new NextResponse(body, {
     headers: {
       "Content-Type": favicon.contentType,
       ...NO_STORE_HEADERS,

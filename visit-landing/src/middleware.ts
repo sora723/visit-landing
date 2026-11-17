@@ -15,14 +15,28 @@ import {
 export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname === "/favicon.ico") {
     /**
-     * 브라우저 자동 /favicon.ico 는 siteCode 없음.
-     * cookie·domain 기본값·L001 로 다른 현장 파비콘을 주면 안 됨.
-     * → ?siteCode= 있을 때만 프록시, 없으면 404 (없는 그대로).
-     * 실제 아이콘은 metadata의 /api/favicon?siteCode= 만 사용.
+     * 브라우저가 자동으로 /favicon.ico 를 먼저 요청함.
+     * app/favicon.ico 기본 파일은 금지(다른 현장·깨진 아이콘 우선 노출).
+     * siteCode: query → cookie → 커스텀 도메인만. env/L001 폴백 금지.
      */
-    const siteCode = normalizeSiteCode(
+    let siteCode = normalizeSiteCode(
       request.nextUrl.searchParams.get("siteCode")
     );
+    if (!siteCode) {
+      const fromCookie = normalizeSiteCode(
+        request.cookies.get("siteCode")?.value
+      );
+      if (isValidSiteCodePathSegment(fromCookie)) siteCode = fromCookie;
+    }
+    if (!siteCode) {
+      const hostname = getRequestHostname(request);
+      if (isTenantHostname(hostname)) {
+        const domainMap = await fetchDomainSiteCodeMap({ waitIfCold: true });
+        siteCode = normalizeSiteCode(
+          resolveSiteCodeFromDomainMap(hostname, domainMap)
+        );
+      }
+    }
 
     if (!siteCode) {
       return new NextResponse(null, {

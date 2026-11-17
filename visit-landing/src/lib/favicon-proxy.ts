@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { fetchSiteLiveConfigFromSheet } from "@/lib/fetch-site-live-config";
 
 /**
@@ -25,9 +26,27 @@ function isImageContentType(contentType: string): boolean {
   return type.startsWith("image/");
 }
 
+/**
+ * Drive WebP/JPEG 등을 탭 아이콘용 PNG로 변환.
+ * metadata `type: image/png` 과 맞추고, Safari 등 WebP 파비콘 미지원을 피함.
+ */
+async function toFaviconPng(body: ArrayBuffer): Promise<Buffer | null> {
+  try {
+    return await sharp(Buffer.from(body))
+      .resize(64, 64, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchFaviconBytes(
   siteCode?: string | null
-): Promise<{ body: ArrayBuffer; contentType: string } | null> {
+): Promise<{ body: Buffer; contentType: string } | null> {
   const faviconUrl = await resolveFaviconProxyUrl(siteCode);
   if (!faviconUrl) return null;
 
@@ -43,8 +62,12 @@ export async function fetchFaviconBytes(
   /** Drive 로그인 HTML 등 이미지가 아니면 없음으로 처리 (다른 아이콘 대체 없음) */
   if (!isImageContentType(contentType)) return null;
 
+  const raw = await upstream.arrayBuffer();
+  const png = await toFaviconPng(raw);
+  if (!png) return null;
+
   return {
-    body: await upstream.arrayBuffer(),
-    contentType,
+    body: png,
+    contentType: "image/png",
   };
 }
