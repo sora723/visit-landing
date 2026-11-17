@@ -34,6 +34,15 @@ export function driveOriginalViewUrl(fileId: string): string {
   return `https://lh3.googleusercontent.com/d/${fileId}=w2400`;
 }
 
+/**
+ * 로고·파비콘 — 원본 포맷 유지.
+ * `thumbnail` / `lh3/...=w256` 은 WebP·PNG 알파를 JPEG로 재인코딩해 투명을 지움.
+ * 크기 제한은 CSS(header h-8 등)로 한다.
+ */
+export function driveBrandingViewUrl(fileId: string): string {
+  return `https://lh3.googleusercontent.com/d/${fileId}`;
+}
+
 const PLACEHOLDER_SVG =
   "data:image/svg+xml," +
   encodeURIComponent(
@@ -46,6 +55,7 @@ function extractDriveFileId(url: string): string | null {
     /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,
     /drive\.google\.com\/uc\?(?:[^#]*&)?id=([a-zA-Z0-9_-]+)/,
     /drive\.google\.com\/thumbnail\?(?:[^#]*&)?id=([a-zA-Z0-9_-]+)/,
+    /lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/,
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
@@ -69,6 +79,9 @@ export function normalizeImageUrl(
   if (fileId) {
     if (preset === "original") {
       return driveOriginalViewUrl(fileId);
+    }
+    if (preset === "logo" || preset === "favicon") {
+      return driveBrandingViewUrl(fileId);
     }
     return driveThumbnailUrl(fileId, DRIVE_THUMB_WIDTH[preset]);
   }
