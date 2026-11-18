@@ -15,11 +15,10 @@ const BG_CLASS: Record<CtaPromoImageConfig["backgroundColor"], string> = {
 };
 
 /**
- * 홍보관 방문예약(CtaSection) 바로 아래 — 가운데 대형 이미지 1장
+ * 홍보관 방문예약(CtaSection) 바로 아래 — 대형 이미지 1장
  * 콘텐츠관리 ctaPromoImage / ctaPromoImagePc / ctaPromoImageMobile / ctaPromoBg
  *
- * PC: 컨테이너(max 1200) 기준 좌우 full (width 100%, height auto)
- * 모바일: 가로 100% 유지
+ * PC·모바일 모두 뷰포트 좌우 full (max-w 1200 제한 없음). 세로는 비율 유지.
  */
 export function CtaPromoImageSection() {
   const { config } = useConfig();
@@ -44,7 +43,7 @@ export function CtaPromoImageSection() {
       id="방문예약-홍보"
       className={`scroll-mt-[var(--site-top-offset)] ${BG_CLASS[bg]}`}
     >
-      <div className="mx-auto flex w-full max-w-[1200px] justify-center">
+      <div className="w-full">
         <PromoPicture
           mobileSrc={mobileSrc}
           desktopSrc={desktopSrc}
