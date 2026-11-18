@@ -375,10 +375,21 @@ function parseUnitTypes(value: unknown): SiteConfigApiUnitTypes | undefined {
         })
         .filter((item): item is NonNullable<typeof item> => item !== null)
     : [];
+  const extraImages = parseLocationExtraImages(value.extraImages);
+  const extraImagesAfter = parseLocationExtraImages(value.extraImagesAfter);
   return {
     title: String(value.title ?? "세대안내").trim() || "세대안내",
     items,
+    ...(extraImages.length > 0 ? { extraImages } : {}),
+    ...(extraImagesAfter.length > 0 ? { extraImagesAfter } : {}),
   };
+}
+
+/** unitTypesData JSON 정규화 (extraImages 포함) */
+export function normalizeUnitTypesData(
+  value: unknown
+): SiteConfigApiUnitTypes | undefined {
+  return parseUnitTypes(value);
 }
 
 function parseExtendedData(value: unknown): ContentExtendedData | undefined {

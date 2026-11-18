@@ -7,6 +7,7 @@ import { buildSitePageTitle } from "@/lib/site-page-title";
 import {
   normalizeImageItemsSection,
   normalizeLocationData,
+  normalizeUnitTypesData,
 } from "./site-config-api";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
@@ -94,36 +95,6 @@ function resolveCtaPromoImageFromContent(
 function resolveUnitTypesFromContent(
   content: ContentManagementRow
 ): SiteConfig["unitTypes"] {
-  type UnitItem = SiteConfig["unitTypes"]["items"][number];
-  type LegacyItem = {
-    tab?: string;
-    title?: string;
-    description?: string;
-    image?: string;
-    imagePc?: string;
-    imageMobile?: string;
-  };
-
-  const normalizeItems = (items: LegacyItem[]): UnitItem[] => {
-    const result: UnitItem[] = [];
-    for (const item of items) {
-      const tab = item.tab?.trim() || item.title?.trim() || "";
-      const title = item.title?.trim() || tab;
-      const image = item.image?.trim() || "";
-      if (!tab && !title && !image) continue;
-      const resolvedTab = tab || title;
-      result.push({
-        tab: resolvedTab,
-        title: title || resolvedTab,
-        description: item.description?.trim() || "",
-        image,
-        imagePc: item.imagePc?.trim(),
-        imageMobile: item.imageMobile?.trim(),
-      });
-    }
-    return result;
-  };
-
   const row = content as ContentManagementRow & Record<string, string | undefined>;
   const unitTypesRaw =
     row.unitTypesData?.trim() ||
@@ -131,28 +102,26 @@ function resolveUnitTypesFromContent(
     content.unitTypesData?.trim();
 
   if (unitTypesRaw) {
-    const parsed = parseJson<{ title?: string; items?: LegacyItem[] }>(
-      unitTypesRaw,
-      {}
-    );
-    const items = normalizeItems(parsed.items ?? []);
-    if (items.length) {
-      return {
-        title: parsed.title?.trim() || "세대안내",
-        items,
-      };
+    const normalized = normalizeUnitTypesData(parseJson(unitTypesRaw, null));
+    if (
+      normalized &&
+      (normalized.items.length > 0 ||
+        (normalized.extraImages?.length ?? 0) > 0 ||
+        (normalized.extraImagesAfter?.length ?? 0) > 0)
+    ) {
+      return normalized;
     }
   }
 
-  const legacy = parseJson<{ title?: string; items?: LegacyItem[] }>(
-    content.layoutData,
-    { title: "세대안내", items: [] }
+  const legacy = normalizeUnitTypesData(
+    parseJson(content.layoutData, { title: "세대안내", items: [] })
   );
-  const legacyItems = normalizeItems(legacy.items ?? []);
-  return {
-    title: "세대안내",
-    items: legacyItems,
-  };
+  return (
+    legacy ?? {
+      title: "세대안내",
+      items: [],
+    }
+  );
 }
 
 function resolveStickyPromoText(

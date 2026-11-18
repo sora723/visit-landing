@@ -80,7 +80,7 @@ export interface SiteConfig {
   /**
    * 섹션 삽입 이미지 — 시트 평탄 키 extraImages / extraImagesAfter.
    * 입지: 맵↔텍스트 / 텍스트 아래.
-   * 프리미엄·미래가치: 제목↔카드 / 카드 아래.
+   * 프리미엄·미래가치·세대안내: 제목↔본문 / 본문 아래.
    */
   premium: {
     title: string;
@@ -166,6 +166,20 @@ export interface SiteConfig {
       image: string;
       imagePc?: string;
       imageMobile?: string;
+    }[];
+    /** 제목 ↔ 타입 탭 사이 */
+    extraImages?: {
+      image: string;
+      imagePc?: string;
+      imageMobile?: string;
+      alt?: string;
+    }[];
+    /** 타입 패널 아래 */
+    extraImagesAfter?: {
+      image: string;
+      imagePc?: string;
+      imageMobile?: string;
+      alt?: string;
     }[];
   };
   community: {

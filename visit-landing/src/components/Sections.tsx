@@ -688,14 +688,23 @@ export function UnitTypesSection() {
   const items = section.items.filter(
     (item) => item.tab?.trim() || item.title?.trim() || item.image?.trim()
   );
+  const extraImages = section.extraImages ?? [];
+  const extraImagesAfter = section.extraImagesAfter ?? [];
+  const hasExtras =
+    extraImages.some(locationImagePresent) ||
+    extraImagesAfter.some(locationImagePresent);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [lightbox, setLightbox] = useState(false);
-  const { handleZoomClick } = useZoomExpandClick(() => setLightbox(true));
+  const [unitLightbox, setUnitLightbox] = useState(false);
+  const [extraLightbox, setExtraLightbox] = useState<{
+    slot: "before" | "after";
+    index: number;
+  } | null>(null);
+  const { handleZoomClick } = useZoomExpandClick(() => setUnitLightbox(true));
 
   const safeIndex =
     items.length === 0 ? 0 : activeIndex >= items.length ? 0 : activeIndex;
   const active = items[safeIndex];
-  const lightboxSrc = useResponsiveImage(
+  const unitLightboxSrc = useResponsiveImage(
     active
       ? {
           image: active.image,
@@ -705,72 +714,112 @@ export function UnitTypesSection() {
       : { image: "" },
     "lightbox"
   );
+  const activeExtra =
+    extraLightbox?.slot === "before"
+      ? extraImages[extraLightbox.index]
+      : extraLightbox?.slot === "after"
+        ? extraImagesAfter[extraLightbox.index]
+        : undefined;
+  const extraLightboxSrc = useResponsiveImage(
+    activeExtra ?? { image: "" },
+    "lightbox"
+  );
 
-  if (!items.length) return null;
+  if (!items.length && !hasExtras) return null;
 
-  const current = items[safeIndex]!;
+  const current = items[safeIndex];
 
   return (
     <section id="세대안내" className="scroll-mt-[var(--site-top-offset)] bg-white px-6 py-20">
       <div className="mx-auto max-w-[1100px]">
         <FigmaSectionTitle en="UNIT TYPES" title={section.title} />
 
-        <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-          <div className="flex min-w-min gap-2 sm:justify-center">
-            {items.map((item, index) => {
-              const selected = index === safeIndex;
-              return (
+        {extraImages.length > 0 ? (
+          <SectionExtraImageStack
+            images={extraImages}
+            className={items.length || extraImagesAfter.length ? "mb-10" : ""}
+            tone="light"
+            label="세대안내 이미지"
+            onOpen={(index) => setExtraLightbox({ slot: "before", index })}
+          />
+        ) : null}
+
+        {items.length > 0 && current ? (
+          <>
+            <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+              <div className="flex min-w-min gap-2 sm:justify-center">
+                {items.map((item, index) => {
+                  const selected = index === safeIndex;
+                  return (
+                    <button
+                      key={`${item.tab}-${index}`}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={`shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold tracking-wide transition-colors ${
+                        selected
+                          ? "border-[var(--color-text)] bg-[var(--color-text)] text-white shadow-[0_4px_16px_rgba(var(--color-text-rgb),0.18)]"
+                          : "border-[var(--color-text)]/15 bg-white text-[var(--color-text)] hover:border-[var(--color-gold)]/50 hover:text-[var(--color-text)]"
+                      }`}
+                      aria-pressed={selected}
+                    >
+                      {item.tab}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div key={current.tab} className="location-tab-panel">
+              {current.image && (
                 <button
-                  key={`${item.tab}-${index}`}
                   type="button"
-                  onClick={() => setActiveIndex(index)}
-                  className={`shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold tracking-wide transition-colors ${
-                    selected
-                      ? "border-[var(--color-text)] bg-[var(--color-text)] text-white shadow-[0_4px_16px_rgba(var(--color-text-rgb),0.18)]"
-                      : "border-[var(--color-text)]/15 bg-white text-[var(--color-text)] hover:border-[var(--color-gold)]/50 hover:text-[var(--color-text)]"
-                  }`}
-                  aria-pressed={selected}
+                  onClick={handleZoomClick}
+                  className="group relative block w-full touch-manipulation overflow-hidden rounded-xl bg-[#e8e4dc]"
                 >
-                  {item.tab}
+                  <ResponsiveImg
+                    source={current}
+                    alt={current.title}
+                    className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+                  />
+                  <ZoomExpandHint />
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              )}
 
-        <div key={current.tab} className="location-tab-panel">
-          {current.image && (
-            <button
-              type="button"
-              onClick={handleZoomClick}
-              className="group relative block w-full touch-manipulation overflow-hidden rounded-xl bg-[#e8e4dc]"
-            >
-              <ResponsiveImg
-                source={current}
-                alt={current.title}
-                className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-              />
-              <ZoomExpandHint />
-            </button>
-          )}
+              <div className="mt-6 text-center sm:mt-8">
+                <h3 className="text-[clamp(20px,3vw,28px)] font-bold text-[var(--color-text)]">
+                  {current.title}
+                </h3>
+                {current.description && (
+                  <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#7a7060] sm:text-[15px]">
+                    {current.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        ) : null}
 
-          <div className="mt-6 text-center sm:mt-8">
-            <h3 className="text-[clamp(20px,3vw,28px)] font-bold text-[var(--color-text)]">
-              {current.title}
-            </h3>
-            {current.description && (
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#7a7060] sm:text-[15px]">
-                {current.description}
-              </p>
-            )}
-          </div>
-        </div>
+        {extraImagesAfter.length > 0 ? (
+          <SectionExtraImageStack
+            images={extraImagesAfter}
+            className={items.length || extraImages.length ? "mt-10" : ""}
+            tone="light"
+            label="세대안내 이미지"
+            onOpen={(index) => setExtraLightbox({ slot: "after", index })}
+          />
+        ) : null}
 
         <ImageLightbox
-          src={lightboxSrc}
-          alt={current.title}
-          open={lightbox}
-          onClose={() => setLightbox(false)}
+          src={unitLightboxSrc}
+          alt={current?.title || section.title}
+          open={unitLightbox && !!unitLightboxSrc}
+          onClose={() => setUnitLightbox(false)}
+        />
+        <ImageLightbox
+          src={extraLightboxSrc}
+          alt={activeExtra?.alt || section.title || "세대안내 이미지"}
+          open={extraLightbox !== null && !!extraLightboxSrc}
+          onClose={() => setExtraLightbox(null)}
         />
       </div>
     </section>

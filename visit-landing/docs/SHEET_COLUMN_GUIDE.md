@@ -218,11 +218,30 @@ Hero 바로 아래에 작고 차분한 공지 형태로 표시되는 일반 텍�
       "description": "4Bay 대형평형",
       "image": "https://example.com/84a.jpg"
     }
+  ],
+  "extraImages": [
+    {
+      "image": "https://drive.google.com/file/d/FILE_ID/view",
+      "alt": "타입 비교표"
+    }
+  ],
+  "extraImagesAfter": [
+    {
+      "image": "https://drive.google.com/file/d/FILE_ID/view",
+      "imagePc": "https://drive.google.com/file/d/PC_ID/view",
+      "imageMobile": "https://drive.google.com/file/d/MOBILE_ID/view",
+      "alt": "하단 안내 이미지"
+    }
   ]
 }
 ```
 
-→ `#세대안내` 탭 UI (없으면 레거시 `layoutData` fallback)
+| 키 | 위치 |
+|---|---|
+| `extraImages` | 제목 ↔ 타입 탭 **사이** |
+| `extraImagesAfter` | 타입 패널 **아래** (하단) |
+
+→ `#세대안내` 탭 UI (없으면 레거시 `layoutData` fallback). `image` / `imagePc` / `imageMobile` 규칙은 입지·프리미엄 `extraImages`와 동일.
 
 ### communityData — 커뮤니티
 
