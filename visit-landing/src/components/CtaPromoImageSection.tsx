@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { useConfig } from "./ConfigProvider";
 import { getImageFallbackUrl, normalizeImageUrl } from "@/lib/image-url";
 import {
@@ -14,12 +14,12 @@ const BG_CLASS: Record<CtaPromoImageConfig["backgroundColor"], string> = {
   beige: "bg-[var(--color-bg)]",
 };
 
-/** PC 섹션 풀 기준 — 이 너비 이상이면 영역(max 1200) 가로 100% */
-const PC_FULL_MIN_PX = 1200;
-
 /**
  * 홍보관 방문예약(CtaSection) 바로 아래 — 가운데 대형 이미지 1장
  * 콘텐츠관리 ctaPromoImage / ctaPromoImagePc / ctaPromoImageMobile / ctaPromoBg
+ *
+ * PC: 컨테이너(max 1200) 기준 좌우 full (width 100%, height auto)
+ * 모바일: 가로 100% 유지
  */
 export function CtaPromoImageSection() {
   const { config } = useConfig();
@@ -72,22 +72,10 @@ function PromoPicture({
 }) {
   const [src, setSrc] = useState(initialSrc);
   const [stage, setStage] = useState<"primary" | "thumb" | "done">("primary");
-  const [pcWidthStyle, setPcWidthStyle] = useState<string | undefined>(
-    undefined
-  );
-  /** PC에서 가로 풀이 아니면 좌우 여백과 맞춰 상·하에도 여백 */
-  const pcNotFull =
-    typeof pcWidthStyle === "string" && pcWidthStyle !== "100%";
 
   return (
-    <div
-      className={
-        pcNotFull
-          ? "flex w-full justify-center md:py-8 lg:py-10"
-          : "flex w-full justify-center"
-      }
-    >
-      <picture>
+    <div className="flex w-full justify-center">
+      <picture className="block w-full">
         {mobileSrc ? (
           <source
             media={`(max-width: ${MOBILE_BREAKPOINT}px)`}
@@ -100,24 +88,12 @@ function PromoPicture({
             srcSet={stage === "primary" ? desktopSrc : desktopFallback}
           />
         ) : null}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt=""
-          className="h-auto max-w-full object-contain md:w-auto"
-          style={
-            pcWidthStyle
-              ? ({ width: pcWidthStyle } satisfies CSSProperties)
-              : undefined
-          }
+          className="h-auto w-full max-w-full object-contain object-center"
           loading="lazy"
           decoding="async"
-          onLoad={(e) => {
-            const nw = e.currentTarget.naturalWidth;
-            if (!nw) return;
-            // PC: 1200+ → 컨테이너 풀 / 그 미만 → 실제 픽셀 너비(여백)
-            setPcWidthStyle(nw >= PC_FULL_MIN_PX ? "100%" : `${nw}px`);
-          }}
           onError={() => {
             if (stage === "primary") {
               const next =
@@ -126,13 +102,11 @@ function PromoPicture({
                 normalizeImageUrl(initialSrc, "lightbox");
               setSrc(next);
               setStage("thumb");
-              setPcWidthStyle(undefined);
               return;
             }
             if (stage === "thumb") {
               setSrc(getImageFallbackUrl(initialSrc, "lightbox"));
               setStage("done");
-              setPcWidthStyle(undefined);
             }
           }}
         />
