@@ -1174,14 +1174,47 @@ function normalizeUnitTypeItems_(items) {
   return result;
 }
 
+/** unitTypesData.extraImages / extraImagesAfter — premium·location 과 동일 형태 */
+function normalizeUnitExtraImages_(value) {
+  if (!value || Object.prototype.toString.call(value) !== '[object Array]') {
+    return [];
+  }
+  var out = [];
+  for (var i = 0; i < value.length; i++) {
+    var item = value[i];
+    if (!item || typeof item !== 'object') continue;
+    var image = String(item.image || '').trim();
+    var imagePc = String(item.imagePc || '').trim();
+    var imageMobile = String(item.imageMobile || '').trim();
+    if (!image && !imagePc && !imageMobile) continue;
+    out.push({
+      image: image || imagePc || imageMobile,
+      imagePc: imagePc,
+      imageMobile: imageMobile,
+      alt: String(item.alt || '').trim()
+    });
+  }
+  return out;
+}
+
 function parseUnitTypesFromContentRow_(contentRow) {
   var raw = getSiteField_(contentRow, UNIT_TYPES_DATA_ALIASES);
   var parsed = parseJsonField_(raw, null);
-  if (parsed && Array.isArray(parsed.items) && parsed.items.length) {
-    return {
-      title: String(parsed.title || '세대안내').trim() || '세대안내',
-      items: normalizeUnitTypeItems_(parsed.items)
-    };
+  if (parsed && typeof parsed === 'object') {
+    var items = Array.isArray(parsed.items)
+      ? normalizeUnitTypeItems_(parsed.items)
+      : [];
+    var extraImages = normalizeUnitExtraImages_(parsed.extraImages);
+    var extraImagesAfter = normalizeUnitExtraImages_(parsed.extraImagesAfter);
+    if (items.length || extraImages.length || extraImagesAfter.length) {
+      var result = {
+        title: String(parsed.title || '세대안내').trim() || '세대안내',
+        items: items
+      };
+      if (extraImages.length) result.extraImages = extraImages;
+      if (extraImagesAfter.length) result.extraImagesAfter = extraImagesAfter;
+      return result;
+    }
   }
 
   var legacy = parseJsonField_(getField_(contentRow, 'layoutData'), null);
