@@ -550,18 +550,82 @@ function getBenefitsEnabledFromContentRow_(row, ext) {
   return true;
 }
 
-/** 콘텐츠관리 benefitsEnabled 컬럼 보장 */
+/**
+ * benefitsEnabled 중복 컬럼 정리 — 가장 왼쪽 1개만 남기고 나머지 삭제.
+ * 중복 사이 빈 헤더 컬럼도 함께 제거.
+ * (site.config 동시 ensure 레이스로 중복 생긴 경우)
+ */
+function cleanupDuplicateBenefitsEnabledColumns_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var aliasSet = {};
+  for (var a = 0; a < BENEFITS_ENABLED_ALIASES.length; a++) {
+    aliasSet[String(BENEFITS_ENABLED_ALIASES[a]).trim()] = true;
+  }
+  var matchCols = [];
+  for (var c = 0; c < headers.length; c++) {
+    var h = String(headers[c] || '').trim();
+    if (aliasSet[h]) matchCols.push(c + 1);
+  }
+  if (matchCols.length <= 1) {
+    return { removed: 0, kept: matchCols[0] || null };
+  }
+  var kept = matchCols[0];
+  var minCol = matchCols[0];
+  var maxCol = matchCols[matchCols.length - 1];
+  var toDelete = [];
+  for (var col = maxCol; col >= minCol; col--) {
+    var header = String(headers[col - 1] || '').trim();
+    if (!header) {
+      toDelete.push(col);
+      continue;
+    }
+    if (aliasSet[header] && col !== kept) toDelete.push(col);
+  }
+  var removed = 0;
+  for (var i = 0; i < toDelete.length; i++) {
+    sheet.deleteColumn(toDelete[i]);
+    removed++;
+  }
+  writeLog_(
+    'COLUMN_CLEAN',
+    '',
+    '콘텐츠관리.benefitsEnabled 중복/빈열 ' + removed + '개 삭제 (유지 col=' + kept + ')'
+  );
+  return { removed: removed, kept: kept };
+}
+
+/** 콘텐츠관리 benefitsEnabled 컬럼 보장 (중복 없이 1개) */
 function ensureBenefitsEnabledColumn() {
   var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var cleaned = cleanupDuplicateBenefitsEnabledColumns_(sheet);
   var map = getHeaderIndexMap_(sheet);
   for (var i = 0; i < BENEFITS_ENABLED_ALIASES.length; i++) {
     if (map[BENEFITS_ENABLED_ALIASES[i]] !== undefined) {
-      return { ok: true, added: false, message: 'benefitsEnabled 이미 존재' };
+      return {
+        ok: true,
+        added: false,
+        removedDuplicates: cleaned.removed,
+        message:
+          cleaned.removed > 0
+            ? 'benefitsEnabled 중복 ' + cleaned.removed + '개 정리'
+            : 'benefitsEnabled 이미 존재'
+      };
     }
   }
   ensureColumnBeforeExtended_(sheet, 'benefitsEnabled');
   writeLog_('COLUMN_ADD', '', '콘텐츠관리.benefitsEnabled 컬럼 추가');
-  return { ok: true, added: true, message: 'benefitsEnabled 컬럼 추가' };
+  return {
+    ok: true,
+    added: true,
+    removedDuplicates: cleaned.removed,
+    message: 'benefitsEnabled 컬럼 추가'
+  };
+}
+
+/** Web App: action=setup.benefitsEnabledColumn — 중복 정리 + 없으면 추가 */
+function handleSetupBenefitsEnabledColumn() {
+  return ensureBenefitsEnabledColumn();
 }
 
 function insertColumnBeforeHeader_(sheet, beforeHeader, newHeader) {

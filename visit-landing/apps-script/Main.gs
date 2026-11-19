@@ -87,6 +87,9 @@ function routeAction_(action, params) {
     case 'setup.reservationFormColumns':
       return ensureReservationFormColumns();
 
+    case 'setup.benefitsEnabledColumn':
+      return handleSetupBenefitsEnabledColumn();
+
     case 'setup.formTokenHmac':
       return handleSetupFormTokenHmac(params);
 
@@ -152,12 +155,21 @@ function onOpen() {
     .addSeparator()
     .addItem('메뉴 새로고침 (시트 닫았다 열기)', 'runVisitLandingMenuHint')
     .addItem('컬러 컬럼 추가 (main/sub/accent)', 'runEnsureSiteThemeColumns')
+    .addItem('혜택카드노출 컬럼 정리 (benefitsEnabled)', 'runEnsureBenefitsEnabledColumn')
     .addItem('전환·소유확인 컬럼 추가', 'runEnsureConversionTrackingColumns')
     .addItem('솔라피 템플릿 컬럼 추가 (solapiTemplateId)', 'runEnsureSolapiNotificationColumns')
     .addItem('IP 차단 시트 추가 (_IP차단)', 'runEnsureIpBlockSheet')
     .addItem('누락 접수 재검열 및 복구 (알림+접수관리)', 'runReprocessMissedSubmissions')
     .addItem('(레거시) 알림 큐 잔여 발송', 'runFlushNotificationQueue')
     .addToUi();
+}
+
+function runEnsureBenefitsEnabledColumn() {
+  var result = ensureBenefitsEnabledColumn();
+  try {
+    SpreadsheetApp.getUi().alert(result.message || JSON.stringify(result));
+  } catch (e) {}
+  return result;
 }
 
 /** onOpen 메뉴가 안 보이면 편집기에서 runEnsureFooterColumns() 실행 */
