@@ -181,12 +181,16 @@ function HeroScrollHint({ compact }: { compact?: boolean }) {
 export function HeroSection() {
   const { config } = useConfig();
   const { hero, siteName, mobileBar } = config;
-  /** benefitsEnabled=N → 혜택카드 + 바로 아래 방문예약하기 버튼 함께 숨김 */
+  /**
+   * benefitsEnabled=N → 히어로 제목/부제·혜택카드·방문예약 버튼·훅문구·오버레이 숨김
+   * (헤더 siteName / logo 는 그대로)
+   */
   const showBenefitsCta = hero.benefitsEnabled !== false;
   const benefits = showBenefitsCta
     ? hero.benefits.filter((item) => item.title || item.value)
     : [];
   const heroSources = resolveHeroImageSources(hero);
+  /** heroTitle → 없으면 siteName (헤더와 동일 소스 가능, 표시만 히어로/헤더 분리) */
   const headline = hero.hook?.trim() || siteName;
 
   return (
@@ -223,22 +227,25 @@ export function HeroSection() {
         ) : null}
 
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] pb-8 text-center md:hidden">
-          <h1
-            className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide"
-            style={{ color: "var(--color-hero-title)" }}
-          >
-            {headline}
-          </h1>
-          {hero.sub && (
-            <p className="mt-3 max-w-sm text-[14px] font-light tracking-wider text-white/75">
-              {hero.sub}
-            </p>
-          )}
-          {!showBenefitsCta ? (
+          {showBenefitsCta ? (
+            <>
+              <h1
+                className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide"
+                style={{ color: "var(--color-hero-title)" }}
+              >
+                {headline}
+              </h1>
+              {hero.sub ? (
+                <p className="mt-3 max-w-sm text-[14px] font-light tracking-wider text-white/75">
+                  {hero.sub}
+                </p>
+              ) : null}
+            </>
+          ) : (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
               <HeroScrollHint compact />
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -256,21 +263,19 @@ export function HeroSection() {
       ) : null}
 
       <div className="relative z-10 mx-auto hidden min-h-[100svh] w-full max-w-[1100px] flex-col items-center justify-center px-6 pb-24 pt-[var(--header-h)] text-center md:flex">
-        <h1
-          className="font-paperlogy text-[clamp(36px,6.5vw,72px)] font-bold leading-tight tracking-wide"
-          style={{ color: "var(--color-hero-title)" }}
-        >
-          {headline}
-        </h1>
-
-        {hero.sub && (
-          <p className="mt-4 max-w-2xl text-[clamp(15px,2.4vw,22px)] font-light tracking-wider text-white/75">
-            {hero.sub}
-          </p>
-        )}
-
         {showBenefitsCta ? (
           <>
+            <h1
+              className="font-paperlogy text-[clamp(36px,6.5vw,72px)] font-bold leading-tight tracking-wide"
+              style={{ color: "var(--color-hero-title)" }}
+            >
+              {headline}
+            </h1>
+            {hero.sub ? (
+              <p className="mt-4 max-w-2xl text-[clamp(15px,2.4vw,22px)] font-light tracking-wider text-white/75">
+                {hero.sub}
+              </p>
+            ) : null}
             <HeroBenefitCards benefits={benefits} variant="desktop" />
             <HeroCtaButton className="mt-10 px-14 py-[18px] text-[15px] font-medium tracking-[0.15em]" />
             {mobileBar.hookText ? (

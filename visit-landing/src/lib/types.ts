@@ -52,7 +52,7 @@ export interface SiteConfig {
     visualImageMobile?: string;
     highlightDuration?: number;
     /**
-     * false면 히어로 혜택카드·방문예약 버튼·훅문구·이미지 오버레이 그라데이션 숨김
+     * false면 히어로 제목/부제·혜택카드·방문예약 버튼·훅문구·오버레이 그라데이션 숨김
      * (시트 benefitsEnabled / 혜택카드노출). 기본 true.
      */
     benefitsEnabled?: boolean;
