@@ -181,10 +181,11 @@ function HeroScrollHint({ compact }: { compact?: boolean }) {
 export function HeroSection() {
   const { config } = useConfig();
   const { hero, siteName, mobileBar } = config;
-  const benefits =
-    hero.benefitsEnabled === false
-      ? []
-      : hero.benefits.filter((item) => item.title || item.value);
+  /** benefitsEnabled=N → 혜택카드 + 바로 아래 방문예약하기 버튼 함께 숨김 */
+  const showBenefitsCta = hero.benefitsEnabled !== false;
+  const benefits = showBenefitsCta
+    ? hero.benefits.filter((item) => item.title || item.value)
+    : [];
   const heroSources = resolveHeroImageSources(hero);
   const headline = hero.hook?.trim() || siteName;
 
@@ -235,13 +236,17 @@ export function HeroSection() {
         </div>
 
         <div className="flex h-[30svh] flex-col items-center justify-end gap-2 bg-gradient-to-b from-transparent to-[var(--color-navy)]/55 px-4 pb-3 pt-2">
-          <HeroBenefitCards benefits={benefits} variant="mobile" />
-          <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
-          {mobileBar.hookText && (
-            <p className="text-[11px] tracking-wide text-white/50">
-              {mobileBar.hookText}
-            </p>
-          )}
+          {showBenefitsCta ? (
+            <>
+              <HeroBenefitCards benefits={benefits} variant="mobile" />
+              <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
+              {mobileBar.hookText ? (
+                <p className="text-[11px] tracking-wide text-white/50">
+                  {mobileBar.hookText}
+                </p>
+              ) : null}
+            </>
+          ) : null}
           <HeroScrollHint compact />
         </div>
       </div>
@@ -260,15 +265,17 @@ export function HeroSection() {
           </p>
         )}
 
-        <HeroBenefitCards benefits={benefits} variant="desktop" />
-
-        <HeroCtaButton className="mt-10 px-14 py-[18px] text-[15px] font-medium tracking-[0.15em]" />
-
-        {mobileBar.hookText && (
-          <p className="mt-4 text-xs tracking-wide text-white/50">
-            {mobileBar.hookText}
-          </p>
-        )}
+        {showBenefitsCta ? (
+          <>
+            <HeroBenefitCards benefits={benefits} variant="desktop" />
+            <HeroCtaButton className="mt-10 px-14 py-[18px] text-[15px] font-medium tracking-[0.15em]" />
+            {mobileBar.hookText ? (
+              <p className="mt-4 text-xs tracking-wide text-white/50">
+                {mobileBar.hookText}
+              </p>
+            ) : null}
+          </>
+        ) : null}
       </div>
 
       <div className="absolute bottom-1.5 left-1/2 z-10 hidden -translate-x-1/2 md:flex">

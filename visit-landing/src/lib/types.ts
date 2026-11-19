@@ -52,8 +52,8 @@ export interface SiteConfig {
     visualImageMobile?: string;
     highlightDuration?: number;
     /**
-     * false면 히어로 혜택카드 3장 숨김 (시트 benefitsEnabled / 혜택카드노출)
-     * 기본 true — 컬럼 없으면 기존처럼 표시
+     * false면 히어로 혜택카드 3장 + 바로 아래 방문예약하기 버튼(훅문구 포함) 숨김
+     * (시트 benefitsEnabled / 혜택카드노출). 기본 true.
      */
     benefitsEnabled?: boolean;
     benefits: { title: string; value: string; iconKey?: string }[];
