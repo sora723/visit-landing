@@ -217,11 +217,19 @@ export function HeroSection() {
             />
           </picture>
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-navy)]/38 via-[var(--color-navy)]/18 to-[var(--color-navy)]/48 md:from-[var(--color-navy)]/42 md:via-[var(--color-navy)]/22 md:to-[var(--color-navy)]/52" />
+        {showBenefitsCta ? (
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-navy)]/38 via-[var(--color-navy)]/18 to-[var(--color-navy)]/48 md:from-[var(--color-navy)]/42 md:via-[var(--color-navy)]/22 md:to-[var(--color-navy)]/52" />
+        ) : null}
       </div>
 
       <div className="relative z-10 flex min-h-[100svh] flex-col md:hidden">
-        <div className="flex h-[70svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] text-center">
+        <div
+          className={
+            showBenefitsCta
+              ? "flex h-[70svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] text-center"
+              : "flex min-h-[100svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] pb-10 text-center"
+          }
+        >
           <h1
             className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide"
             style={{ color: "var(--color-hero-title)" }}
@@ -233,22 +241,21 @@ export function HeroSection() {
               {hero.sub}
             </p>
           )}
+          {!showBenefitsCta ? <HeroScrollHint compact /> : null}
         </div>
 
-        <div className="flex h-[30svh] flex-col items-center justify-end gap-2 bg-gradient-to-b from-transparent to-[var(--color-navy)]/55 px-4 pb-3 pt-2">
-          {showBenefitsCta ? (
-            <>
-              <HeroBenefitCards benefits={benefits} variant="mobile" />
-              <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
-              {mobileBar.hookText ? (
-                <p className="text-[11px] tracking-wide text-white/50">
-                  {mobileBar.hookText}
-                </p>
-              ) : null}
-            </>
-          ) : null}
-          <HeroScrollHint compact />
-        </div>
+        {showBenefitsCta ? (
+          <div className="flex h-[30svh] flex-col items-center justify-end gap-2 bg-gradient-to-b from-transparent to-[var(--color-navy)]/55 px-4 pb-3 pt-2">
+            <HeroBenefitCards benefits={benefits} variant="mobile" />
+            <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
+            {mobileBar.hookText ? (
+              <p className="text-[11px] tracking-wide text-white/50">
+                {mobileBar.hookText}
+              </p>
+            ) : null}
+            <HeroScrollHint compact />
+          </div>
+        ) : null}
       </div>
 
       <div className="relative z-10 mx-auto hidden min-h-[100svh] w-full max-w-[1100px] flex-col items-center justify-center px-6 pb-24 pt-[var(--header-h)] text-center md:flex">
