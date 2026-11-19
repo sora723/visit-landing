@@ -131,7 +131,7 @@ function RichCustomSection({
         {layout === "tabs" && items.length > 0 && current ? (
           <>
             <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-              <div className="flex min-w-min gap-2 sm:justify-center">
+              <div className="flex w-max min-w-full justify-center gap-2">
                 {items.map((item, index) => {
                   const selected = index === safeIndex;
                   return (
