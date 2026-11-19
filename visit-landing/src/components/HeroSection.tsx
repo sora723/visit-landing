@@ -192,9 +192,10 @@ export function HeroSection() {
   return (
     <section
       id="hero"
-      className="relative min-h-[100svh] overflow-hidden bg-[var(--color-navy)]"
+      className="relative overflow-hidden bg-[var(--color-navy)] md:min-h-[100svh]"
     >
-      <div className="absolute inset-x-0 top-0 h-[70svh] md:inset-0 md:h-full">
+      {/* 모바일: 9:18 고정 비율 / PC: 뷰포트 풀블리드 */}
+      <div className="relative aspect-[9/18] w-full md:absolute md:inset-0 md:aspect-auto md:h-full">
         {(heroSources.mobile || heroSources.desktop) && (
           <picture>
             <source media="(max-width: 767px)" srcSet={heroSources.mobile} />
@@ -220,16 +221,8 @@ export function HeroSection() {
         {showBenefitsCta ? (
           <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-navy)]/38 via-[var(--color-navy)]/18 to-[var(--color-navy)]/48 md:from-[var(--color-navy)]/42 md:via-[var(--color-navy)]/22 md:to-[var(--color-navy)]/52" />
         ) : null}
-      </div>
 
-      <div className="relative z-10 flex min-h-[100svh] flex-col md:hidden">
-        <div
-          className={
-            showBenefitsCta
-              ? "flex h-[70svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] text-center"
-              : "flex min-h-[100svh] flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] pb-10 text-center"
-          }
-        >
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-5 pt-[calc(var(--header-h)+0.5rem)] pb-8 text-center md:hidden">
           <h1
             className="font-paperlogy text-[clamp(28px,8vw,44px)] font-bold leading-tight tracking-wide"
             style={{ color: "var(--color-hero-title)" }}
@@ -241,22 +234,26 @@ export function HeroSection() {
               {hero.sub}
             </p>
           )}
-          {!showBenefitsCta ? <HeroScrollHint compact /> : null}
+          {!showBenefitsCta ? (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+              <HeroScrollHint compact />
+            </div>
+          ) : null}
         </div>
-
-        {showBenefitsCta ? (
-          <div className="flex h-[30svh] flex-col items-center justify-end gap-2 bg-gradient-to-b from-transparent to-[var(--color-navy)]/55 px-4 pb-3 pt-2">
-            <HeroBenefitCards benefits={benefits} variant="mobile" />
-            <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
-            {mobileBar.hookText ? (
-              <p className="text-[11px] tracking-wide text-white/50">
-                {mobileBar.hookText}
-              </p>
-            ) : null}
-            <HeroScrollHint compact />
-          </div>
-        ) : null}
       </div>
+
+      {showBenefitsCta ? (
+        <div className="relative z-10 flex flex-col items-center gap-2 bg-[var(--color-navy)] px-4 pb-4 pt-3 md:hidden">
+          <HeroBenefitCards benefits={benefits} variant="mobile" />
+          <HeroCtaButton className="mt-1 w-full max-w-[320px] px-8 py-3 text-[14px] font-medium tracking-[0.12em]" />
+          {mobileBar.hookText ? (
+            <p className="text-[11px] tracking-wide text-white/50">
+              {mobileBar.hookText}
+            </p>
+          ) : null}
+          <HeroScrollHint compact />
+        </div>
+      ) : null}
 
       <div className="relative z-10 mx-auto hidden min-h-[100svh] w-full max-w-[1100px] flex-col items-center justify-center px-6 pb-24 pt-[var(--header-h)] text-center md:flex">
         <h1
