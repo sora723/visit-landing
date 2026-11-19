@@ -58,6 +58,8 @@ export interface ContentManagementRow {
   cardIcon1?: string;
   cardIcon2?: string;
   cardIcon3?: string;
+  /** Y/N — 히어로 혜택카드 3장 노출 (기본 Y) */
+  benefitsEnabled?: boolean | string;
   /** JSON string: string[] — CTA A/B 문구 */
   ctaText: string;
   mobileHookText: string;
@@ -171,6 +173,7 @@ export interface ContentExtendedData {
   };
   hero?: {
     highlightDuration?: number;
+    benefitsEnabled?: boolean;
     floatingStats?: { todayLabel: string; activeLabel: string };
   };
   cta?: { buttonText: string; privacyText: string };

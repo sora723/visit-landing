@@ -184,6 +184,7 @@ export function buildSiteConfigFromApi(
       imageMobile: api.heroImageMobile?.trim() || undefined,
       visualImage: heroVisualImage,
       highlightDuration: ext.hero?.highlightDuration ?? 3500,
+      benefitsEnabled: api.benefitsEnabled !== false,
       benefits,
       floatingStats: {
         todayReservations: api.floatingTodayReservations ?? 0,

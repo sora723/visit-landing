@@ -62,6 +62,8 @@ export type SiteConfigApiData = {
   cardIcon1?: string;
   cardIcon2?: string;
   cardIcon3?: string;
+  /** false면 히어로 혜택카드 숨김 (기본 true) */
+  benefitsEnabled?: boolean;
   ctaText?: string;
   mobileHookText?: string;
   popupImage1?: string;
@@ -452,6 +454,7 @@ export function parseSiteConfigApiResponse(
     cardIcon1: optionalString(data.cardIcon1),
     cardIcon2: optionalString(data.cardIcon2),
     cardIcon3: optionalString(data.cardIcon3),
+    benefitsEnabled: data.benefitsEnabled !== false,
     ctaText: optionalString(data.ctaText),
     mobileHookText: optionalString(data.mobileHookText),
     noticeText: optionalString(data.noticeText),

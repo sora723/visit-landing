@@ -272,6 +272,24 @@ function resolveRegionOptionsFromSheet(
   return undefined;
 }
 
+/** 기본 Y — 컬럼 없으면 히어로 혜택카드 표시 */
+function resolveBenefitsEnabledFromSheet(
+  content: ContentManagementRow,
+  ext: ContentExtendedData
+): boolean {
+  const row = content as ContentManagementRow & Record<string, string | undefined>;
+  const raw = [row.benefitsEnabled, row["혜택카드노출"]]
+    .map((v) => (v === undefined || v === null ? "" : v))
+    .find((v) => String(v).trim() !== "");
+  if (raw !== undefined && String(raw).trim() !== "") {
+    return parseBool(raw as string | boolean, true);
+  }
+  if (ext.hero?.benefitsEnabled !== undefined) {
+    return parseBool(ext.hero.benefitsEnabled, true);
+  }
+  return true;
+}
+
 function resolveTypeOptionsFromSheet(
   content: ContentManagementRow,
   ext: ContentExtendedData
@@ -456,6 +474,7 @@ export function buildSiteConfigFromSheet(
       visualImagePc: content.heroVisualImagePc,
       visualImageMobile: content.heroVisualImageMobile,
       highlightDuration: ext.hero?.highlightDuration ?? 3500,
+      benefitsEnabled: resolveBenefitsEnabledFromSheet(content, ext),
       benefits: [
         {
           title: content.benefit1Title,

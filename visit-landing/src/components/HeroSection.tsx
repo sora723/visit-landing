@@ -181,7 +181,10 @@ function HeroScrollHint({ compact }: { compact?: boolean }) {
 export function HeroSection() {
   const { config } = useConfig();
   const { hero, siteName, mobileBar } = config;
-  const benefits = hero.benefits.filter((item) => item.title || item.value);
+  const benefits =
+    hero.benefitsEnabled === false
+      ? []
+      : hero.benefits.filter((item) => item.title || item.value);
   const heroSources = resolveHeroImageSources(hero);
   const headline = hero.hook?.trim() || siteName;
 

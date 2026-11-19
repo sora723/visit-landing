@@ -51,6 +51,11 @@ export interface SiteConfig {
     visualImagePc?: string;
     visualImageMobile?: string;
     highlightDuration?: number;
+    /**
+     * false면 히어로 혜택카드 3장 숨김 (시트 benefitsEnabled / 혜택카드노출)
+     * 기본 true — 컬럼 없으면 기존처럼 표시
+     */
+    benefitsEnabled?: boolean;
     benefits: { title: string; value: string; iconKey?: string }[];
     floatingStats: {
       todayReservations: number;

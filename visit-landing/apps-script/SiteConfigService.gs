@@ -89,6 +89,12 @@ var POPUP_RESERVATION_ENABLED_ALIASES = [
   '팝업예약노출'
 ];
 
+var BENEFITS_ENABLED_ALIASES = [
+  'benefitsEnabled',
+  '혜택카드노출',
+  '히어로카드노출'
+];
+
 var MAIN_COLOR_ALIASES = [
   'mainColor',
   '메인컬러',
@@ -530,6 +536,32 @@ function getPopupReservationEnabledFromContentRow_(row, ext) {
     return parseBoolField_(ext.settings.popupReservationEnabled, true);
   }
   return true;
+}
+
+/** 기본 Y — 컬럼 없으면 히어로 혜택카드 표시 */
+function getBenefitsEnabledFromContentRow_(row, ext) {
+  var raw = getSiteField_(row, BENEFITS_ENABLED_ALIASES);
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    return parseBoolField_(raw, true);
+  }
+  if (ext && ext.hero && ext.hero.benefitsEnabled !== undefined) {
+    return parseBoolField_(ext.hero.benefitsEnabled, true);
+  }
+  return true;
+}
+
+/** 콘텐츠관리 benefitsEnabled 컬럼 보장 */
+function ensureBenefitsEnabledColumn() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+  for (var i = 0; i < BENEFITS_ENABLED_ALIASES.length; i++) {
+    if (map[BENEFITS_ENABLED_ALIASES[i]] !== undefined) {
+      return { ok: true, added: false, message: 'benefitsEnabled 이미 존재' };
+    }
+  }
+  ensureColumnBeforeExtended_(sheet, 'benefitsEnabled');
+  writeLog_('COLUMN_ADD', '', '콘텐츠관리.benefitsEnabled 컬럼 추가');
+  return { ok: true, added: true, message: 'benefitsEnabled 컬럼 추가' };
 }
 
 function insertColumnBeforeHeader_(sheet, beforeHeader, newHeader) {
@@ -1015,6 +1047,11 @@ function ensureContentSchemaColumns_() {
   } catch (err) {
     Logger.log('[ensureContentSchemaColumns_] footerData FAIL: ' + (err.message || err));
   }
+  try {
+    results.push(ensureBenefitsEnabledColumn());
+  } catch (err) {
+    Logger.log('[ensureContentSchemaColumns_] benefitsEnabled FAIL: ' + (err.message || err));
+  }
   return results;
 }
 
@@ -1446,6 +1483,7 @@ function buildPageContentFromContentRow_(contentRow, ext) {
     cardIcon1: getContentTextField_(contentRow, ['cardIcon1', '카드아이콘1', '혜택1아이콘']),
     cardIcon2: getContentTextField_(contentRow, ['cardIcon2', '카드아이콘2', '혜택2아이콘']),
     cardIcon3: getContentTextField_(contentRow, ['cardIcon3', '카드아이콘3', '혜택3아이콘']),
+    benefitsEnabled: getBenefitsEnabledFromContentRow_(contentRow, ext),
     ctaText: getContentTextField_(contentRow, ['ctaText', 'CTA문구']),
     mobileHookText: getContentTextField_(contentRow, ['mobileHookText', '모바일훅문구']),
     noticeText: getContentTextField_(contentRow, NOTICE_TEXT_HEADER_ALIASES),
@@ -1632,6 +1670,7 @@ function getSiteLiveConfig(siteCode) {
     cardIcon1: pageContent.cardIcon1,
     cardIcon2: pageContent.cardIcon2,
     cardIcon3: pageContent.cardIcon3,
+    benefitsEnabled: pageContent.benefitsEnabled,
     ctaText: pageContent.ctaText,
     mobileHookText: pageContent.mobileHookText,
     noticeText: pageContent.noticeText,
