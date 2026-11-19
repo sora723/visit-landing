@@ -201,6 +201,97 @@
 
 → `#미래가치` 섹션. 키·이미지 필드 규칙은 프리미엄/`locationData`와 동일.
 
+### customSectionsData — 커스텀 섹션 (제목·위치·헤더 메뉴)
+
+콘텐츠관리 플랫 컬럼. **배열** 또는 **단일 객체**. (`extendedData.customSections` fallback)
+
+```json
+[
+  {
+    "title": "인테리어",
+    "position": 1,
+    "showInNav": true,
+    "layout": "tabs",
+    "extraImages": [
+      { "image": "https://example.com/interior-top.jpg" }
+    ],
+    "items": [
+      {
+        "tab": "거실",
+        "title": "거실",
+        "description": "와이드 거실",
+        "image": "https://example.com/living.jpg"
+      },
+      {
+        "tab": "주방",
+        "title": "주방",
+        "image": "https://example.com/kitchen.jpg"
+      }
+    ],
+    "extraImagesAfter": [
+      { "image": "https://example.com/interior-bottom.jpg" }
+    ]
+  }
+]
+```
+
+| 키 | 설명 |
+|---|---|
+| `title` | 섹션 제목 + 헤더 버튼 문구 |
+| `position` | **1** 방문예약 아래 · 2 프리미엄 아래 · 3 사업개요 · 4 입지 · 5 미래가치 · 6 세대안내 · **7** 커뮤니티 아래(기본) |
+| `showInNav` | 헤더 메뉴 노출 (기본 true, `false`/`N`이면 숨김) |
+| `layout` | `tabs`=세대안내형 버튼 · `cards`=프리미엄형 카드. 생략 시 `items[].tab` 있으면 tabs |
+| `extraImages` | 제목 ↔ 본문 **사이** 큰 이미지 |
+| `items` | 카드 또는 탭 패널 |
+| `items[].gallery` | 탭 안 여러 장 + 하단 작은 제목 (`images` 별칭) |
+| `items[].description` | 탭 맨 아래 안내 문구 (월세 등, 줄바꿈 유지) |
+| `extraImagesAfter` | 본문 **아래** 큰 이미지 |
+
+탭+갤러리+월세 예:
+
+```json
+{
+  "title": "인테리어",
+  "position": 1,
+  "layout": "tabs",
+  "items": [
+    {
+      "tab": "34타입",
+      "title": "34타입",
+      "gallery": [
+        { "image": "https://…", "title": "거실" },
+        { "image": "https://…", "title": "부엌" }
+      ],
+      "description": "월세 안내\n월세 500/70\n1500/64\n3000/55"
+    },
+    {
+      "tab": "외관",
+      "title": "외관",
+      "gallery": [
+        { "image": "https://…" },
+        { "image": "https://…" }
+      ]
+    }
+  ]
+}
+```
+
+카드만 쓸 때 예:
+
+```json
+{
+  "title": "인테리어",
+  "position": 1,
+  "layout": "cards",
+  "items": [
+    { "title": "거실", "description": "…", "image": "https://…" },
+    { "title": "주방", "description": "…", "image": "https://…" }
+  ]
+}
+```
+
+→ 앵커 `#인테리어` (또는 `id` 지정 시 그 값). 이미지 키 규칙은 프리미엄/세대안내와 동일.
+
 ### noticeText — 안내 공지
 
 Hero 바로 아래에 작고 차분한 공지 형태로 표시되는 일반 텍스트입니다. JSON이나 카드 형식 없이 문구만 입력합니다. 셀 안의 줄바꿈도 그대로 표시되며, 비우면 공지 영역이 나타나지 않습니다.
@@ -401,7 +492,7 @@ CTA 프로모: **Pc·Mobile만 채워도 표시**됩니다. 공통 `ctaPromoImag
 | `hero.floatingStats.todayLabel` | 플로팅바 라벨 | `"오늘 방문예약"` |
 | `hero.floatingStats.activeLabel` | 플로팅바 라벨 | `"실시간 상담"` |
 | `reservationGuide` | 방문예약 안내 3단계 | `{ "title": "…", "steps": […] }` (파싱만, UI 미연결) |
-| `customSections[]` | 커스텀 이미지 블록 | `{ "id", "title", "image", … }` |
+| `customSections[]` | (fallback) 커스텀 섹션 — **우선 `customSectionsData` 컬럼** | `{ "title", "position", "layout", "items", … }` |
 
 **extendedData 예시 (축약):**
 

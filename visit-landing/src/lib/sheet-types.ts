@@ -87,6 +87,11 @@ export interface ContentManagementRow {
   layoutData?: string;
   /** JSON — community */
   communityData: string;
+  /**
+   * JSON — 커스텀 섹션 배열/객체
+   * title, position(1~7), layout(cards|tabs), items, extraImages, extraImagesAfter
+   */
+  customSectionsData?: string;
   floatingTodayReservations: number | string;
   floatingActiveConsultations: number | string;
   /** 하단 고정 프로모 — stickyPromoText / 스티키프로모텍스트 / 하단프로모문구 */

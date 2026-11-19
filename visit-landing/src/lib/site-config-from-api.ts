@@ -4,6 +4,7 @@ import type { SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 import type { SiteConfigApiData } from "./site-config-api";
 import { buildSitePageTitle } from "@/lib/site-page-title";
+import { normalizeCustomSections } from "./custom-sections";
 import { normalizeFooter } from "./footer-config";
 import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { resolveBrandingFromExtended } from "./branding-url";
@@ -232,7 +233,13 @@ export function buildSiteConfigFromApi(
         ) ?? fallback.seo.ogImage,
       faviconUrl,
     },
-    customSections: ext.customSections ?? fallback.customSections ?? [],
+    customSections: (() => {
+      const fromApi = normalizeCustomSections(api.customSections);
+      if (fromApi.length) return fromApi;
+      const fromExt = normalizeCustomSections(ext.customSections);
+      if (fromExt.length) return fromExt;
+      return fallback.customSections ?? [];
+    })(),
     theme: mergeSiteTheme({
       ...fallback.theme,
       ...ext.theme,

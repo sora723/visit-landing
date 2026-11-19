@@ -272,16 +272,69 @@ export interface CtaPromoImageSection {
 }
 
 /** 현장별 커스텀 이미지 블록 (site.json / 시트 extendedData) */
+/**
+ * 현장별 커스텀 섹션 (시트 customSectionsData / extendedData.customSections)
+ * - position: 1=방문예약 아래 … 7=커뮤니티 아래(기본)
+ * - layout tabs → 세대안내형 버튼, cards → 프리미엄형 카드 (items에 tab 있으면 tabs)
+ * - extraImages / items / extraImagesAfter 조합 가능
+ * - image만 있으면 레거시 단일 이미지 블록
+ */
 export interface CustomImageSection {
   id: string;
   enabled?: boolean;
   label?: string;
   title: string;
   description?: string;
-  image: string;
+  /** 레거시 단일 이미지 */
+  image?: string;
   imagePc?: string;
   imageMobile?: string;
   href?: string;
+  /**
+   * 삽입 위치
+   * 1 방문예약 아래 · 2 프리미엄 아래 · 3 사업개요 아래 · 4 입지 아래
+   * 5 미래가치 아래 · 6 세대안내 아래 · 7 커뮤니티 아래(기본)
+   */
+  position?: number;
+  /** 헤더 메뉴 노출 (기본 true) */
+  showInNav?: boolean;
+  /** cards | tabs — 미지정 시 items[].tab 유무로 자동 */
+  layout?: "cards" | "tabs";
+  items?: {
+    tab?: string;
+    title: string;
+    /** 탭 하단 안내 (월세 등) — 줄바꿈 유지 */
+    description?: string;
+    /** 단일 대표 이미지 (gallery 없을 때) */
+    image?: string;
+    imagePc?: string;
+    imageMobile?: string;
+    /**
+     * 탭 안 여러 장 — 이미지 + 하단 작은 제목
+     * (34타입 거실/부엌/방, 외관 여러 장)
+     */
+    gallery?: {
+      image: string;
+      imagePc?: string;
+      imageMobile?: string;
+      title?: string;
+      alt?: string;
+    }[];
+  }[];
+  /** 제목 ↔ 본문 사이 큰 이미지 */
+  extraImages?: {
+    image: string;
+    imagePc?: string;
+    imageMobile?: string;
+    alt?: string;
+  }[];
+  /** 본문 아래 큰 이미지 */
+  extraImagesAfter?: {
+    image: string;
+    imagePc?: string;
+    imageMobile?: string;
+    alt?: string;
+  }[];
 }
 
 export interface ReservationItem {

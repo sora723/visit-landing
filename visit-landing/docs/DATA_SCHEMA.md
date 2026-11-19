@@ -71,6 +71,7 @@ UI 타입: `src/lib/types.ts` → `SiteConfig`
 | `futureValue` | futureData |
 | `unitTypes` | unitTypesData (별칭: unitTypes, 세대안내) |
 | `community` | communityData |
+| `customSections` | customSectionsData (별칭: customSections, 커스텀섹션) / extendedData.customSections |
 | `popup`, `footer`, `seo`, `liveStatus`, `reservationGuide`, `liveReservation`, `hero.highlightDuration` | 콘텐츠관리.extendedData (JSON) |
 
 ---

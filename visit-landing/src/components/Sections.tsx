@@ -18,7 +18,7 @@ import {
 } from "./ZoomExpandHint";
 import { PinchZoomImage } from "./PinchZoomImage";
 
-function FigmaSectionTitle({
+export function FigmaSectionTitle({
   en,
   title,
   subtitle,
@@ -222,7 +222,7 @@ type LocationExtraImage = Extract<
   { kind: "extraImages" }
 >["images"][number];
 
-function locationImagePresent(img: {
+export function locationImagePresent(img: {
   image?: string;
   imagePc?: string;
   imageMobile?: string;
@@ -280,7 +280,7 @@ function LocationExtraResponsiveImg({
   );
 }
 
-function SectionExtraImageStack({
+export function SectionExtraImageStack({
   images,
   className,
   onOpen,
@@ -629,7 +629,7 @@ export function NoticeSection() {
   );
 }
 
-function ImageLightbox({
+export function ImageLightbox({
   src,
   alt,
   open,

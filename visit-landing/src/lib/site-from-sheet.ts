@@ -9,6 +9,7 @@ import {
   normalizeLocationData,
   normalizeUnitTypesData,
 } from "./site-config-api";
+import { normalizeCustomSections } from "./custom-sections";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
 import { normalizeFooter } from "./footer-config";
@@ -540,7 +541,11 @@ export function buildSiteConfigFromSheet(
         ) ?? "",
       faviconUrl,
     },
-    customSections: ext.customSections ?? [],
+    customSections: (() => {
+      const fromColumn = normalizeCustomSections(content.customSectionsData);
+      if (fromColumn.length) return fromColumn;
+      return normalizeCustomSections(ext.customSections);
+    })(),
     reservationForm: {
       unitTypeOptions: resolveUnitTypeOptionsFromSheet(content, ext),
       visitDateDays: resolveVisitDateDaysFromSheet(content, ext),

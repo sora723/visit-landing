@@ -115,6 +115,7 @@ function runEnsureStickyPromoAndVerify() {
   runEnsureStep_('heroImage', ensureHeroImageColumns);
   runEnsureStep_('ctaPromoImage', ensureCtaPromoImageColumns);
   runEnsureStep_('unitTypesData', ensureUnitTypesDataColumn);
+  runEnsureStep_('customSectionsData', ensureCustomSectionsDataColumn);
   runEnsureStep_('popupImages', ensurePopupImageColumns);
   runEnsureStep_('footer', ensureFooterDataColumn);
   runEnsureStep_('conversionTracking', ensureConversionTrackingColumns);

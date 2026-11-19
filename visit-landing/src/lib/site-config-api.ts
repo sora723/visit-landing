@@ -1,8 +1,9 @@
 /** Apps Script site.config API 응답 타입·파싱 */
 
+import { normalizeCustomSections } from "./custom-sections";
 import { normalizeImageUrl } from "./image-url";
 import { parseFooterData } from "./footer-config";
-import type { SiteConfig } from "./types";
+import type { CustomImageSection, SiteConfig } from "./types";
 import type { ContentExtendedData } from "./sheet-types";
 
 export type VisitDateOption = { value: string; label: string };
@@ -85,6 +86,8 @@ export type SiteConfigApiData = {
   unitTypes?: SiteConfigApiUnitTypes;
   community?: SiteConfigApiCommunity;
   footer?: SiteConfigApiFooter;
+  /** 시트 customSectionsData 또는 extendedData.customSections */
+  customSections?: CustomImageSection[];
   extendedData?: ContentExtendedData;
   conversionTracking?: Record<string, unknown>;
   ownershipVerification?: Record<string, unknown>;
@@ -481,6 +484,12 @@ export function parseSiteConfigApiResponse(
     unitTypes: parseUnitTypes(data.unitTypes),
     community: parseCommunity(data.community),
     footer: parseFooter(data.footer),
+    customSections: normalizeCustomSections(
+      data.customSections ??
+        (isRecord(data.extendedData)
+          ? data.extendedData.customSections
+          : undefined)
+    ),
     extendedData: parseExtendedData(data.extendedData),
     conversionTracking: isRecord(data.conversionTracking)
       ? data.conversionTracking

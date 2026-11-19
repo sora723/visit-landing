@@ -74,9 +74,9 @@ const CommunitySection = dynamic(
     import("./Sections").then((m) => ({ default: m.CommunitySection })),
   { ssr: true }
 );
-const CustomSections = dynamic(
+const CustomSectionsAt = dynamic(
   () =>
-    import("./CustomSections").then((m) => ({ default: m.CustomSections })),
+    import("./CustomSections").then((m) => ({ default: m.CustomSectionsAt })),
   { ssr: true }
 );
 const FooterReservationSection = dynamic(
@@ -104,13 +104,19 @@ export function LandingPage({ promoBar }: { promoBar?: React.ReactNode }) {
         <LiveReservationSection />
         <CtaSection sectionId="방문예약" />
         <CtaPromoImageSection />
+        <CustomSectionsAt position={1} />
         <PremiumSection />
+        <CustomSectionsAt position={2} />
         <OverviewSection />
+        <CustomSectionsAt position={3} />
         <LocationSection />
+        <CustomSectionsAt position={4} />
         <FutureValueSection />
+        <CustomSectionsAt position={5} />
         <UnitTypesSection />
+        <CustomSectionsAt position={6} />
         <CommunitySection />
-        <CustomSections />
+        <CustomSectionsAt position={7} />
         <FooterReservationSection />
       </main>
       <SiteFooter />

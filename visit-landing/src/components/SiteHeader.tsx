@@ -1,12 +1,15 @@
 "use client";
 
 import { IconPhone } from "./icons";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConfig } from "./ConfigProvider";
 import { normalizeImageUrl } from "@/lib/image-url";
+import { customSectionNavItems } from "@/lib/custom-sections";
 import { formatHeaderTagline } from "@/lib/utils";
 
-const NAV: { label: string; href: string; highlight?: boolean }[] = [
+type NavItem = { label: string; href: string; highlight?: boolean };
+
+const BASE_NAV: NavItem[] = [
   { label: "사업개요", href: "#사업개요" },
   { label: "프리미엄", href: "#프리미엄" },
   { label: "입지환경", href: "#입지환경" },
@@ -23,6 +26,19 @@ export function SiteHeader() {
   const { config } = useConfig();
   const tel = config.phone.replace(/\D/g, "");
   const headerTagline = formatHeaderTagline(config.headerBrand, config.headerSubBrand);
+  const NAV = useMemo((): NavItem[] => {
+    const custom = customSectionNavItems(config.customSections);
+    if (!custom.length) return BASE_NAV;
+    const highlight = BASE_NAV.find((item) => item.highlight);
+    const base = BASE_NAV.filter((item) => !item.highlight);
+    const seen = new Set(base.map((item) => item.href));
+    const injected: NavItem[] = custom
+      .filter((item) => !seen.has(item.href))
+      .map((item) => ({ label: item.label, href: item.href }));
+    return highlight
+      ? [...base, ...injected, highlight]
+      : [...base, ...injected];
+  }, [config.customSections]);
   const headerLogoSrc = config.headerLogoUrl
     ? normalizeImageUrl(config.headerLogoUrl, "logo")
     : "";

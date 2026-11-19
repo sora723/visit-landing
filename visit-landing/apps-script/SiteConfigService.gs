@@ -205,6 +205,13 @@ var UNIT_TYPES_DATA_ALIASES = [
   '세대안내데이터'
 ];
 
+var CUSTOM_SECTIONS_DATA_ALIASES = [
+  'customSectionsData',
+  'customSections',
+  '커스텀섹션',
+  '커스텀섹션데이터'
+];
+
 var POPUP_IMAGE1_ALIASES = [
   'popupImage1',
   '팝업이미지1',
@@ -1044,6 +1051,46 @@ function ensureUnitTypesDataColumn() {
   };
 }
 
+/** 커스텀 섹션 JSON 컬럼 — extendedData 앞 */
+function ensureCustomSectionsDataColumn() {
+  var sheet = getSheet_(CONTENT_SHEET_NAME);
+  var map = getHeaderIndexMap_(sheet);
+
+  if (hasAnyHeader_(map, CUSTOM_SECTIONS_DATA_ALIASES)) {
+    return {
+      ok: true,
+      added: false,
+      message: 'customSectionsData 컬럼 이미 존재'
+    };
+  }
+
+  ensureColumnBeforeExtended_(sheet, 'customSectionsData');
+  writeLog_('COLUMN_ADD', '', '콘텐츠관리.customSectionsData 컬럼 추가');
+  return {
+    ok: true,
+    added: true,
+    message: 'customSectionsData 컬럼 추가'
+  };
+}
+
+/**
+ * customSectionsData 컬럼 또는 extendedData.customSections
+ * 배열·단일 객체 모두 허용
+ */
+function parseCustomSectionsFromContentRow_(contentRow, ext) {
+  var raw = getContentTextField_(contentRow, CUSTOM_SECTIONS_DATA_ALIASES);
+  if (raw) {
+    var parsed = parseJsonField_(raw, null);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object') return [parsed];
+  }
+  if (ext && Array.isArray(ext.customSections)) return ext.customSections;
+  if (ext && ext.customSections && typeof ext.customSections === 'object') {
+    return [ext.customSections];
+  }
+  return [];
+}
+
 /** 이벤트 팝업 이미지 컬럼 — extendedData 앞 */
 function ensurePopupImageColumns() {
   var sheet = getSheet_(CONTENT_SHEET_NAME);
@@ -1115,6 +1162,11 @@ function ensureContentSchemaColumns_() {
     results.push(ensureBenefitsEnabledColumn());
   } catch (err) {
     Logger.log('[ensureContentSchemaColumns_] benefitsEnabled FAIL: ' + (err.message || err));
+  }
+  try {
+    results.push(ensureCustomSectionsDataColumn());
+  } catch (err) {
+    Logger.log('[ensureContentSchemaColumns_] customSectionsData FAIL: ' + (err.message || err));
   }
   return results;
 }
@@ -1592,6 +1644,7 @@ function buildPageContentFromContentRow_(contentRow, ext) {
       title: '커뮤니티',
       items: []
     }),
+    customSections: parseCustomSectionsFromContentRow_(contentRow, ext),
     footer: parseFooterFromContentRow_(contentRow, ext),
     extendedData: ext || {}
   };
@@ -1756,6 +1809,7 @@ function getSiteLiveConfig(siteCode) {
     futureValue: pageContent.futureValue,
     unitTypes: pageContent.unitTypes,
     community: pageContent.community,
+    customSections: pageContent.customSections || [],
     footer: pageContent.footer,
     extendedData: pageContent.extendedData,
     conversionTracking: conversionTracking,
