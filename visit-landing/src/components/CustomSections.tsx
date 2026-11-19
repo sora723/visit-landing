@@ -210,7 +210,7 @@ function RichCustomSection({
 
               {current.description ? (
                 <div className="mt-8 text-center sm:mt-10">
-                  <p className="mx-auto max-w-xl whitespace-pre-line text-sm leading-relaxed text-[#7a7060] sm:text-[15px]">
+                  <p className="mx-auto max-w-xl whitespace-pre-line text-[20px] font-medium leading-[1.8] text-[var(--color-text)] sm:text-[30px]">
                     {current.description}
                   </p>
                 </div>
