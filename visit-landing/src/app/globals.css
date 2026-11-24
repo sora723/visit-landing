@@ -144,7 +144,8 @@ textarea {
 }
 
 .promo-sticky-bar {
-  bottom: var(--bottom-bar-h);
+  /* BottomBar가 실측 높이로 --bottom-bar-h 갱신 (동의 체크 등으로 바 높이 변할 때 겹침 방지) */
+  bottom: calc(var(--bottom-bar-h) + 2px);
   color-scheme: light only;
 }
 

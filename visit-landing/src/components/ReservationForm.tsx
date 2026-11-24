@@ -185,7 +185,7 @@ export function ReservationForm({
             value={consultType}
             onChange={setConsultType}
             options={typeOptions}
-            placeholder="유형(선택)"
+            placeholder="상담희망시간(선택)"
             className="h-9 min-w-0 w-[7rem] shrink md:h-10 lg:w-[8rem] xl:w-[9rem]"
             listMaxHeight={180}
             dropUp
@@ -331,13 +331,14 @@ export function ReservationForm({
         {showType && (
           <div className={isCompact ? undefined : "sm:col-span-2"}>
             <label className={labelBase}>
-              유형 <span className="font-normal text-[#b0a898]">(선택)</span>
+              상담희망시간{" "}
+              <span className="font-normal text-[#b0a898]">(선택)</span>
             </label>
             <ScrollableSelect
               value={consultType}
               onChange={setConsultType}
               options={typeOptions}
-              placeholder="유형 선택"
+              placeholder="상담희망시간 선택"
               className="w-full"
               listMaxHeight={200}
               dropUp={variant === "sheet"}
@@ -522,9 +523,9 @@ function PrivacyAgreement({
 
   if (isInline) {
     return (
-      <div className="flex shrink-0 flex-col gap-1">
+      <div className="flex shrink-0 flex-nowrap items-center gap-1.5 lg:gap-2">
         {showMarketing && (
-          <div className="flex items-center gap-1">
+          <label className="flex cursor-pointer items-center gap-1">
             <input
               type="checkbox"
               checked={allChecked}
@@ -532,9 +533,9 @@ function PrivacyAgreement({
               className={checkClass}
             />
             <span className="text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]">
-              전체 동의
+              전체
             </span>
-          </div>
+          </label>
         )}
         <div className="flex items-center gap-1">
           <input
@@ -545,10 +546,10 @@ function PrivacyAgreement({
           />
           <span className="text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]">
             <span className="xl:hidden">동의</span>
-            <span className="hidden xl:inline">개인정보 동의</span>
+            <span className="hidden xl:inline">개인정보</span>
           </span>
           <button type="button" onClick={onViewPrivacy} className={linkClass}>
-            [내용보기]
+            [내용]
           </button>
         </div>
         {showMarketing && (
@@ -560,10 +561,10 @@ function PrivacyAgreement({
               className={checkClass}
             />
             <span className="text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]">
-              마케팅(선택)
+              마케팅
             </span>
             <button type="button" onClick={onViewMarketing} className={linkClass}>
-              [내용보기]
+              [내용]
             </button>
           </div>
         )}

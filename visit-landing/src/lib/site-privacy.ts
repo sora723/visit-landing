@@ -133,7 +133,7 @@ export function resolveRequiredCollectionItems(config: SiteConfig): {
 } {
   const required = "이름, 연락처";
   const optionalParts: string[] = [];
-  if (isTypeFieldEnabled(config)) optionalParts.push("문의유형");
+  if (isTypeFieldEnabled(config)) optionalParts.push("상담희망시간");
   if (isUnitTypeFieldEnabled(config)) optionalParts.push("관심 평형");
   if (isVisitDateFieldEnabled(config)) optionalParts.push("방문 희망일");
   if (isVisitTimeFieldEnabled(config)) optionalParts.push("방문 희망시간");

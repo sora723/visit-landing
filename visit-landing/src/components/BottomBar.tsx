@@ -1,10 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { useConfig } from "./ConfigProvider";
 import { formatHeaderTagline } from "@/lib/utils";
 import { ReservationForm } from "./ReservationForm";
 import { IconCalendar, IconMessageCircle, IconPhone, IconX } from "./icons";
+
+const BOTTOM_BAR_H_FALLBACK = "3.625rem";
+
+/** 실제 하단바 높이 → --bottom-bar-h (프로모 위치·푸터 여백 동기화) */
+function useSyncBottomBarHeight(
+  pcRef: RefObject<HTMLDivElement | null>,
+  mobileRef: RefObject<HTMLDivElement | null>
+) {
+  useEffect(() => {
+    const sync = () => {
+      const isPc = window.matchMedia("(min-width: 768px)").matches;
+      const el = isPc ? pcRef.current : mobileRef.current;
+      if (!el) return;
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty("--bottom-bar-h", `${h}px`);
+      }
+    };
+
+    const ro = new ResizeObserver(sync);
+    if (pcRef.current) ro.observe(pcRef.current);
+    if (mobileRef.current) ro.observe(mobileRef.current);
+    window.addEventListener("resize", sync);
+    sync();
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", sync);
+      document.documentElement.style.setProperty(
+        "--bottom-bar-h",
+        BOTTOM_BAR_H_FALLBACK
+      );
+    };
+  }, [pcRef, mobileRef]);
+}
 
 function BottomSheet({
   open,
@@ -98,11 +138,17 @@ export function BottomBar() {
   const tel = config.phone.replace(/\D/g, "");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pcSubmitted, setPcSubmitted] = useState(false);
+  const pcBarRef = useRef<HTMLDivElement>(null);
+  const mobileBarRef = useRef<HTMLDivElement>(null);
+  useSyncBottomBarHeight(pcBarRef, mobileBarRef);
 
   return (
     <>
       {/* PC — Figma bottom-bar-pc (필드 전부도 한 줄 유지) */}
-      <div className="bottom-bar-pc fixed inset-x-0 bottom-0 z-[200] hidden border-t-2 border-[var(--color-gold)] bg-[var(--color-navy)] shadow-[0_-4px_24px_rgba(0,0,0,0.25)] md:block">
+      <div
+        ref={pcBarRef}
+        className="bottom-bar-pc fixed inset-x-0 bottom-0 z-[200] hidden border-t-2 border-[var(--color-gold)] bg-[var(--color-navy)] shadow-[0_-4px_24px_rgba(0,0,0,0.25)] md:block"
+      >
         <div className="flex justify-center px-3 py-2 md:px-4 lg:px-5 xl:px-6 xl:py-[11px]">
           {pcSubmitted ? (
             <div className="flex h-10 items-center justify-center">
@@ -145,7 +191,10 @@ export function BottomBar() {
       </div>
 
       {/* Mobile — Figma bottom-bar-mobile */}
-      <div className="bottom-bar-mobile fixed inset-x-0 bottom-0 z-[200] border-t-2 border-[var(--color-gold)] bg-[var(--color-navy)] shadow-[0_-4px_24px_rgba(0,0,0,0.25)] md:hidden">
+      <div
+        ref={mobileBarRef}
+        className="bottom-bar-mobile fixed inset-x-0 bottom-0 z-[200] border-t-2 border-[var(--color-gold)] bg-[var(--color-navy)] shadow-[0_-4px_24px_rgba(0,0,0,0.25)] md:hidden"
+      >
         <div className="flex h-[58px]">
           <a
             href={`tel:${tel}`}
