@@ -40,7 +40,7 @@ export function PrivacyPolicyContent({ config }: { config: SiteConfig }) {
       </PrivacySection>
 
       <PrivacySection title="보유·이용 기간">
-        <p>{retention}</p>
+        <div className="space-y-2 whitespace-pre-line">{retention}</div>
       </PrivacySection>
 
       <PrivacySection title="개인정보 처리 위탁">

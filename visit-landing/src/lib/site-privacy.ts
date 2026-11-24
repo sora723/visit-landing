@@ -119,12 +119,15 @@ export function resolvePrivacyCollectionPurpose(config: SiteConfig): string {
   return `${siteName}의 관심등록, 상담신청 접수, 신청자 확인, 상담 안내 및 방문예약 일정 협의`;
 }
 
-/** 보유·이용 기간 — 시트 설정 우선, 없으면 현장명 기준 공통 문구 */
+/** 보유·이용 기간 — 시트 설정 우선, 없으면 공통 문구 */
 export function resolvePrivacyRetentionPeriod(config: SiteConfig): string {
   const custom = config.privacy?.privacyRetentionPeriod?.trim();
   if (custom) return custom;
-  const siteName = config.siteName?.trim() || "본 단지";
-  return `${siteName} 마지막 계약 체결일로부터 90일까지 보유하며, 동의 철회 또는 이용 목적 달성 시 지체 없이 파기합니다.`;
+  return [
+    "개인정보 수집일로부터 최대 1년간 보유·이용합니다.",
+    "다만, 보유기간 내에 상담 및 방문예약 업무가 종료되는 등 개인정보 처리 목적이 달성되어 해당 정보가 더 이상 필요하지 않은 경우에는 지체 없이 파기합니다.",
+    "관계 법령에 보존 의무가 있는 경우에 한하여 해당 법령에서 정한 기간 동안 보관하며, 법령상 별도 보존 근거가 없으면 지체 없이 파기합니다.",
+  ].join("\n\n");
 }
 
 export function resolveRequiredCollectionItems(config: SiteConfig): {
