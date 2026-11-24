@@ -121,6 +121,7 @@ function buildSolapiRequestBody_(notification, messageBody, config) {
   var message = {
     to: to,
     from: config.senderPhone,
+    /** 알림톡 실패 시 LMS 대체·일부 템플릿 경로용 — 비우지 않음 */
     text: messageBody
   };
 
@@ -137,37 +138,79 @@ function buildSolapiRequestBody_(notification, messageBody, config) {
       templateId: templateId,
       variables: buildSolapiTemplateVariables_(notification)
     };
-    delete message.text;
   }
 
   return { message: message };
 }
 
+/**
+ * 알림톡 템플릿 치환값.
+ * 템플릿에 있는 키만 쓰이므로 현장별 문안 차이를 위해 별칭을 함께 넣음.
+ * (예: [#{현장명}] / 이름·연락처·문의내용)
+ */
 function buildSolapiTemplateVariables_(notification) {
-  var site = notification.siteName || '';
-  var name = notification.customerName || '';
+  var site = String(notification.siteName || '').trim();
+  var name = String(notification.customerName || '').trim();
   var phone = formatPhoneDisplay_(notification.customerPhone) || '';
-  var type = notification.consultType || '관심등록';
-  var visitDate = notification.reserveDisplay || '미정';
-  var birthDate = notification.birthDate || '';
-  var region = notification.region || '';
+  var type = String(notification.consultType || '').trim() || '관심등록';
+  var visitDate = String(notification.reserveDisplay || '').trim() || '미정';
+  var birthDate = String(notification.birthDate || '').trim();
+  var region = String(notification.region || '').trim();
+  var inquiry = String(notification.inquiry || '').trim();
   var trafficSource = String(notification.trafficSource || '').trim();
   if (trafficSource === '직접유입') trafficSource = '';
 
-  return {
-    '#{현장명}': site,
-    '#{이름}': name,
-    '#{연락처}': phone,
-    '#{유형}': type,
-    '#{방문일자}': visitDate,
-    '#{방문일시}': visitDate,
-    '#{생년월일}': birthDate,
-    '#{지역}': region,
-    '#{경로}': trafficSource,
-    '#{예상경로}': trafficSource,
-    '#{유입경로}': trafficSource,
-    '#{utm_source}': trafficSource
-  };
+  /** 문의내용 — 유형·방문·기타문의 묶음 (빈 칸 방지) */
+  var inquiryParts = [];
+  if (type) inquiryParts.push(type);
+  if (visitDate && visitDate !== '미정') inquiryParts.push('방문 ' + visitDate);
+  if (birthDate) inquiryParts.push('생년월일 ' + birthDate);
+  if (region) inquiryParts.push('지역 ' + region);
+  if (inquiry) inquiryParts.push(inquiry);
+  if (trafficSource) inquiryParts.push('경로 ' + trafficSource);
+  var inquiryContent = inquiryParts.join(' / ') || type;
+
+  var vars = {};
+  function put_(key, value) {
+    vars[key] = value == null ? '' : String(value);
+  }
+
+  /** 영문 키 — 솔라피 「단일페이지 고급형」 등 (#{site}/#{name}/#{phone}/#{inquiry}) */
+  put_('#{site}', site);
+  put_('#{name}', name);
+  put_('#{phone}', phone);
+  put_('#{inquiry}', inquiryContent);
+
+  /** 한글 키 — 구 템플릿 호환 */
+  put_('#{현장명}', site);
+  put_('#{브랜드}', site);
+  put_('#{단지명}', site);
+  put_('#{프로젝트}', site);
+  put_('#{광고명}', site);
+
+  put_('#{이름}', name);
+  put_('#{성함}', name);
+  put_('#{고객명}', name);
+
+  put_('#{연락처}', phone);
+  put_('#{휴대폰}', phone);
+  put_('#{전화번호}', phone);
+
+  put_('#{유형}', type);
+  put_('#{문의내용}', inquiryContent);
+  put_('#{문의}', inquiryContent);
+  put_('#{상담내용}', inquiryContent);
+
+  put_('#{방문일자}', visitDate);
+  put_('#{방문일시}', visitDate);
+  put_('#{생년월일}', birthDate);
+  put_('#{지역}', region);
+  put_('#{경로}', trafficSource);
+  put_('#{예상경로}', trafficSource);
+  put_('#{유입경로}', trafficSource);
+  put_('#{utm_source}', trafficSource);
+
+  return vars;
 }
 
 function callSolapiApi_(requestBody, config) {

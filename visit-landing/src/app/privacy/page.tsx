@@ -11,7 +11,7 @@ import { getServerSiteCode } from "@/lib/server-site-code";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "개인정보 수집 및 이용 동의",
+  title: "개인정보 수집·이용 안내",
   robots: { index: false, follow: false },
 };
 
@@ -33,8 +33,6 @@ export default async function PrivacyPage({ searchParams }: PrivacyPageProps) {
     return <SiteContentBoot siteCode={siteCode} />;
   }
 
-  const managerName =
-    config.managerName?.trim() || `${config.siteName} 분양사무소`;
   const homeHref = appendSiteCodeQuery("/", siteCode);
 
   return (
@@ -45,13 +43,13 @@ export default async function PrivacyPage({ searchParams }: PrivacyPageProps) {
             PRIVACY POLICY
           </p>
           <h1 className="text-xl font-extrabold text-[var(--color-navy)] sm:text-2xl">
-            개인정보 수집 및 이용 동의
+            개인정보 수집·이용 안내
           </h1>
           <p className="mt-2 text-sm text-[#7a7060]">{config.siteName}</p>
         </header>
 
         <div className="px-6 py-7 sm:px-9 sm:py-9">
-          <PrivacyPolicyContent managerName={managerName} phone={config.phone} />
+          <PrivacyPolicyContent config={config} />
         </div>
 
         <footer className="border-t border-[var(--color-navy)]/8 px-6 py-5 sm:px-9">

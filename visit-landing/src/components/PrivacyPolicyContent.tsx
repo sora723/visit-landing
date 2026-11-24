@@ -1,60 +1,84 @@
-import type { ReactNode } from "react";
+"use client";
 
-export function PrivacyPolicyContent({
-  managerName,
-  phone,
-}: {
-  managerName: string;
-  phone: string;
-}) {
+import type { ReactNode } from "react";
+import type { SiteConfig } from "@/lib/types";
+import {
+  resolvePrivacyCollectionPurpose,
+  resolvePrivacyControllerName,
+  resolvePrivacyDisplayValue,
+  resolvePrivacyRetentionPeriod,
+  resolveRequiredCollectionItems,
+} from "@/lib/site-privacy";
+
+/** 필수 개인정보 수집·이용 안내 — 고객 화면에는 한글 라벨만 표시 */
+export function PrivacyPolicyContent({ config }: { config: SiteConfig }) {
+  const siteCode = config.siteCode;
+  const controller = resolvePrivacyControllerName(config);
+  const purpose = resolvePrivacyCollectionPurpose(config);
+  const retention = resolvePrivacyRetentionPeriod(config);
+  const contact =
+    config.privacy?.privacyContact?.trim() ||
+    config.phone?.trim() ||
+    resolvePrivacyDisplayValue(undefined, "privacyContact", siteCode);
+  const items = resolveRequiredCollectionItems(config);
+
   return (
     <>
-      <PrivacySection title="■ 수집주체 (관리자명)">
-        <p>{managerName}</p>
+      <PrivacySection title="개인정보처리자">
+        <p>{controller}</p>
       </PrivacySection>
 
-      <PrivacySection title="■ 수집 항목">
-        <PrivacyRow label="필수" value="성명, 연락처(휴대폰번호)" />
-        <PrivacyRow label="선택" value="관심평형, 방문예약 일자" />
+      <PrivacySection title="수집·이용 목적">
+        <p>{purpose}</p>
       </PrivacySection>
 
-      <PrivacySection title="■ 수집 목적">
-        <p>분양 상담 및 방문예약 확인 연락, 알림톡(카카오 비즈메시지) 발송</p>
+      <PrivacySection title="수집 항목">
+        <PrivacyRow label="필수" value={items.required} />
+        {items.optional ? (
+          <PrivacyRow label="선택" value={items.optional} />
+        ) : null}
       </PrivacySection>
 
-      <PrivacySection title="■ 보유 및 이용기간">
-        <p>동의 철회 요청 시 또는 분양 상담 목적 달성 후 지체 없이 파기합니다.</p>
-        <p className="mt-1.5">
-          단, 계약 체결 시에는 관련 법령(전자상거래 등에서의 소비자보호에 관한 법률 등)에
-          따라 일정 기간 보관될 수 있습니다.
-        </p>
+      <PrivacySection title="보유·이용 기간">
+        <p>{retention}</p>
       </PrivacySection>
 
-      <PrivacySection title="■ 제3자 제공">
-        <p>수집된 개인정보는 원칙적으로 외부에 제공하지 않습니다.</p>
-        <p className="mt-1.5">
-          단, 알림톡 발송을 위해 카카오 비즈메시지 서비스 제공자(Solapi)에 연락처를
-          최소한으로 제공할 수 있으며, 해당 업체는 법령에 의한 의무 외의 목적으로
-          사용하지 않습니다.
-        </p>
-      </PrivacySection>
-
-      <PrivacySection title="■ 동의 거부 권리 및 불이익">
+      <PrivacySection title="개인정보 처리 위탁">
         <p>
-          귀하는 개인정보 수집·이용에 동의를 거부할 권리가 있습니다. 단, 거부하실 경우
-          분양 상담 및 방문예약 서비스 이용이 제한될 수 있습니다.
+          {controller}은(는) 관심등록·상담신청 접수의 원활한 처리를 위하여
+          랜딩페이지 운영 및 개인정보 처리 업무를 수탁업체에 위탁하고 있으며,
+          알림 발송 업무는 재수탁을 통해 처리할 수 있습니다.
+        </p>
+        <div className="mt-2 space-y-1.5">
+          <PrivacyRow
+            label="수탁"
+            value="노드컴퍼니 — 랜딩페이지 운영, 고객정보 접수·저장·관리, 상담 담당자 전달"
+          />
+          <PrivacyRow
+            label="재수탁"
+            value="솔라피 — 카카오 알림톡 발송(상담 담당자 대상 신규 접수 알림)"
+          />
+        </div>
+        <p className="mt-2">
+          수탁·재수탁 업체명과 위탁업무의 자세한 내용은 개인정보 처리방침에서
+          확인하실 수 있습니다.
         </p>
       </PrivacySection>
 
-      <PrivacySection title="■ 문의">
-        <p>개인정보 관련 문의: {managerName}</p>
-        <p className="mt-1">대표번호: {phone}</p>
+      <PrivacySection title="동의 거부권 및 불이익">
+        <p>
+          귀하는 개인정보 수집·이용 동의를 거부할 권리가 있습니다. 다만, 이름과
+          연락처는 상담신청 접수 및 안내에 필요한 정보이므로, 해당 동의가 없으면
+          온라인 상담신청을 접수할 수 없습니다. 그 외 선택항목을 입력하지 않아도
+          상담신청은 가능합니다.
+        </p>
       </PrivacySection>
 
-      <div className="mt-5 rounded-lg bg-[var(--color-bg)] p-4 text-xs leading-relaxed text-[#7a7060]">
-        본 개인정보 처리방침은 개인정보보호법 제30조에 의거하여 작성되었으며, 관련
-        법령의 변경 또는 서비스 정책 변경에 따라 내용이 수정될 수 있습니다.
-      </div>
+      {contact ? (
+        <PrivacySection title="문의">
+          <p>{contact}</p>
+        </PrivacySection>
+      ) : null}
     </>
   );
 }
@@ -68,18 +92,21 @@ function PrivacySection({
 }) {
   return (
     <section className="mb-5">
-      <h2 className="mb-2 text-[13px] font-bold text-[var(--color-navy)]">{title}</h2>
+      <h2 className="mb-2 text-[13px] font-bold text-[var(--color-navy)]">
+        {title}
+      </h2>
       <div className="text-[13px] leading-relaxed text-[#5a5a5a]">{children}</div>
     </section>
   );
 }
 
 function PrivacyRow({ label, value }: { label: string; value: string }) {
+  const accent = label === "필수" || label === "수탁" || label === "재수탁";
   return (
     <div className="mb-1 flex gap-2">
       <span
-        className={`min-w-8 shrink-0 text-xs font-semibold ${
-          label === "필수" ? "text-[var(--color-gold)]" : "text-[#7a7060]"
+        className={`min-w-10 shrink-0 text-xs font-semibold ${
+          accent ? "text-[var(--color-gold)]" : "text-[#7a7060]"
         }`}
       >
         [{label}]

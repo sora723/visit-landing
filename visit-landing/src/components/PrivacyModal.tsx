@@ -14,10 +14,6 @@ export function PrivacyModal({
   const { config } = useConfig();
   if (!open) return null;
 
-  const managerName =
-    config.managerName?.trim() ||
-    `${config.siteName} 분양사무소`;
-
   return (
     <>
       <div
@@ -41,7 +37,7 @@ export function PrivacyModal({
               id="privacy-modal-title"
               className="text-[17px] font-extrabold text-[var(--color-navy)]"
             >
-              개인정보 수집 및 이용 동의
+              개인정보 수집·이용 안내
             </h3>
           </div>
           <button
@@ -55,7 +51,7 @@ export function PrivacyModal({
         </div>
 
         <div className="overflow-y-auto px-6 py-5">
-          <PrivacyPolicyContent managerName={managerName} phone={config.phone} />
+          <PrivacyPolicyContent config={config} />
         </div>
 
         <div className="shrink-0 border-t border-[var(--color-navy)]/8 px-6 py-4">

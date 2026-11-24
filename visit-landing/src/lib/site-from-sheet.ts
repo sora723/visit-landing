@@ -13,6 +13,7 @@ import { normalizeCustomSections } from "./custom-sections";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
 import { normalizeFooter } from "./footer-config";
+import { parseSitePrivacySettings } from "./site-privacy";
 import type { SiteConfig } from "./types";
 import type { CtaPromoImageSection } from "./types";
 import type {
@@ -558,5 +559,6 @@ export function buildSiteConfigFromSheet(
       regionOptions: resolveRegionOptionsFromSheet(content, ext),
       typeOptions: resolveTypeOptionsFromSheet(content, ext),
     },
+    privacy: parseSitePrivacySettings(ext.privacy),
   };
 }

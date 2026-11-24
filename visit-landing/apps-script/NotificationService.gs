@@ -54,7 +54,13 @@ function dispatchNotification_(payload) {
         '] 발송 성공 templateId=' +
         (meta.templateId || '-') +
         ' pfId=' +
-        (meta.pfId || '-')
+        (meta.pfId || '-') +
+        ' name=' +
+        String(payload.customerName || '').slice(0, 20) +
+        ' phone=' +
+        String(payload.customerPhone || '').slice(0, 15) +
+        ' site=' +
+        String(payload.siteName || '').slice(0, 30)
     );
     return {
       success: true,

@@ -3,7 +3,7 @@ export interface SiteConfig {
   siteName: string;
   phone: string;
   kakaoUrl?: string;
-  /** 개인정보 수집주체 — 현장관리.managerName */
+  /** 개인정보처리자(광고주) — 현장관리.managerName */
   managerName?: string;
   notificationPhone: string;
   topBannerText?: string;
@@ -238,6 +238,11 @@ export interface SiteConfig {
     /** 밝은 면 UI 글자 — 시트 textColor, 미설정 시 mainColor */
     textColor?: string;
   };
+  /**
+   * 개인정보·마케팅 고지 — extendedData.privacy
+   * (내부 필드명 유지, UI에는 한글 라벨만 표시)
+   */
+  privacy?: import("./site-privacy").SitePrivacySettings;
   /** 관심평형·방문일자 — site.json 기본값 + Sheet live 덮어쓰기 */
   reservationForm?: {
     unitTypeOptions: string[];
@@ -355,6 +360,11 @@ export interface SubmitPayload {
   name: string;
   phone: string;
   privacyAgreed: boolean;
+  /**
+   * 선택 마케팅 동의.
+   * enableMarketingConsent 비활성 현장은 항상 false.
+   */
+  marketingAgreed?: boolean;
   unitType?: string;
   /** 유형 드롭다운 — 접수관리 상담유형/관심타입 */
   consultType?: string;
@@ -395,6 +405,8 @@ export interface SubmitPayload {
 export interface ReservationSubmitInput {
   name: string;
   phone: string;
+  /** 선택 마케팅 — 비활성 현장이면 false로 전달 */
+  marketingAgreed?: boolean;
   unitType?: string;
   consultType?: string;
   visitDate?: string;

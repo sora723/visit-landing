@@ -512,11 +512,9 @@ function prepareSubmitContext_(params) {
   var formType = getField_(siteRow, '폼타입') || 'simple';
   var contentRow = findContentBySiteCode_(siteCode);
   var ext = contentRow ? parseExtendedData_(contentRow) : null;
-  var requireBirthDate = contentRow
-    ? getBirthDateEnabledFromContentRow_(contentRow, ext) === true
-    : false;
+  /** 생년월일 노출(birthDateEnabled)과 무관 — 항상 선택 */
   var validated = validateSubmitParams_(params, formType, {
-    requireBirthDate: requireBirthDate
+    requireBirthDate: false
   });
 
   return {
@@ -528,7 +526,7 @@ function prepareSubmitContext_(params) {
 
 /**
  * simple / full 폼 필드 검증
- * options.requireBirthDate — 콘텐츠관리 birthDateEnabled=Y 이면 필수
+ * options.requireBirthDate — 레거시 호환. 관심등록은 항상 선택(false).
  */
 function validateSubmitParams_(params, formType, options) {
   var opts = options || {};
@@ -651,6 +649,14 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
   var validationStatus = String(opts.validationStatus || '정상접수').trim();
   var accepted = isAcceptedSubmissionStatus_(validationStatus);
   var suspicionReasons = String(opts.suspicionReasons || '').trim();
+  /** 선택 마케팅 동의 — 컬럼 있을 때만 기록. 미표시/미체크= N (동의로 간주 금지) */
+  var marketingAgreedRaw = params.marketingAgreed;
+  var marketingAgreedYN = (
+    marketingAgreedRaw === true ||
+    marketingAgreedRaw === 'true' ||
+    marketingAgreedRaw === 'Y' ||
+    marketingAgreedRaw === 'y'
+  ) ? 'Y' : 'N';
 
   return {
     // VisitLanding_Master (영문)
@@ -659,6 +665,8 @@ function buildSubmissionRowData_(siteRow, data, submissionId, submittedAt, rawPa
     'createdAt': submittedAt,
     'name': data.name,
     'phone': data.phone,
+    'marketingAgreed': marketingAgreedYN,
+    '마케팅동의': marketingAgreedYN,
     'utmSource': data.utmSource,
     'utmMedium': data.utmMedium,
     'utmCampaign': data.utmCampaign,

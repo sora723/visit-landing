@@ -375,6 +375,8 @@ export async function POST(request: NextRequest) {
     name,
     phone,
     privacyAgreed: true,
+    /** 고객 마케팅 동의(선택). 담당자 솔라피 알림과 무관. 미설정·false면 미동의 */
+    marketingAgreed: body.marketingAgreed === true,
     unitType: body.unitType ?? "",
     consultType: body.consultType ?? "",
     visitDate: body.visitDate ?? "",

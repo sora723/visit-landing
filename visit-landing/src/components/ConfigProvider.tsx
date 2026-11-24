@@ -153,6 +153,8 @@ export function ConfigProvider({
           name: input.name.trim(),
           phone: normalizeMobilePhone(input.phone),
           privacyAgreed: true as const,
+          /** 비활성 현장·미체크는 false — 미표시를 동의로 간주하지 않음 */
+          marketingAgreed: input.marketingAgreed === true,
           unitType: input.unitType,
           consultType: input.consultType,
           visitDate: input.visitDate,

@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useConfig } from "./ConfigProvider";
 import { useFormSubmitSecurity } from "./FormSubmitSecurityProvider";
+import { MarketingConsentModal } from "./MarketingConsentModal";
 import { PrivacyModal } from "./PrivacyModal";
 import { ScrollableSelect } from "./ScrollableSelect";
 import { normalizeBirthDate } from "@/lib/birth-date";
@@ -21,6 +23,11 @@ import {
   resolveVisitDateOptions,
   resolveVisitTimeOptions,
 } from "@/lib/reservation-form-options";
+import { appendSiteCodeQuery } from "@/lib/resolve-site-code";
+import {
+  isMarketingConsentEnabled,
+  resolveMarketingAgreedForSubmit,
+} from "@/lib/site-privacy";
 
 export type ReservationFormVariant = "default" | "compact" | "sheet" | "inline";
 
@@ -57,7 +64,9 @@ export function ReservationForm({
   const [birthDate, setBirthDate] = useState("");
   const [region, setRegion] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [marketingAgreed, setMarketingAgreed] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [marketingOpen, setMarketingOpen] = useState(false);
   const [error, setError] = useState("");
 
   const visitDates = useMemo(() => resolveVisitDateOptions(config), [config]);
@@ -74,20 +83,24 @@ export function ReservationForm({
   const showVisitTime = isVisitTimeFieldEnabled(config);
   const showBirthDate = isBirthDateFieldEnabled(config);
   const showRegion = isRegionFieldEnabled(config);
+  const showMarketing = isMarketingConsentEnabled(config);
+  const privacyPolicyHref =
+    config.privacy?.privacyPolicyUrl?.trim() ||
+    appendSiteCodeQuery("/privacy", config.siteCode ?? "");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!agreed) {
-      setError("개인정보 수집 및 이용에 동의해주세요.");
+      setError("개인정보 수집·이용에 동의해주세요.");
       return;
     }
+    const marketingAgreedForSubmit = resolveMarketingAgreedForSubmit(
+      config,
+      marketingAgreed
+    );
     let normalizedBirth = "";
-    if (showBirthDate) {
-      if (!birthDate.trim()) {
-        setError("생년월일을 입력해주세요.");
-        return;
-      }
+    if (showBirthDate && birthDate.trim()) {
       const parsed = normalizeBirthDate(birthDate);
       if (!parsed.ok) {
         setError(parsed.error);
@@ -106,6 +119,7 @@ export function ReservationForm({
       {
         name,
         phone,
+        marketingAgreed: marketingAgreedForSubmit,
         consultType: showType ? consultType || undefined : undefined,
         unitType: showUnitType ? unitType || undefined : undefined,
         visitDate: showVisitDate ? visitDate || undefined : undefined,
@@ -182,12 +196,11 @@ export function ReservationForm({
           <input
             type="text"
             inputMode="numeric"
-            placeholder="생년월일*"
+            placeholder="생년월일(선택)"
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
-            required
             className="h-9 w-[7.5rem] shrink-0 rounded border border-[var(--color-text)]/35 bg-white px-1.5 text-xs text-[var(--color-text)] outline-none md:h-10 md:w-[8rem] md:px-2 lg:w-[8.5rem] lg:text-[13px] xl:w-[9rem]"
-            aria-label="생년월일"
+            aria-label="생년월일 (선택)"
           />
         )}
         {showRegion && (
@@ -244,10 +257,19 @@ export function ReservationForm({
         <PrivacyAgreement
           agreed={agreed}
           onAgreedChange={setAgreed}
-          onView={() => setPrivacyOpen(true)}
+          onViewPrivacy={() => setPrivacyOpen(true)}
+          marketingAgreed={marketingAgreed}
+          onMarketingAgreedChange={setMarketingAgreed}
+          onViewMarketing={() => setMarketingOpen(true)}
+          showMarketing={showMarketing}
+          privacyPolicyHref={privacyPolicyHref}
           variant="inline"
         />
         <PrivacyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+        <MarketingConsentModal
+          open={marketingOpen}
+          onClose={() => setMarketingOpen(false)}
+        />
         {error && (
           <p className="pointer-events-none absolute bottom-[calc(100%+4px)] left-0 whitespace-nowrap rounded bg-black/70 px-2 py-0.5 text-[11px] text-red-300">
             {error}
@@ -325,7 +347,8 @@ export function ReservationForm({
         {showBirthDate && (
           <div>
             <label className={labelBase}>
-              생년월일 <span className="text-[var(--color-gold)]">*</span>
+              생년월일{" "}
+              <span className="font-normal text-[#b0a898]">(선택)</span>
             </label>
             <input
               type="text"
@@ -334,8 +357,7 @@ export function ReservationForm({
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
               className={inputClass}
-              required
-              aria-label="생년월일"
+              aria-label="생년월일 (선택)"
             />
           </div>
         )}
@@ -408,10 +430,19 @@ export function ReservationForm({
       <PrivacyAgreement
         agreed={agreed}
         onAgreedChange={setAgreed}
-        onView={() => setPrivacyOpen(true)}
+        onViewPrivacy={() => setPrivacyOpen(true)}
+        marketingAgreed={marketingAgreed}
+        onMarketingAgreedChange={setMarketingAgreed}
+        onViewMarketing={() => setMarketingOpen(true)}
+        showMarketing={showMarketing}
+        privacyPolicyHref={privacyPolicyHref}
         variant={variant}
       />
       <PrivacyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+      <MarketingConsentModal
+        open={marketingOpen}
+        onClose={() => setMarketingOpen(false)}
+      />
 
       {error && <p className="text-center text-sm text-red-500">{error}</p>}
 
@@ -454,56 +485,149 @@ function HoneypotField({
 function PrivacyAgreement({
   agreed,
   onAgreedChange,
-  onView,
+  onViewPrivacy,
+  marketingAgreed,
+  onMarketingAgreedChange,
+  onViewMarketing,
+  showMarketing,
+  privacyPolicyHref,
   variant,
 }: {
   agreed: boolean;
   onAgreedChange: (v: boolean) => void;
-  onView: () => void;
+  onViewPrivacy: () => void;
+  marketingAgreed: boolean;
+  onMarketingAgreedChange: (v: boolean) => void;
+  onViewMarketing: () => void;
+  showMarketing: boolean;
+  privacyPolicyHref: string;
   variant: ReservationFormVariant;
 }) {
   const isInline = variant === "inline";
+  const allChecked = showMarketing ? agreed && marketingAgreed : agreed;
+  const setAll = (v: boolean) => {
+    onAgreedChange(v);
+    if (showMarketing) onMarketingAgreedChange(v);
+  };
+  const rowClass =
+    variant === "sheet"
+      ? "flex items-center gap-2 rounded-lg bg-[var(--color-bg)] px-3.5 py-3"
+      : "flex items-center gap-2 rounded-md bg-[var(--color-bg)] px-5 py-4";
+  const checkClass = isInline
+    ? "h-3.5 w-3.5 shrink-0 cursor-pointer accent-[var(--color-gold)]"
+    : "mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-gold)]";
+  const linkClass = isInline
+    ? "shrink-0 text-[10px] font-semibold text-[var(--color-gold)] underline lg:text-[11px]"
+    : "shrink-0 text-xs font-semibold text-[var(--color-gold)] underline";
 
-  return (
-    <div
-      className={`flex items-center ${
-        isInline
-          ? "shrink-0 gap-1"
-          : variant === "sheet"
-            ? "gap-2 rounded-lg bg-[var(--color-bg)] px-3.5 py-3"
-            : "gap-2 rounded-md bg-[var(--color-bg)] px-5 py-4"
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={agreed}
-        onChange={(e) => onAgreedChange(e.target.checked)}
-        className={`shrink-0 cursor-pointer accent-[var(--color-gold)] ${
-          isInline ? "h-3.5 w-3.5" : "mt-0.5 h-4 w-4"
-        }`}
-      />
-      <span
-        className={`${isInline ? "text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]" : "flex-1 text-[13px] text-[#7a7060]"}`}
-      >
-        {!isInline && <span className="font-medium text-[var(--color-text)]">[필수]</span>}{" "}
-        {isInline ? (
-          <>
+  if (isInline) {
+    return (
+      <div className="flex shrink-0 flex-col gap-1">
+        {showMarketing && (
+          <div className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={allChecked}
+              onChange={(e) => setAll(e.target.checked)}
+              className={checkClass}
+            />
+            <span className="text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]">
+              전체 동의
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => onAgreedChange(e.target.checked)}
+            className={checkClass}
+          />
+          <span className="text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]">
             <span className="xl:hidden">동의</span>
             <span className="hidden xl:inline">개인정보 동의</span>
-          </>
-        ) : (
-          "개인정보 수집 및 이용에 동의합니다."
+          </span>
+          <button type="button" onClick={onViewPrivacy} className={linkClass}>
+            [내용보기]
+          </button>
+        </div>
+        {showMarketing && (
+          <div className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={marketingAgreed}
+              onChange={(e) => onMarketingAgreedChange(e.target.checked)}
+              className={checkClass}
+            />
+            <span className="text-on-dark-50 shrink-0 whitespace-nowrap text-[10px] lg:text-[11px]">
+              마케팅(선택)
+            </span>
+            <button type="button" onClick={onViewMarketing} className={linkClass}>
+              [내용보기]
+            </button>
+          </div>
         )}
-      </span>
-      <button
-        type="button"
-        onClick={onView}
-        className={`shrink-0 font-semibold text-[var(--color-gold)] underline ${
-          isInline ? "text-[10px] lg:text-[11px]" : "text-xs"
-        }`}
-      >
-        [보기]
-      </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {showMarketing && (
+        <div className={rowClass}>
+          <input
+            type="checkbox"
+            checked={allChecked}
+            onChange={(e) => setAll(e.target.checked)}
+            className={checkClass}
+          />
+          <span className="flex-1 text-[13px] font-medium text-[var(--color-text)]">
+            전체 동의
+          </span>
+        </div>
+      )}
+      <div className={rowClass}>
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => onAgreedChange(e.target.checked)}
+          className={checkClass}
+        />
+        <span className="flex-1 text-[13px] text-[#7a7060]">
+          <span className="font-medium text-[var(--color-text)]">[필수]</span>{" "}
+          개인정보 수집·이용 동의
+        </span>
+        <button type="button" onClick={onViewPrivacy} className={linkClass}>
+          [내용보기]
+        </button>
+      </div>
+      {showMarketing && (
+        <div className={rowClass}>
+          <input
+            type="checkbox"
+            checked={marketingAgreed}
+            onChange={(e) => onMarketingAgreedChange(e.target.checked)}
+            className={checkClass}
+          />
+          <span className="flex-1 text-[13px] text-[#7a7060]">
+            <span className="font-medium text-[var(--color-text)]">[선택]</span>{" "}
+            추가 광고·마케팅 정보 수신 동의
+          </span>
+          <button type="button" onClick={onViewMarketing} className={linkClass}>
+            [내용보기]
+          </button>
+        </div>
+      )}
+      <p className="px-1 text-center text-[12px] text-[#7a7060]">
+        <Link
+          href={privacyPolicyHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          개인정보 처리방침 [보기]
+        </Link>
+      </p>
     </div>
   );
 }

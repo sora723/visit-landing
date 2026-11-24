@@ -10,6 +10,7 @@ import { normalizeHeroCardIconKey } from "./hero-card-icons";
 import { resolveBrandingFromExtended } from "./branding-url";
 import { resolveOgImageUrl } from "./image-url";
 import { mergeSiteTheme } from "./site-theme";
+import { parseSitePrivacySettings } from "./site-privacy";
 import type { CtaPromoImageSection } from "./types";
 
 function parseCtaTexts(raw: string | undefined): string[] {
@@ -283,5 +284,9 @@ export function buildSiteConfigFromApi(
         ? api.typeOptions
         : fallback.reservationForm?.typeOptions,
     },
+    privacy:
+      parseSitePrivacySettings(ext.privacy) ??
+      parseSitePrivacySettings(fallback.privacy) ??
+      undefined,
   };
 }

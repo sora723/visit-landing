@@ -227,6 +227,8 @@ export interface ContentExtendedData {
   settings?: {
     popupReservationEnabled?: boolean;
   };
+  /** 개인정보·마케팅 고지 (현장별) */
+  privacy?: import("./site-privacy").SitePrivacySettings;
   theme?: {
     mainColor?: string;
     subColor?: string;
